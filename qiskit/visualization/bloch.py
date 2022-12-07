@@ -355,18 +355,21 @@ class Bloch:
             self.points.append(points)
             self.point_style.append("m")
 
-    def add_vectors(self, vectors):
+    def add_vectors(self, vectors, **kwargs):
         """Add a list of vectors to Bloch sphere.
 
         Args:
             vectors (array_like):
                 Array with vectors of unit length or smaller.
+            **kwargs:
+                Options as for matplotlib.patches.FancyArrowPatch
+
         """
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
-                self.vectors.append(vec)
+                self.vectors.append({"position": vec, "opts": kwargs})
         else:
-            self.vectors.append(vectors)
+            self.vectors.append({"position": vectors, "opts": kwargs})
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
@@ -584,16 +587,25 @@ class Bloch:
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.vectors)):
 
-            xs3d = self.vectors[k][1] * np.array([0, 1])
-            ys3d = -self.vectors[k][0] * np.array([0, 1])
-            zs3d = self.vectors[k][2] * np.array([0, 1])
+            xs3d = self.vectors[k]["position"][1] * np.array([0, 1])
+            ys3d = -self.vectors[k]["position"][0] * np.array([0, 1])
+            zs3d = self.vectors[k]["position"][2] * np.array([0, 1])
 
             color = self.vector_color[np.mod(k, len(self.vector_color))]
+            opts = {}
+            opts.update(self.vectors[k]["opts"])
 
             if self.vector_style == "":
                 # simple line style
                 self.axes.plot(
-                    xs3d, ys3d, zs3d, zs=0, zdir="z", label="Z", lw=self.vector_width, color=color
+                    xs3d,
+                    ys3d,
+                    zs3d,
+                    zs=0,
+                    zdir="z",
+                    label="Z",
+                    lw=self.vector_width,
+                    color=color,
                 )
             else:
                 # decorated style, with arrow heads
@@ -605,6 +617,7 @@ class Bloch:
                     lw=self.vector_width,
                     arrowstyle=self.vector_style,
                     color=color,
+                    **opts,
                 )
 
                 self.axes.add_artist(arr)

@@ -226,7 +226,21 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     simple_gates = ["h", "x", "y", "z", "s", "sdg", "t", "tdg"]
     list_of_circuit_gates = []
 
+    starting_pos = _normalize(np.array([0, 0, 1]))
+    start = 0
     for gate in circuit._data:
+        if gate[0].name == "initialize":
+            if start == 1:
+                raise VisualizationError("can't have two initialize gate")
+            if start == 2:
+                raise VisualizationError("can't have initialize after gate")
+            from qiskit.visualization.utils import _bloch_multivector_data
+
+            bloch = _bloch_multivector_data(gate[0].params)[0]
+            starting_pos = _normalize(np.array(bloch))
+            start = 1
+            continue
+        start = 2
         if gate[0].name not in implemented_gates:
             raise VisualizationError(f"Gate {gate[0].name} is not supported")
         if gate[0].name in simple_gates:
@@ -248,8 +262,6 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
 
     if len(list_of_circuit_gates) == 0:
         raise VisualizationError("Nothing to visualize.")
-
-    starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
     if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):

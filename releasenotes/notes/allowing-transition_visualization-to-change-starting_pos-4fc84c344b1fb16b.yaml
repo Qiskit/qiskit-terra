@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    allowing initialize gate to change starting_pos 
+    in the :mod: 'qiskit.visualization'
+    function ``visualize_transition``

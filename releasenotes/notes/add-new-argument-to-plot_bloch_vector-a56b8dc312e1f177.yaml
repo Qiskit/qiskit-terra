@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Added two new optional argument,``**kwargs``
+    in the :mod: `qiskit.visualization`
+    function ``plot_bloch_vector``
+
+    Example
+
+    `` code:: python``
+
+    from qiskit import BasicAer, execute
+    from qiskit import QuantumCircuit
+    from qiskit.visualization import plot_bloch_multivector
+    
+    circuit = QuantumCircuit(3)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.rx(-0.7853, 2)
+    
+    # getting the state using backend
+    backend = BasicAer.get_backend("statevector_simulator")
+    result = execute(circuit, backend).result()
+    state = result.get_statevector(circuit)
+    plot_bloch_multivector(state, ls = "dotted")

@@ -28,7 +28,7 @@ class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that initializes some flexible collection of qubit registers, implemented by calling
-    the :class:`qiskit.extensions.StatePreparation` Class.
+    the :class:`qiskit.circuit.library.data_preparation.StatePreparation` Class.
     Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
     which is not unitary.
     """
@@ -91,7 +91,7 @@ def initialize(self, params, qubits=None):
     r"""Initialize qubits in a specific state.
 
     Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-    followed by calling :class:`qiskit.extensions.StatePreparation`
+    followed by calling :class:`qiskit.circuit.library.data_preparation.StatePreparation`
     class to prepare the qubits in a specified state.
     Both these steps are included in the
     :class:`qiskit.extensions.Initialize` instruction.
