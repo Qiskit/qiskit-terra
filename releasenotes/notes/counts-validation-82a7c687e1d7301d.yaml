@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Before this fix, the keys in the dict initializing
+    :class:`qiskit.result.Counts` could in some cases be a hetereneous
+    collection of arbitrary types. This was neither intended nor
+    documented. This will now raise an error. Furthermore, the documentation has
+    been updated to clarify allowed inputs.
