@@ -176,7 +176,7 @@ def load(filename: str):
     try:
         return qiskit_qasm3_import.parse(program)
     except qiskit_qasm3_import.ConversionError as exc:
-        raise QASM3ImporterError(str(exc)) from exc
+        raise QASM3ImporterError(f"Error converting file {filename}.") from exc
 
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
@@ -199,4 +199,4 @@ def loads(program: str):
     try:
         return qiskit_qasm3_import.parse(program)
     except qiskit_qasm3_import.ConversionError as exc:
-        raise QASM3ImporterError(str(exc)) from exc
+        raise QASM3ImporterError("Error converting OpenQASM program.") from exc

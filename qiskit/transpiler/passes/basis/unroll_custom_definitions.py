@@ -88,7 +88,7 @@ class UnrollCustomDefinitions(TransformationPass):
             try:
                 rule = node.op.definition.data
             except TypeError as err:
-                raise QiskitError(f"Error decomposing node {node.name}: {err}") from err
+                raise QiskitError(f"Error decomposing node {node.name}.") from err
             except AttributeError:
                 # definition is None
                 rule = None

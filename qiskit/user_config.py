@@ -125,8 +125,8 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_reverse_bits is not valid. {str(err)}"
-                )
+                    "Value assigned to circuit_reverse_bits is not valid."
+                ) from err
             if circuit_reverse_bits is not None:
                 self.settings["circuit_reverse_bits"] = circuit_reverse_bits
 
@@ -213,8 +213,8 @@ def set_config(key, value, section=None, file_path=None):
             config.write(cfgfile)
     except OSError as ex:
         raise exceptions.QiskitUserConfigError(
-            f"Unable to load the config file {filename}. Error: '{str(ex)}'"
-        )
+            f"Unable to load the config file {filename}."
+        ) from ex
 
     # validates config
     user_config = UserConfig(filename)

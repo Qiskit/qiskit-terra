@@ -98,7 +98,7 @@ class Unroller(TransformationPass):
                 rule = node.op.definition.data
             except (TypeError, AttributeError) as err:
                 raise QiskitError(
-                    f"Error decomposing node of instruction '{node.name}': {err}. "
+                    f"Error decomposing node of instruction '{node.name}'. "
                     f"Unable to define instruction '{node.name}' in the given basis."
                 ) from err
 
@@ -122,7 +122,7 @@ class Unroller(TransformationPass):
                     rule = rule[0].operation.definition.data
                 except (TypeError, AttributeError) as err:
                     raise QiskitError(
-                        f"Error decomposing node of instruction '{node.name}': {err}. "
+                        f"Error decomposing node of instruction '{node.name}'. "
                         f"Unable to define instruction '{rule[0].operation.name}' in the basis."
                     ) from err
 

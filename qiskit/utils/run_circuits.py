@@ -92,7 +92,7 @@ def _safe_get_job_status(job: Job, job_id: str, max_job_retries: int, wait: floa
             time.sleep(wait)
         except Exception as ex:
             raise QiskitError(
-                f"job id: {job_id}, status: 'FAIL_TO_GET_STATUS' Unknown error: ({ex})"
+                f"job id: {job_id}, status: 'FAIL_TO_GET_STATUS' Unknown error."
             ) from ex
     else:
         raise QiskitError(f"Max retry limit reached. Failed to get status for job with id {job_id}")

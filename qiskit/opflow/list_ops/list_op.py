@@ -303,11 +303,11 @@ class ListOp(OperatorBase):
         try:
             if self.num_qubits != len(permutation):
                 raise OpflowError("New index must be defined for each qubit of the operator.")
-        except ValueError:
+        except ValueError as err:
             raise OpflowError(
                 "Permute is only possible if all operators in the ListOp have the "
                 "same number of qubits."
-            ) from ValueError
+            ) from err
         if self.num_qubits < circuit_size:
             # pad the operator with identities
             new_self = self._expand_dim(circuit_size - self.num_qubits)

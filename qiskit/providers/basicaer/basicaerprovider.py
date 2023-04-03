@@ -119,7 +119,7 @@ class BasicAerProvider(ProviderV1):
         try:
             backend_instance = backend_cls(provider=self)
         except Exception as err:
-            raise QiskitError(f"Backend {backend_cls} could not be instantiated: {err}") from err
+            raise QiskitError(f"Backend {backend_cls} could not be instantiated.") from err
 
         return backend_instance
 
