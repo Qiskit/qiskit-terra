@@ -19,6 +19,7 @@ from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.target import Target
 
 
 class LayoutTransformation(TransformationPass):
@@ -30,7 +31,7 @@ class LayoutTransformation(TransformationPass):
 
     def __init__(
         self,
-        coupling_map: CouplingMap,
+        coupling_map: Union[CouplingMap, Target, None],
         from_layout: Union[Layout, str],
         to_layout: Union[Layout, str],
         seed: Union[int, np.random.default_rng] = None,
@@ -39,7 +40,7 @@ class LayoutTransformation(TransformationPass):
         """LayoutTransformation initializer.
 
         Args:
-            coupling_map (CouplingMap):
+            coupling_map:
                 Directed graph representing a coupling map.
 
             from_layout (Union[Layout, str]):
@@ -59,12 +60,15 @@ class LayoutTransformation(TransformationPass):
         super().__init__()
         self.from_layout = from_layout
         self.to_layout = to_layout
-        if coupling_map:
-            self.coupling_map = coupling_map
-            graph = coupling_map.graph.to_undirected()
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
         else:
+            self.target = None
+            self.coupling_map = coupling_map
+        if self.coupling_map is None:
             self.coupling_map = CouplingMap.from_full(len(to_layout))
-            graph = self.coupling_map.graph.to_undirected()
+        graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 

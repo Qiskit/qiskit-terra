@@ -34,6 +34,8 @@ from qiskit._accelerate.sabre_swap import (
     NeighborTable,
 )
 from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
+from qiskit.transpiler.target import Target
+from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
 from qiskit.tools.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
@@ -86,7 +88,7 @@ class SabreLayout(TransformationPass):
         """SabreLayout initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
             routing_pass (BasePass): the routing pass to use while iterating.
                 If specified this pass operates as an :class:`~.AnalysisPass` and
                 will only populate the ``layout`` field in the property set and
@@ -124,17 +126,13 @@ class SabreLayout(TransformationPass):
             both ``routing_pass`` and ``layout_trials`` are specified
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self._neighbor_table = None
-        if self.coupling_map is not None:
-            if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here to avoid modifications updating
-                # shared references in passes which require directional
-                # constraints
-                self.coupling_map = copy.deepcopy(self.coupling_map)
-                self.coupling_map.make_symmetric()
-            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
-
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
         self.routing_pass = routing_pass
@@ -150,6 +148,14 @@ class SabreLayout(TransformationPass):
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
+        if self.coupling_map is not None:
+            if not self.coupling_map.is_symmetric:
+                # deepcopy is needed here to avoid modifications updating
+                # shared references in passes which require directional
+                # constraints
+                self.coupling_map = copy.deepcopy(self.coupling_map)
+                self.coupling_map.make_symmetric()
+            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
@@ -210,7 +216,18 @@ class SabreLayout(TransformationPass):
             self.property_set["layout"] = initial_layout
             self.routing_pass.fake_run = False
             return dag
+
         dist_matrix = self.coupling_map.distance_matrix
+        print('original distance matrix')
+        print(dist_matrix)
+
+        if self.target:
+            dist_matrix = rx.digraph_floyd_warshall_numpy(
+                self.coupling_map.graph, weight_fn=lambda x: self._swap_cost(x)
+            )
+        print('new distance matrix')
+        print(dist_matrix)
+
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
 
@@ -322,3 +339,38 @@ class SabreLayout(TransformationPass):
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
         final_layout = {v: pass_final_layout._v2p[qubit_map[v]] for v in initial_layout._v2p}
         return Layout(final_layout)
+
+    def _swap_cost(self, instructions):
+        """Get the minimum cost of a SWAP on a pair of physical qubits given a list
+        of available instructions on those qubits.
+
+        TODO: this function only considers certain known basis for which Qiskit knows
+        analytical decompositions. This can be generalized to arbitrary basis using the
+        tools of monodromy polytopes.
+
+        Args:
+            instructions (list[dict]): mappings of gate name to properties for that gate.
+
+        Return:
+            float: minimum cost of performing SWAP using the available physical instructions.
+        """
+        swap_cost = np.inf
+        for key, value in instructions.items():
+            weyl = TwoQubitWeylDecomposition(self.target.operation_from_name(key))
+            a, b, c = weyl.a, weyl.b, weyl.c
+            if a == b == c == np.pi / 4:  # 1 x SWAP
+                gates_per_swap = 1
+            elif b == c == 0:  # k x controlled XX(theta)
+                gates_per_swap = 3 * (np.pi / 2 / (2 * a))
+            elif a == np.pi / 4 and c == 0:  # 3 x supercontrolled
+                gates_per_swap = 3
+            elif a == b == abs(c) == np.pi / 8:  # 2 x sqrt(SWAP)
+                gates_per_swap = 2
+            elif a == b == np.pi / 8 and c == 0:  # 2 x sqrt(iSWAP)
+                gates_per_swap = 3
+            elif (a, b, c) == (np.pi / 4, np.pi / 8, 0):  # 2 x B
+                gates_per_swap = 2
+
+            if gates_per_swap * value.error < swap_cost:
+                swap_cost = gates_per_swap * value.error
+        return swap_cost

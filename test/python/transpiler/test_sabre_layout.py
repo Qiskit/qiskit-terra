@@ -20,7 +20,7 @@ from qiskit.transpiler.passes import SabreLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
-from qiskit.providers.fake_provider import FakeAlmaden
+from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
 from qiskit.providers.fake_provider import FakeKolkata
 from qiskit.providers.fake_provider import FakeMontreal
 
@@ -88,6 +88,39 @@ class TestSabreLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32, layout_trials=32)
+        pass_.run(dag)
+
+        layout = pass_.property_set["layout"]
+        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 12, 6, 11, 13])
+
+    def test_6q_circuit_20q_coupling_with_target(self):
+        """Test finds layout for 6q circuit on 20q device."""
+        #       ┌───┐┌───┐┌───┐┌───┐┌───┐
+        # q0_0: ┤ X ├┤ X ├┤ X ├┤ X ├┤ X ├
+        #       └─┬─┘└─┬─┘└─┬─┘└─┬─┘└─┬─┘
+        # q0_1: ──┼────■────┼────┼────┼──
+        #         │  ┌───┐  │    │    │
+        # q0_2: ──┼──┤ X ├──┼────■────┼──
+        #         │  └───┘  │         │
+        # q1_0: ──■─────────┼─────────┼──
+        #            ┌───┐  │         │
+        # q1_1: ─────┤ X ├──┼─────────■──
+        #            └───┘  │
+        # q1_2: ────────────■────────────
+        qr0 = QuantumRegister(3, "q0")
+        qr1 = QuantumRegister(3, "q1")
+        circuit = QuantumCircuit(qr0, qr1)
+        circuit.cx(qr1[0], qr0[0])
+        circuit.cx(qr0[1], qr0[0])
+        circuit.cx(qr1[2], qr0[0])
+        circuit.x(qr0[2])
+        circuit.cx(qr0[2], qr0[0])
+        circuit.x(qr1[1])
+        circuit.cx(qr1[1], qr0[0])
+
+        dag = circuit_to_dag(circuit)
+        target = FakeAlmadenV2().target
+        pass_ = SabreLayout(target, seed=0, swap_trials=32, layout_trials=32)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]

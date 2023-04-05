@@ -17,6 +17,8 @@ import unittest
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.target import Target
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -41,6 +43,24 @@ class TestTrivialLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = TrivialLayout(CouplingMap(self.cmap5))
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        for i in range(3):
+            self.assertEqual(layout[qr[i]], i)
+
+    def test_3q_circuit_5q_coupling_with_target(self):
+        """Test finds trivial layout for 3q circuit on 5q device."""
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[1], qr[2])
+
+        dag = circuit_to_dag(circuit)
+        target = Target()
+        target.add_instruction(CXGate(), {tuple(edge): None for edge in self.cmap5})
+        pass_ = TrivialLayout(target)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 

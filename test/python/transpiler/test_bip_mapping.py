@@ -16,11 +16,11 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Barrier
-from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate, CXGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeLima
-from qiskit.transpiler import CouplingMap, Layout, PassManager
+from qiskit.transpiler import CouplingMap, Layout, PassManager, Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
@@ -118,6 +118,28 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(qr[2], cr[1])
 
         actual = BIPMapping(coupling)(circuit)
+
+        q = QuantumRegister(3, "q")
+        expected = QuantumCircuit(q, cr)
+        expected.cx(q[0], q[1])
+        expected.measure(q[0], cr[0])  # <- changed due to initial layout change
+        expected.measure(q[1], cr[1])  # <- changed due to initial layout change
+
+        self.assertEqual(expected, actual)
+
+    def test_can_map_measurements_correctly_with_target(self):
+        """Verify measurement nodes are updated to map correct cregs to re-mapped qregs."""
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (0, 2): None})
+
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[1], qr[2])
+        circuit.measure(qr[1], cr[0])
+        circuit.measure(qr[2], cr[1])
+
+        actual = BIPMapping(target)(circuit)
 
         q = QuantumRegister(3, "q")
         expected = QuantumCircuit(q, cr)

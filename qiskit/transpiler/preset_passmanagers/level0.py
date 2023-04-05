@@ -77,16 +77,24 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
+    if target is None:
+        coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
+
     if layout_method == "trivial":
-        _choose_layout = TrivialLayout(coupling_map)
+        _choose_layout = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
+        if backend_properties is None:
+            _choose_layout = NoiseAdaptiveLayout(target)
+        else:
+            _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         skip_routing = pass_manager_config.routing_method is not None and routing_method != "sabre"
         _choose_layout = SabreLayout(
-            coupling_map,
+            coupling_map_layout,
             max_iterations=1,
             seed=seed_transpiler,
             swap_trials=5,
@@ -122,7 +130,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout, condition=_choose_layout_condition)
-            embed = common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map, target)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
             )

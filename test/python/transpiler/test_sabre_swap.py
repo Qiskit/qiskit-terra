@@ -19,7 +19,7 @@ import ddt
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout
-from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler import CouplingMap, PassManager, Target
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
@@ -117,6 +117,27 @@ class TestSabreSwap(QiskitTestCase):
         qc.cx(0, 4)
 
         passmanager = PassManager(SabreSwap(coupling, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
+    def test_trivial_with_target(self):
+        """Test that an already mapped circuit is unchanged with target."""
+        coupling = CouplingMap.from_ring(5)
+        target = Target(num_qubits=5)
+        target.add_instruction(SwapGate(), {edge: None for edge in coupling.get_edges()})
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.cx(0, 1)  # free
+        qc.cx(2, 3)  # free
+        qc.h(0)  # free
+        qc.cx(1, 2)  # F
+        qc.cx(1, 0)
+        qc.cx(4, 3)  # F
+        qc.cx(0, 4)
+
+        passmanager = PassManager(SabreSwap(target, "basic"))
         new_qc = passmanager.run(qc)
 
         self.assertEqual(new_qc, qc)

@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo
+from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeYorktownV2
 
 
 class TestCSPLayout(QiskitTestCase):
@@ -64,6 +64,32 @@ class TestCSPLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = CSPLayout(CouplingMap(cmap5), strict_direction=False, seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        self.assertEqual(layout[qr[0]], 3)
+        self.assertEqual(layout[qr[1]], 2)
+        self.assertEqual(layout[qr[2]], 4)
+        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
+
+    def test_3q_circuit_5q_coupling_with_target(self):
+        """3 qubits in Tenerife, without considering the direction
+            qr1
+           /  |
+        qr0 - qr2 - 3
+              |   /
+               4
+        """
+        target = FakeYorktownV2().target
+
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        circuit.cx(qr[0], qr[2])  # qr0 -> qr2
+        circuit.cx(qr[1], qr[2])  # qr1 -> qr2
+
+        dag = circuit_to_dag(circuit)
+        pass_ = CSPLayout(target, strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 

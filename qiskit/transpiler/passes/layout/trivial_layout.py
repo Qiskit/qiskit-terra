@@ -15,6 +15,7 @@
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class TrivialLayout(AnalysisPass):
@@ -33,13 +34,18 @@ class TrivialLayout(AnalysisPass):
         """TrivialLayout initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
 
         Raises:
             TranspilerError: if invalid options
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
 
     def run(self, dag):
         """Run the TrivialLayout pass on `dag`.
@@ -48,15 +54,18 @@ class TrivialLayout(AnalysisPass):
             dag (DAGCircuit): DAG to find layout for.
 
         Raises:
-            TranspilerError: if dag wider than self.coupling_map
+            TranspilerError: if dag wider than the target backend
         """
+        if self.target is not None:
+            if dag.num_qubits() > self.target.num_qubits:
+                raise TranspilerError("Number of qubits greater than device.")
+        elif dag.num_qubits() > self.coupling_map.size():
+            raise TranspilerError("Number of qubits greater than device.")
         if not self.coupling_map.is_connected():
             raise TranspilerError(
                 "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
                 "map."
             )
-        if dag.num_qubits() > self.coupling_map.size():
-            raise TranspilerError("Number of qubits greater than device.")
         self.property_set["layout"] = Layout.generate_trivial_layout(
             *(dag.qubits + list(dag.qregs.values()))
         )

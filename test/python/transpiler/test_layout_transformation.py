@@ -17,7 +17,8 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout, Target
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import LayoutTransformation
 
 
@@ -54,6 +55,25 @@ class TestLayoutTransformation(QiskitTestCase):
         ltpass = LayoutTransformation(
             coupling_map=coupling, from_layout=from_layout, to_layout=to_layout, seed=42
         )
+        qc = QuantumCircuit(4)  # input (empty) physical circuit
+        dag = circuit_to_dag(qc)
+        output_dag = ltpass.run(dag)
+
+        expected = QuantumCircuit(4)
+        expected.swap(1, 0)
+        expected.swap(1, 2)
+        expected.swap(2, 3)
+
+        self.assertEqual(circuit_to_dag(expected), output_dag)
+
+    def test_four_qubit_with_target(self):
+        """Test if the permutation {0->3,1->0,2->1,3->2} is implemented correctly."""
+        v = QuantumRegister(4, "v")  # virtual qubits
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None, (2, 3): None})
+        from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2, v[3]: 3})
+        to_layout = Layout({v[0]: 3, v[1]: 0, v[2]: 1, v[3]: 2})
+        ltpass = LayoutTransformation(target, from_layout=from_layout, to_layout=to_layout, seed=42)
         qc = QuantumCircuit(4)  # input (empty) physical circuit
         dag = circuit_to_dag(qc)
         output_dag = ltpass.run(dag)

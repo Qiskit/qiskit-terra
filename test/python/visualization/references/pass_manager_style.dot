@@ -53,37 +53,39 @@ fontname=helvetica;
 label="[5] ";
 labeljust=l;
 16 [color=green, fontname=helvetica, label=CheckMap, shape=rectangle];
-17 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+17 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=dashed];
 17 -> 16;
+18 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+18 -> 16;
 12 -> 16;
 }
 
-subgraph cluster_18 {
+subgraph cluster_19 {
 fontname=helvetica;
 label="[6] do_while";
 labeljust=l;
-19 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
-16 -> 19;
+20 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
+16 -> 20;
 }
 
-subgraph cluster_20 {
+subgraph cluster_21 {
 fontname=helvetica;
 label="[7] ";
 labeljust=l;
-21 [color=blue, fontname=helvetica, label=GateDirection, shape=rectangle];
-22 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
-22 -> 21;
-23 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
-23 -> 21;
-19 -> 21;
+22 [color=blue, fontname=helvetica, label=GateDirection, shape=rectangle];
+23 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+23 -> 22;
+24 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+24 -> 22;
+20 -> 22;
 }
 
-subgraph cluster_24 {
+subgraph cluster_25 {
 fontname=helvetica;
 label="[8] ";
 labeljust=l;
-25 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
-21 -> 25;
+26 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
+22 -> 26;
 }
 
 }

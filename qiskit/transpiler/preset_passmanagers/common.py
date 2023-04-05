@@ -195,7 +195,7 @@ def generate_unroll_3q(
     return unroll_3q
 
 
-def generate_embed_passmanager(coupling_map):
+def generate_embed_passmanager(coupling_map=None, target=None):
     """Generate a layout embedding :class:`~qiskit.transpiler.PassManager`
 
     This is used to generate a :class:`~qiskit.transpiler.PassManager` object
@@ -204,11 +204,18 @@ def generate_embed_passmanager(coupling_map):
     Args:
         coupling_map (CouplingMap): The coupling map for the backend to embed
             the circuit to.
+        target (Target): The target for the compiler to embed the circuit to.
+            If specified this will superscede the provided ``coupling_map``
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
             set has been set in earlier stages
     """
-    return PassManager([FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()])
+    if coupling_map is None:
+        cmap = target
+    else:
+        cmap = coupling_map
+
+    return PassManager([FullAncillaAllocation(cmap), EnlargeWithAncilla(), ApplyLayout()])
 
 
 def _layout_not_perfect(property_set):
@@ -273,7 +280,7 @@ def generate_routing_passmanager(
         return False
 
     routing = PassManager()
-    routing.append(CheckMap(coupling_map))
+    routing.append(CheckMap(coupling_map, target=target))
 
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]

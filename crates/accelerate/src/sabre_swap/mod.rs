@@ -556,6 +556,7 @@ fn choose_best_swap(
         } else if (score - min_score).abs() < BEST_EPSILON {
             best_swaps.push(swap);
         }
+        //println!("swap: {}-{}: {}", swap[0], swap[1], score);
     }
     *best_swaps.choose(rng).unwrap()
 }

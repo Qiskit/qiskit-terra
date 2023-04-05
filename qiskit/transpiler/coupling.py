@@ -254,9 +254,10 @@ class CouplingMap:
         # 0.13.0 is released.
         edges = self.get_edges()
         edge_set = set(edges)
-        for src, dest in edges:
+        for i in range(len(edge_set)):
+            src, dest, weight = self.graph.edge_index_map()[i]
             if (dest, src) not in edge_set:
-                self.graph.add_edge(dest, src, None)
+                self.graph.add_edge(dest, src, weight)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 

@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    The following layout and routing transpiler passes from the
+    :mod:`.qiskit.transpiler.passes` modules have a new keyword argument,
+    ``target`` which takes in a :class:`~.Target` object which is used to model
+    the constraints of a target backend. If the ``target`` keyword argument is
+    specified it will be used as the source of truth for any hardware
+    constraints used in the operation of the transpiler pass. It will
+    supersede any other arguments for specifying hardware constraints,
+    typically those arguments which take a :class:`~.CouplingMap` or a
+    :class:`~.BackendProperties` object.
+
+    The list of these passes with the new ``target`` argument are:
+
+      * :class:`~.CSPLayout`
+      * :class:`~.FullAncillaAllocation`
+      * :class:`~.Layout2qDistance`
+      * :class:`~.NoiseAdaptiveLayout`
+      * :class:`~.SabreLayout`
+      * :class:`~.TrivialLayout`
+      * :class:`~.BasicSwap`
+      * :class:`~.BIPMapping`
+      * :class:`~.LayoutTransformation`
+      * :class:`~.LookaheadSwap`
+      * :class:`~.SabreSwap`
+      * :class:`~.StochasticSwap`
+      * :class:`~.CheckMap`
+  - |
+    The pass manager construction helper function :func:`~.generate_embed_passmanager`
+    has a new keyword argument ``target`` which is used to specify a :class:`~.Target`
+    object to model the constraints of the target backend being compiled for
+    when generating a new :class:~.PassManager`. If specified this new argument will
+    supersede the other argument ``coupling_map``.

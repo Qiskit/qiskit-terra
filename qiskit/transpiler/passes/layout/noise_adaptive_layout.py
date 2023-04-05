@@ -19,6 +19,7 @@ import rustworkx as rx
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import target_to_backend_properties, Target
 
 
 class NoiseAdaptiveLayout(AnalysisPass):
@@ -58,13 +59,18 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """NoiseAdaptiveLayout initializer.
 
         Args:
-            backend_prop (BackendProperties): backend properties object
+            backend_prop (Union[BackendProperties, Target]): backend properties object
 
         Raises:
             TranspilerError: if invalid options
         """
         super().__init__()
-        self.backend_prop = backend_prop
+        if isinstance(backend_prop, Target):
+            self.target = backend_prop
+            self.backend_prop = target_to_backend_properties(self.target)
+        else:
+            self.target = None
+            self.backend_prop = backend_prop
         self.swap_graph = rx.PyDiGraph()
         self.cx_reliability = {}
         self.readout_reliability = {}

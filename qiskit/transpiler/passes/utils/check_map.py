@@ -20,18 +20,37 @@ class CheckMap(AnalysisPass):
     """Check if a DAG circuit is already mapped to a coupling map.
 
     Check if a DAGCircuit is mapped to `coupling_map` by checking that all
-    2-qubit interactions are laid out to be physically close, setting the
-    property ``is_swap_mapped`` to ``True`` or ``False`` accordingly.
+    2-qubit interactions are laid out to be on adjacent qubits in the global coupling
+    map of the device, setting the property ``is_swap_mapped`` to ``True`` or ``False``
+    accordingly. Note this does not validate directionality of the connectivity between
+    qubits. If you need to check gates are implemented in a native direction
+    for a target use the :class:`~.CheckGateDirection` pass instead.
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map=None, target=None):
         """CheckMap initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if coupling_map is None and target is None:
+            self.qargs = None
+        else:
+            self.qargs = set()
+            if target is not None:
+                if target.qargs is not None:
+                    for edge in target.qargs:
+                        if len(edge) == 2:
+                            self.qargs.add(edge)
+                            self.qargs.add((edge[1], edge[0]))
+            else:
+                for edge in coupling_map.get_edges():
+                    self.qargs.add(edge)
+                    self.qargs.add((edge[1], edge[0]))
 
     def run(self, dag):
         """Run the CheckMap pass on `dag`.
@@ -46,12 +65,10 @@ class CheckMap(AnalysisPass):
 
         self.property_set["is_swap_mapped"] = True
 
-        if self.coupling_map is None or len(self.coupling_map.graph) == 0:
+        if not self.qargs:
             return
 
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-        # Use dist matrix directly to avoid validation overhead
-        dist_matrix = self.coupling_map.distance_matrix
         for node in dag.op_nodes(include_directives=False):
             is_controlflow_op = isinstance(node.op, ControlFlowOp)
             if len(node.qargs) == 2 and not is_controlflow_op:
@@ -59,7 +76,7 @@ class CheckMap(AnalysisPass):
                     continue
                 physical_q0 = qubit_indices[node.qargs[0]]
                 physical_q1 = qubit_indices[node.qargs[1]]
-                if dist_matrix[physical_q0, physical_q1] != 1:
+                if (physical_q0, physical_q1) not in self.qargs:
                     self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
                         node.name,
                         physical_q0,

@@ -25,7 +25,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import FakeMumbai
+from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit
 
@@ -1265,6 +1265,19 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="stochastic",
             layout_method="dense",
             seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
+
+    @data(*range(1, 27))
+    def test_random_circuit_no_control_flow_target(self, size):
+        """Test that transpiled random circuits without control flow are physical circuits."""
+        circuit = random_circuit(size, 3, measure=True, seed=12342)
+        tqc = transpile(
+            circuit,
+            routing_method="stochastic",
+            layout_method="dense",
+            seed_transpiler=12342,
+            target=FakeMumbaiV2().target,
         )
         self.assert_valid_circuit(tqc)
 

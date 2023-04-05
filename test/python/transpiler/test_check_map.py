@@ -15,8 +15,9 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
@@ -40,6 +41,25 @@ class TestCheckMapCX(QiskitTestCase):
         coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
+        pass_.run(dag)
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
+
+    def test_trivial_nop_map_target(self):
+        """Trivial map in a circuit without entanglement
+        qr0:---[H]---
+
+        qr1:---[H]---
+
+        qr2:---[H]---
+
+        CouplingMap map: None
+        """
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr)
+        target = Target()
+        dag = circuit_to_dag(circuit)
+        pass_ = CheckMap(target=target)
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
 
@@ -81,6 +101,26 @@ class TestCheckMapCX(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
+        pass_.run(dag)
+
+        self.assertFalse(pass_.property_set["is_swap_mapped"])
+
+    def test_swap_mapped_false_target(self):
+        """Needs [0]-[1] in a [0]--[2]--[1]
+        qr0:--(+)--
+               |
+        qr1:---.---
+
+        CouplingMap map: [0]--[2]--[1]
+        """
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), {(0, 2): None, (2, 1): None})
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CheckMap(target=target)
         pass_.run(dag)
 
         self.assertFalse(pass_.property_set["is_swap_mapped"])

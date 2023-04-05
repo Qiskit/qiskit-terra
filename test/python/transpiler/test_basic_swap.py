@@ -14,7 +14,8 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
+from qiskit.circuit.library import CXGate
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -101,6 +102,40 @@ class TestBasicSwap(QiskitTestCase):
         expected.cx(qr[0], qr[2])
 
         pass_ = BasicSwap(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_a_single_swap_with_target(self):
+        """Adding a swap
+        q0:-------
+
+        q1:--(+)--
+              |
+        q2:---.---
+
+        CouplingMap map: [1]--[0]--[2]
+
+        q0:--X---.---
+             |   |
+        q1:--X---|---
+                 |
+        q2:-----(+)--
+
+        """
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (0, 2): None})
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[2])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[1], qr[0])
+        expected.cx(qr[0], qr[2])
+
+        pass_ = BasicSwap(target)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)

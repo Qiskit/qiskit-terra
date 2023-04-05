@@ -21,6 +21,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils import optionals as _optionals
+from qiskit.transpiler.target import Target
 
 
 @_optionals.HAS_CONSTRAINT.require_in_instance
@@ -28,7 +29,12 @@ class CSPLayout(AnalysisPass):
     """If possible, chooses a Layout as a CSP, using backtracking."""
 
     def __init__(
-        self, coupling_map, strict_direction=False, seed=None, call_limit=1000, time_limit=10
+        self,
+        coupling_map,
+        strict_direction=False,
+        seed=None,
+        call_limit=1000,
+        time_limit=10,
     ):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
@@ -42,7 +48,7 @@ class CSPLayout(AnalysisPass):
         * time limit reached: If no perfect layout was found and the time limit was reached.
 
         Args:
-            coupling_map (Coupling): Directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG.
@@ -53,7 +59,13 @@ class CSPLayout(AnalysisPass):
                 None means no time limit. Default: 10 seconds.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
+
         self.strict_direction = strict_direction
         self.call_limit = call_limit
         self.time_limit = time_limit
