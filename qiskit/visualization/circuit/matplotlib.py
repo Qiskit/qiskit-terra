@@ -23,6 +23,7 @@ import numpy as np
 from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister, Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
+    iSwapGate,
     RZZGate,
     U1Gate,
     PhaseGate,
@@ -384,7 +385,9 @@ class MatplotlibDrawer:
                 ):
                     continue
 
-                if isinstance(op, SwapGate) or isinstance(base_type, SwapGate):
+                if isinstance(op, (iSwapGate, SwapGate)) or isinstance(
+                    base_type, (iSwapGate, SwapGate)
+                ):
                     continue
 
                 # small increments at end of the 3 _get_text_width calls are for small
@@ -1059,6 +1062,11 @@ class MatplotlibDrawer:
             self._swap(xy, node, self._data[node]["lc"])
             return
 
+        # iSwap gate
+        if isinstance(op, iSwapGate):
+            self._iswap(xy, self._data[node]["lc"])
+            return
+
         # RZZ Gate
         elif isinstance(op, RZZGate):
             self._symmetric_gate(node, RZZGate)
@@ -1175,6 +1183,9 @@ class MatplotlibDrawer:
 
         elif isinstance(base_type, SwapGate):
             self._swap(xy[num_ctrl_qubits:], node, self._data[node]["lc"])
+
+        elif isinstance(base_type, iSwapGate):
+            self._iswap(xy[num_ctrl_qubits:], self._data[node]["lc"])
 
         else:
             self._multiqubit_gate(node, xy[num_ctrl_qubits:])
@@ -1340,6 +1351,42 @@ class MatplotlibDrawer:
             color=color,
             linewidth=self._lwidth2,
             zorder=PORDER_LINE + 1,
+        )
+
+    def _iswap(self, xy, color=None):
+        """Draw an iSwap gate"""
+        tgt_color = self._style["dispcol"]["target"]
+        tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
+        self._iswap_cross(xy[0], ec=color, ac=tgt)
+        self._iswap_cross(xy[1], ec=color, ac=tgt)
+        self._line(xy[0], xy[1], lc=color)
+
+    def _iswap_cross(self, xy, ec=None, ac=None):
+        """Draw the iSwap cross symbol"""
+        xpos, ypos = xy
+        box = self._patches_mod.Circle(
+            xy=(xpos, ypos),
+            radius=HIG * 0.35,
+            fc=ec,
+            ec=ec,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE,
+        )
+        self._ax.add_patch(box)
+
+        self._ax.plot(
+            [xpos - 0.20 * WID, xpos + 0.20 * WID],
+            [ypos - 0.20 * WID, ypos + 0.20 * WID],
+            color=ac,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE + 1,
+        )
+        self._ax.plot(
+            [xpos - 0.20 * WID, xpos + 0.20 * WID],
+            [ypos + 0.20 * WID, ypos - 0.20 * WID],
+            color=ac,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE + 1,
         )
 
     def _sidetext(self, node, xy, tc=None, text=""):

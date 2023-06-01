@@ -27,9 +27,11 @@ from qiskit.providers.fake_provider import FakeTenerife
 from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (
     XGate,
+    CXGate,
     MCXGate,
     HGate,
     RZZGate,
+    iSwapGate,
     SwapGate,
     DCXGate,
     ZGate,
@@ -408,6 +410,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(ZGate().control(1, ctrl_state="0", label="CZ Gate"), [2, 3])
 
         self.circuit_drawer(circuit, filename="cz.png")
+
+    def test_cx_iswap_swap(self):
+        """Test CX, iSWAP and Swap gates in a circuit."""
+        circuit = QuantumCircuit(3)
+        circuit = circuit.compose(CXGate(), [0, 1])
+        circuit = circuit.compose(iSwapGate(), [0, 1])
+        circuit = circuit.compose(SwapGate(), [0, 1])
+        circuit = circuit.compose(CXGate().control(), [0, 1, 2])
+        circuit = circuit.compose(iSwapGate().control(), [0, 1, 2])
+        circuit = circuit.compose(SwapGate().control(), [0, 1, 2])
+        self.circuit_drawer(circuit, filename="cx_iswap_swap.png")
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""

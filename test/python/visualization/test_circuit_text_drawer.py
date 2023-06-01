@@ -41,11 +41,13 @@ from qiskit.circuit.library import (
     ZGate,
     YGate,
     U1Gate,
-    SwapGate,
     RZZGate,
     CU3Gate,
     CU1Gate,
     CPhaseGate,
+    CXGate,
+    iSwapGate,
+    SwapGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
@@ -1151,6 +1153,46 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr2 = QuantumRegister(2, "q2")
         circuit = QuantumCircuit(qr1, qr2)
         circuit.swap(qr1, qr2)
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify="left")), expected)
+
+    def test_text_cx_iswap_swap(self):
+        """Drawing of CX, iSwap and Swap gates."""
+        expected = "\n".join(
+            [
+                "                   ",
+                "q_0: |0>──■───⊗──X─",
+                "        ┌─┴─┐ │  │ ",
+                "q_1: |0>┤ X ├─⊗──X─",
+                "        └───┘      ",
+                "q_2: |0>───────────",
+                "                   ",
+            ]
+        )
+
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+        circuit.iswap(0, 1)
+        circuit.swap(0, 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, justify="left")), expected)
+
+    def test_text_ccx_ciswap_cswap(self):
+        """Drawing of CX, iSwap and Swap gates."""
+        expected = "\n".join(
+            [
+                "                   ",
+                "q_0: |0>──■───■──■─",
+                "          │   │  │ ",
+                "q_1: |0>──■───⊗──X─",
+                "        ┌─┴─┐ │  │ ",
+                "q_2: |0>┤ X ├─⊗──X─",
+                "        └───┘      ",
+            ]
+        )
+
+        circuit = QuantumCircuit(3)
+        circuit = circuit.compose(CXGate().control(), [0, 1, 2])
+        circuit = circuit.compose(iSwapGate().control(), [0, 1, 2])
+        circuit = circuit.compose(SwapGate().control(), [0, 1, 2])
         self.assertEqual(str(_text_circuit_drawer(circuit, justify="left")), expected)
 
     def test_text_justify_right_measure_resize(self):

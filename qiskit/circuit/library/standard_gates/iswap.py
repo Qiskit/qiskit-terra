@@ -37,9 +37,9 @@ class iSwapGate(Gate):
 
     .. parsed-literal::
 
-        q_0: ─⨂─
+        q_0: ─⊗─
               │
-        q_1: ─⨂─
+        q_1: ─⊗─
 
     **Reference Implementation:**
 

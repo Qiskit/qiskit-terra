@@ -23,7 +23,14 @@ from qiskit.circuit import Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
-from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
+from qiskit.circuit.library.standard_gates import (
+    IGate,
+    RZZGate,
+    SwapGate,
+    iSwapGate,
+    SXGate,
+    SXdgGate,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 
 from ._utils import (
@@ -400,6 +407,22 @@ class Ex(DirectOnQuWire):
 
     def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
         super().__init__("X")
+        self.bot_connect = "║" if conditional else bot_connect
+        self.top_connect = top_connect
+
+
+class CircleEx(DirectOnQuWire):
+    """Draws an ⨂ (usually with a connector). E.g. the top part of an iswap gate.
+
+    ::
+
+        top:
+        mid: ─⊗─ ───⊗───
+        bot:  │     │
+    """
+
+    def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
+        super().__init__("⊗")
         self.bot_connect = "║" if conditional else bot_connect
         self.top_connect = top_connect
 
@@ -1045,6 +1068,11 @@ class TextDrawing:
             gates = [Ex(conditional=conditional) for _ in range(len(node.qargs))]
             add_connected_gate(node, gates, layer, current_cons)
 
+        elif isinstance(op, iSwapGate):
+            # iswap
+            gates = [CircleEx(conditional=conditional) for _ in range(len(node.qargs))]
+            add_connected_gate(node, gates, layer, current_cons)
+
         elif isinstance(op, Reset):
             # reset
             layer.set_qubit(node.qargs[0], ResetDisplay(conditional=conditional))
@@ -1073,6 +1101,10 @@ class TextDrawing:
             elif base_gate.name == "swap":
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
+                add_connected_gate(node, gates, layer, current_cons)
+            elif base_gate.name == "iswap":
+                # control-iswap
+                gates += [CircleEx(conditional=conditional), CircleEx(conditional=conditional)]
                 add_connected_gate(node, gates, layer, current_cons)
             elif base_gate.name == "rzz":
                 # crzz
