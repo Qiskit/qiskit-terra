@@ -9,5 +9,5 @@ features:
     QPY would only accept a :attr:`~qiskit.circuit.QuantumCircuit.global_phase`
     that was a ``float``.
 
-    This requires the QPY format :ref:`qpy_version_2` which was introduced in
+    This requires the QPY format version 2 which was introduced in
     this release to represent the additional types.
