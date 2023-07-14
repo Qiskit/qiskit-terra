@@ -14,7 +14,7 @@
 
 
 import numpy as np
-import rustworkx
+import rustworkx as rx
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -121,7 +121,7 @@ class DenseLayout(AnalysisPass):
         if num_qubits == 0:
             return []
 
-        adjacency_matrix = rustworkx.adjacency_matrix(coupling_map.graph)
+        adjacency_matrix = rx.adjacency_matrix(coupling_map.graph)
         reverse_index_map = {v: k for k, v in enumerate(coupling_map.graph.nodes())}
 
         error_mat, use_error = _build_error_matrix(

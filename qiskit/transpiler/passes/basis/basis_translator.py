@@ -20,7 +20,7 @@ from functools import singledispatchmethod
 from itertools import zip_longest
 from collections import defaultdict
 
-import rustworkx
+import rustworkx as rx
 
 from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
@@ -385,11 +385,11 @@ class BasisTranslator(TransformationPass):
 
 
 class StopIfBasisRewritable(Exception):
-    """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
+    """Custom exception that signals `rx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
-    """Handles events emitted during `rustworkx.dijkstra_search`."""
+class BasisSearchVisitor(rx.visit.DijkstraVisitor):
+    """Handles events emitted during `rx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis):
         self.graph = graph
@@ -440,7 +440,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[edata.index] > 0 or target in self.target_basis:
-            raise rustworkx.visit.PruneSearch
+            raise rx.visit.PruneSearch
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
@@ -519,7 +519,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         )
         rtn = None
         try:
-            rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+            rx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
         except StopIfBasisRewritable:
             rtn = vis.basis_transforms
 
@@ -586,7 +586,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             ]
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-
                 logger.debug(
                     "Updating transform for mapped instr %s %s from \n%s",
                     mapped_instr_name,
@@ -595,7 +594,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
             for node in doomed_nodes:
-
                 replacement = equiv.assign_parameters(
                     dict(zip_longest(equiv_params, node.op.params))
                 )
@@ -605,7 +603,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 dag.substitute_node_with_dag(node, replacement_dag)
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-
                 logger.debug(
                     "Updated transform for mapped instr %s %s to\n%s",
                     mapped_instr_name,

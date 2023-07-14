@@ -14,7 +14,7 @@
 
 from math import pi
 from typing import Optional, Union
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -108,8 +108,8 @@ class SXGate(Gate):
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the SX gate."""
-        return numpy.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=dtype) / 2
+        """Return a np.array for the SX gate."""
+        return np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=dtype) / 2
 
 
 class SXdgGate(Gate):
@@ -166,8 +166,8 @@ class SXdgGate(Gate):
         return SXGate()
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the SXdg gate."""
-        return numpy.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]], dtype=dtype) / 2
+        """Return a np.array for the SXdg gate."""
+        return np.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]], dtype=dtype) / 2
 
 
 class CSXGate(ControlledGate):
@@ -226,7 +226,7 @@ class CSXGate(ControlledGate):
 
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _matrix1 = np.array(
         [
             [1, 0, 0, 0],
             [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
@@ -234,7 +234,7 @@ class CSXGate(ControlledGate):
             [0, (1 - 1j) / 2, 0, (1 + 1j) / 2],
         ]
     )
-    _matrix0 = numpy.array(
+    _matrix0 = np.array(
         [
             [(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
             [0, 1, 0, 0],
@@ -266,8 +266,8 @@ class CSXGate(ControlledGate):
         self.definition = qc
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CSX gate."""
+        """Return a np.array for the CSX gate."""
         mat = self._matrix1 if self.ctrl_state else self._matrix0
         if dtype:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat

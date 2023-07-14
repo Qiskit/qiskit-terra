@@ -43,7 +43,8 @@ def matplotlib_close_if_inline(figure):
     duplicate images appearing; the inline backends will capture the figure in preparation and
     display it as well, whereas the drawers want to return the figure to be displayed."""
     # This can only called if figure has already been created, so matplotlib must exist.
-    import matplotlib.pyplot
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
 
-    if matplotlib.get_backend() in MATPLOTLIB_INLINE_BACKENDS:
-        matplotlib.pyplot.close(figure)
+    if mpl.get_backend() in MATPLOTLIB_INLINE_BACKENDS:
+        plt.close(figure)

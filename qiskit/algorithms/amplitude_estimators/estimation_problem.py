@@ -16,7 +16,7 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable
 
-import numpy
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import GroverOperator
@@ -270,5 +270,5 @@ def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quant
     qr = QuantumRegister(1, "scaling")
     rescaled = QuantumCircuit(*circuit.qregs, qr)
     rescaled.compose(circuit, circuit.qubits, inplace=True)
-    rescaled.ry(2 * numpy.arcsin(scaling_factor), qr)
+    rescaled.ry(2 * np.arcsin(scaling_factor), qr)
     return rescaled

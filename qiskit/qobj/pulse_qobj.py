@@ -19,7 +19,7 @@ import copy
 import pprint
 from typing import Union, List
 
-import numpy
+import numpy as np
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
@@ -502,7 +502,7 @@ class PulseLibraryItem:
         """
         self.name = name
         if isinstance(samples[0], list):
-            self.samples = numpy.array([complex(sample[0], sample[1]) for sample in samples])
+            self.samples = np.array([complex(sample[0], sample[1]) for sample in samples])
         else:
             self.samples = samples
 
@@ -598,11 +598,11 @@ class PulseQobj:
         .. code-block::
 
             import json
-            import numpy
+            import numpy as np
 
             class QobjEncoder(json.JSONEncoder):
                 def default(self, obj):
-                    if isinstance(obj, numpy.ndarray):
+                    if isinstance(obj, np.ndarray):
                         return obj.tolist()
                     if isinstance(obj, complex):
                         return (obj.real, obj.imag)

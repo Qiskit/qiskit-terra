@@ -12,7 +12,7 @@
 
 """Result of running PhaseEstimation"""
 from __future__ import annotations
-import numpy
+import numpy as np
 
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.result import Result
@@ -35,7 +35,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         self,
         num_evaluation_qubits: int,
         circuit_result: Result,
-        phases: numpy.ndarray | dict[str, float],
+        phases: np.ndarray | dict[str, float],
     ) -> None:
         """
         Args:
@@ -51,7 +51,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         self._circuit_result = circuit_result
 
     @property
-    def phases(self) -> numpy.ndarray | dict:
+    def phases(self) -> np.ndarray | dict:
         """Return all phases and their frequencies computed by QPE.
 
         This is an array or dict whose values correspond to weights on bit strings.
@@ -90,9 +90,9 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         if isinstance(self.phases, dict):
             binary_phase_string = max(self.phases, key=self.phases.get)
         else:
-            # numpy.argmax ignores complex part of number. But, we take abs anyway
-            idx = numpy.argmax(abs(self.phases))
-            binary_phase_string = numpy.binary_repr(idx, self._num_evaluation_qubits)[::-1]
+            # np.argmax ignores complex part of number. But, we take abs anyway
+            idx = np.argmax(abs(self.phases))
+            binary_phase_string = np.binary_repr(idx, self._num_evaluation_qubits)[::-1]
         phase = _bit_string_to_phase(binary_phase_string)
         return phase
 
@@ -132,7 +132,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
                     # Each index corresponds to a computational basis state with the LSB rightmost.
                     # But, we chose to apply the unitaries such that the phase is recorded
                     # in reverse order. So, we reverse the bitstrings here.
-                    binary_phase_string = numpy.binary_repr(idx, self._num_evaluation_qubits)[::-1]
+                    binary_phase_string = np.binary_repr(idx, self._num_evaluation_qubits)[::-1]
                     if as_float:
                         _key: str | float = _bit_string_to_phase(binary_phase_string)
                     else:

@@ -14,7 +14,7 @@
 
 from typing import Optional
 
-import matplotlib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle
@@ -184,7 +184,7 @@ class Mpl2DPlotter(BasePlotter):
                 size=self.canvas.formatter["text_size.fig_title"],
             )
 
-    def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
+    def get_image(self, interactive: bool = False) -> mpl.pyplot.Figure:
         """Get image data to return.
 
         Args:

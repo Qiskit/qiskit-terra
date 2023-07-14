@@ -15,7 +15,7 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
 from numbers import Number
-import numpy
+import numpy as np
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -56,15 +56,15 @@ class HamiltonianGate(Gate):
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
         # Convert to numpy array in case not already an array
-        data = numpy.array(data, dtype=complex)
+        data = np.array(data, dtype=complex)
         # Check input is unitary
         if not is_hermitian_matrix(data):
             raise ExtensionError("Input matrix is not Hermitian.")
-        if isinstance(time, Number) and time != numpy.real(time):
+        if isinstance(time, Number) and time != np.real(time):
             raise ExtensionError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
-        num_qubits = int(numpy.log2(input_dim))
+        num_qubits = int(np.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
@@ -99,7 +99,7 @@ class HamiltonianGate(Gate):
 
     def conjugate(self):
         """Return the conjugate of the Hamiltonian."""
-        return HamiltonianGate(numpy.conj(self.params[0]), -self.params[1])
+        return HamiltonianGate(np.conj(self.params[0]), -self.params[1])
 
     def adjoint(self):
         """Return the adjoint of the unitary."""
@@ -107,7 +107,7 @@ class HamiltonianGate(Gate):
 
     def transpose(self):
         """Return the transpose of the Hamiltonian."""
-        return HamiltonianGate(numpy.transpose(self.params[0]), self.params[1])
+        return HamiltonianGate(np.transpose(self.params[0]), self.params[1])
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -122,7 +122,7 @@ class HamiltonianGate(Gate):
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""
-        if isinstance(parameter, (float, int, numpy.ndarray)):
+        if isinstance(parameter, (float, int, np.ndarray)):
             return parameter
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
             return float(parameter)

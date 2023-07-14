@@ -13,7 +13,7 @@
 """Global Phase Gate"""
 
 from typing import Optional
-import numpy
+import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -56,6 +56,6 @@ class GlobalPhaseGate(Gate):
         return GlobalPhaseGate(-self.params[0])
 
     def __array__(self, dtype=complex):
-        """Return a numpy.array for the global_phase gate."""
+        """Return a np.array for the global_phase gate."""
         theta = self.params[0]
-        return numpy.array([[numpy.exp(1j * theta)]], dtype=dtype)
+        return np.array([[np.exp(1j * theta)]], dtype=dtype)

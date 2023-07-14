@@ -13,7 +13,7 @@
 """Swap gate."""
 
 from typing import Optional, Union
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -108,8 +108,8 @@ class SwapGate(Gate):
         return SwapGate()  # self-inverse
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the SWAP gate."""
-        return numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+        """Return a np.array for the SWAP gate."""
+        return np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=dtype)
 
 
 class CSwapGate(ControlledGate):
@@ -189,7 +189,7 @@ class CSwapGate(ControlledGate):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _matrix1 = np.array(
         [
             [1, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0],
@@ -201,7 +201,7 @@ class CSwapGate(ControlledGate):
             [0, 0, 0, 0, 0, 0, 0, 1],
         ]
     )
-    _matrix0 = numpy.array(
+    _matrix0 = np.array(
         [
             [1, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0],
@@ -255,8 +255,8 @@ class CSwapGate(ControlledGate):
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the Fredkin (CSWAP) gate."""
+        """Return a np.array for the Fredkin (CSWAP) gate."""
         mat = self._matrix1 if self.ctrl_state else self._matrix0
         if dtype:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat

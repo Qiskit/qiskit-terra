@@ -18,7 +18,7 @@
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
-import numpy
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.utils import QuantumInstance
@@ -88,7 +88,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
 
         with self.subTest("coeff gets squared in CircuitSampler shot-based readout"):
             with self.assertWarns(DeprecationWarning):
-                state = (Plus + Minus) / numpy.sqrt(2)
+                state = (Plus + Minus) / np.sqrt(2)
                 sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
                 self.assertAlmostEqual(sampler.eval(), 1 + 0j)
 
@@ -135,10 +135,10 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         """Test evaluating a ListOp with non-linear combo function works with coefficients."""
 
         state = One
-        op = ListOp(5 * [I], coeff=2, combo_fn=numpy.prod)
+        op = ListOp(5 * [I], coeff=2, combo_fn=np.prod)
         expr1 = ~StateFn(op) @ state
 
-        expr2 = ListOp(5 * [~state @ I @ state], coeff=2, combo_fn=numpy.prod)
+        expr2 = ListOp(5 * [~state @ I @ state], coeff=2, combo_fn=np.prod)
 
         self.assertEqual(expr1.eval(), 2)  # if the coeff is propagated too far the result is 4
         self.assertEqual(expr2.eval(), 2)
@@ -176,7 +176,6 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         circuit.ry(x, 0)
 
         with self.assertWarns(DeprecationWarning):
-
             expr1 = ~StateFn(H) @ StateFn(circuit)
             expr2 = ~StateFn(X) @ StateFn(circuit)
             sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"), caching=caching)

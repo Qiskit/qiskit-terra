@@ -15,7 +15,7 @@ import math
 from math import pi
 from typing import Optional
 
-import numpy
+import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
@@ -79,12 +79,12 @@ class TGate(Gate):
         return TdgGate()
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the T gate."""
-        return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
+        """Return a np.array for the T gate."""
+        return np.array([[1, 0], [0, (1 + 1j) / np.sqrt(2)]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
-        return PhaseGate(0.25 * numpy.pi * exponent)
+        return PhaseGate(0.25 * np.pi * exponent)
 
 
 class TdgGate(Gate):
@@ -143,9 +143,9 @@ class TdgGate(Gate):
         return TGate()
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
+        """Return a np.array for the inverse T gate."""
+        return np.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
-        return PhaseGate(-0.25 * numpy.pi * exponent)
+        return PhaseGate(-0.25 * np.pi * exponent)

@@ -14,7 +14,7 @@
 import math
 from cmath import exp
 from typing import Optional, Union
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -128,12 +128,12 @@ class U3Gate(Gate):
         self.definition = qc
 
     def __array__(self, dtype=complex):
-        """Return a Numpy.array for the U3 gate."""
+        """Return a np.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
-        return numpy.array(
+        return np.array(
             [
                 [cos, -exp(1j * lam) * sin],
                 [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
@@ -266,13 +266,13 @@ class CU3Gate(ControlledGate):
         )
 
     def __array__(self, dtype=complex):
-        """Return a numpy.array for the CU3 gate."""
+        """Return a np.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
         if self.ctrl_state:
-            return numpy.array(
+            return np.array(
                 [
                     [1, 0, 0, 0],
                     [0, cos, 0, -exp(1j * lam) * sin],
@@ -282,7 +282,7 @@ class CU3Gate(ControlledGate):
                 dtype=dtype,
             )
         else:
-            return numpy.array(
+            return np.array(
                 [
                     [cos, 0, -exp(1j * lam) * sin, 0],
                     [0, 1, 0, 0],

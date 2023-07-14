@@ -111,7 +111,7 @@ class RZGate(Gate):
         return RZGate(-self.params[0])
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the RZ gate."""
+        """Return a np.array for the RZ gate."""
         import numpy as np
 
         ilam2 = 0.5j * float(self.params[0])
@@ -237,17 +237,17 @@ class CRZGate(ControlledGate):
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CRZ gate."""
-        import numpy
+        """Return a np.array for the CRZ gate."""
+        import numpy as np
 
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
-            return numpy.array(
+            return np.array(
                 [[1, 0, 0, 0], [0, exp(-arg), 0, 0], [0, 0, 1, 0], [0, 0, 0, exp(arg)]],
                 dtype=dtype,
             )
         else:
-            return numpy.array(
+            return np.array(
                 [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )

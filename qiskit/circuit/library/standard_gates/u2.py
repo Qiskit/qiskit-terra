@@ -14,7 +14,7 @@
 from math import sqrt, pi
 from cmath import exp
 from typing import Optional
-import numpy
+import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -113,11 +113,11 @@ class U2Gate(Gate):
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
     def __array__(self, dtype=complex):
-        """Return a Numpy.array for the U2 gate."""
+        """Return a np.array for the U2 gate."""
         isqrt2 = 1 / sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
-        return numpy.array(
+        return np.array(
             [
                 [isqrt2, -exp(1j * lam) * isqrt2],
                 [exp(1j * phi) * isqrt2, exp(1j * (phi + lam)) * isqrt2],

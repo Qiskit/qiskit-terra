@@ -15,7 +15,7 @@
 import math
 from math import pi
 from typing import Optional, Union
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -100,10 +100,10 @@ class RYGate(Gate):
         return RYGate(-self.params[0])
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the RY gate."""
+        """Return a np.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
+        return np.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -219,15 +219,15 @@ class CRYGate(ControlledGate):
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CRY gate."""
+        """Return a np.array for the CRY gate."""
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         sin = math.sin(half_theta)
         if self.ctrl_state:
-            return numpy.array(
+            return np.array(
                 [[1, 0, 0, 0], [0, cos, 0, -sin], [0, 0, 1, 0], [0, sin, 0, cos]], dtype=dtype
             )
         else:
-            return numpy.array(
+            return np.array(
                 [[cos, 0, -sin, 0], [0, 1, 0, 0], [sin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )

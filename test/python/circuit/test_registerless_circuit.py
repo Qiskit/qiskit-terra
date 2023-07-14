@@ -12,7 +12,7 @@
 
 """Test registerless QuantumCircuit and Gates on wires"""
 
-import numpy
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, AncillaQubit
@@ -232,7 +232,7 @@ class TestGatesOnWires(QiskitTestCase):
 
     def test_circuit_initialize_single_qubit(self):
         """Test initialize on single qubit."""
-        init_vector = [numpy.sqrt(0.5), numpy.sqrt(0.5)]
+        init_vector = [np.sqrt(0.5), np.sqrt(0.5)]
         qreg = QuantumRegister(2)
         circuit = QuantumCircuit(qreg)
         circuit.initialize(init_vector, qreg[0])
@@ -383,10 +383,10 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
     def test_wire_np_int(self):
         """Test gate wire with numpy int"""
-        numpy_int = numpy.dtype("int").type(2)
+        np_int = np.dtype("int").type(2)
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
-        circuit.h(numpy_int)
+        circuit.h(np_int)
 
         expected = QuantumCircuit(qreg)
         expected.h(qreg[2])
@@ -395,7 +395,7 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
     def test_wire_np_1d_array(self):
         """Test gate wire with numpy array (one-dimensional)"""
-        numpy_arr = numpy.array([0, 1])
+        numpy_arr = np.array([0, 1])
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
         circuit.h(numpy_arr)
@@ -490,7 +490,7 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
     def test_wire_np_2d_array(self):
         """Test gate wire with numpy array (two-dimensional). Raises."""
-        numpy_arr = numpy.array([[0, 1], [2, 3]])
+        numpy_arr = np.array([[0, 1], [2, 3]])
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
         self.assertRaises(CircuitError, circuit.h, numpy_arr)  # circuit.h(numpy_arr)

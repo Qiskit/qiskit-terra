@@ -14,7 +14,7 @@
 import math
 from cmath import exp
 from typing import Optional, Union
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -115,11 +115,11 @@ class UGate(Gate):
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def __array__(self, dtype=complex):
-        """Return a numpy.array for the U gate."""
+        """Return a np.array for the U gate."""
         theta, phi, lam = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
-        return numpy.array(
+        return np.array(
             [
                 [cos, -exp(1j * lam) * sin],
                 [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
@@ -254,22 +254,18 @@ class CUGate(ControlledGate):
         )
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CU gate."""
+        """Return a np.array for the CU gate."""
         theta, phi, lam, gamma = (float(param) for param in self.params)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
-        a = numpy.exp(1j * gamma) * cos
-        b = -numpy.exp(1j * (gamma + lam)) * sin
-        c = numpy.exp(1j * (gamma + phi)) * sin
-        d = numpy.exp(1j * (gamma + phi + lam)) * cos
+        cos = np.cos(theta / 2)
+        sin = np.sin(theta / 2)
+        a = np.exp(1j * gamma) * cos
+        b = -np.exp(1j * (gamma + lam)) * sin
+        c = np.exp(1j * (gamma + phi)) * sin
+        d = np.exp(1j * (gamma + phi + lam)) * cos
         if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, a, 0, b], [0, 0, 1, 0], [0, c, 0, d]], dtype=dtype
-            )
+            return np.array([[1, 0, 0, 0], [0, a, 0, b], [0, 0, 1, 0], [0, c, 0, d]], dtype=dtype)
         else:
-            return numpy.array(
-                [[a, 0, b, 0], [0, 1, 0, 0], [c, 0, d, 0], [0, 0, 0, 1]], dtype=dtype
-            )
+            return np.array([[a, 0, b, 0], [0, 1, 0, 0], [c, 0, d, 0], [0, 0, 0, 1]], dtype=dtype)
 
     @property
     def params(self):

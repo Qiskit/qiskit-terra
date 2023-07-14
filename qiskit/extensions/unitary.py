@@ -14,7 +14,7 @@
 Arbitrary unitary circuit instruction.
 """
 
-import numpy
+import numpy as np
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -76,13 +76,13 @@ class UnitaryGate(Gate):
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
         # Convert to numpy array in case not already an array
-        data = numpy.array(data, dtype=complex)
+        data = np.array(data, dtype=complex)
         # Check input is unitary
         if not is_unitary_matrix(data):
             raise ExtensionError("Input matrix is not unitary.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
-        num_qubits = int(numpy.log2(input_dim))
+        num_qubits = int(np.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
@@ -109,7 +109,7 @@ class UnitaryGate(Gate):
 
     def conjugate(self):
         """Return the conjugate of the unitary."""
-        return UnitaryGate(numpy.conj(self.to_matrix()))
+        return UnitaryGate(np.conj(self.to_matrix()))
 
     def adjoint(self):
         """Return the adjoint of the unitary."""
@@ -117,7 +117,7 @@ class UnitaryGate(Gate):
 
     def transpose(self):
         """Return the transpose of the unitary."""
-        return UnitaryGate(numpy.transpose(self.to_matrix()))
+        return UnitaryGate(np.transpose(self.to_matrix()))
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -176,7 +176,7 @@ class UnitaryGate(Gate):
 
     def validate_parameter(self, parameter):
         """Unitary gate parameter has to be an ndarray."""
-        if isinstance(parameter, numpy.ndarray):
+        if isinstance(parameter, np.ndarray):
             return parameter
         else:
             raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")

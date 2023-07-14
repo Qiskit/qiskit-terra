@@ -20,7 +20,7 @@ from operator import add, mul, sub, truediv
 
 from test import combine
 
-import numpy
+import numpy as np
 from ddt import data, ddt, named_data
 
 import qiskit
@@ -200,10 +200,10 @@ class TestParameters(QiskitTestCase):
         y = Parameter("y")
         z = Parameter("z")
         v = ParameterVector("v", 3)
-        for i in (numpy.float16, numpy.float32):
+        for i in (np.float16, np.float32):
             with self.subTest(float_type=i):
                 expr = (v[0] * (x + y + z) + phase) - (v[2] * v[1])
-                params = numpy.array([0.1 * j for j in range(8)], dtype=i)
+                params = np.array([0.1 * j for j in range(8)], dtype=i)
                 order = [phase] + v[:] + [x, y, z]
                 param_dict = dict(zip(order, params))
                 bound_value = expr.bind(param_dict)
@@ -349,9 +349,9 @@ class TestParameters(QiskitTestCase):
     @named_data(
         ["int", 2, int],
         ["float", 2.5, float],
-        ["float16", numpy.float16(2.5), float],
-        ["float32", numpy.float32(2.5), float],
-        ["float64", numpy.float64(2.5), float],
+        ["float16", np.float16(2.5), float],
+        ["float32", np.float32(2.5), float],
+        ["float64", np.float64(2.5), float],
     )
     def test_circuit_assignment_to_numeric(self, value, type_):
         """Test binding a numeric value to a circuit instruction"""
@@ -653,7 +653,7 @@ class TestParameters(QiskitTestCase):
         for assign_fun in ["bind_parameters", "assign_parameters"]:
             with self.subTest(assign_fun=assign_fun):
                 circs = []
-                theta_list = numpy.linspace(0, numpy.pi, 20)
+                theta_list = np.linspace(0, np.pi, 20)
                 for theta_i in theta_list:
                     circs.append(getattr(qc_aer, assign_fun)({theta: theta_i}))
                 qobj = assemble(circs)
@@ -684,7 +684,7 @@ class TestParameters(QiskitTestCase):
         qr1 = QuantumRegister(1, name="qr1")
         qc1 = QuantumCircuit(qr1)
         qc1.rx(theta, qr1)
-        qc1.rz(numpy.pi / 2, qr1)
+        qc1.rz(np.pi / 2, qr1)
         qc1.ry(theta, qr1)
         gate = qc1.to_instruction()
         self.assertEqual(gate.params, [theta])
@@ -722,7 +722,7 @@ class TestParameters(QiskitTestCase):
             for i, q in enumerate(qc.qubits[:-1]):
                 qc.cx(qc.qubits[i], qc.qubits[i + 1])
             qc.barrier()
-        theta_vals = numpy.linspace(0, 1, len(theta)) * numpy.pi
+        theta_vals = np.linspace(0, 1, len(theta)) * np.pi
         self.assertEqual(set(qc.parameters), set(theta.params))
         for assign_fun in ["bind_parameters", "assign_parameters"]:
             with self.subTest(assign_fun=assign_fun):
@@ -1043,7 +1043,7 @@ class TestParameters(QiskitTestCase):
 
         for assign_fun in ["bind_parameters", "assign_parameters"]:
             with self.subTest(assign_fun=assign_fun):
-                bound_qc = getattr(unbound_qc, assign_fun)({theta: numpy.pi / 2})
+                bound_qc = getattr(unbound_qc, assign_fun)({theta: np.pi / 2})
 
                 shots = 1024
                 job = execute(bound_qc, backend=BasicAer.get_backend("qasm_simulator"), shots=shots)
@@ -1144,13 +1144,13 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name="theta")
 
         qc = QuantumCircuit(2)
-        qc.p(numpy.abs(-phi), 0)
-        qc.p(numpy.cos(phi), 0)
-        qc.p(numpy.sin(phi), 0)
-        qc.p(numpy.tan(phi), 0)
-        qc.rz(numpy.arccos(theta), 1)
-        qc.rz(numpy.arctan(theta), 1)
-        qc.rz(numpy.arcsin(theta), 1)
+        qc.p(np.abs(-phi), 0)
+        qc.p(np.cos(phi), 0)
+        qc.p(np.sin(phi), 0)
+        qc.p(np.tan(phi), 0)
+        qc.rz(np.arccos(theta), 1)
+        qc.rz(np.arctan(theta), 1)
+        qc.rz(np.arcsin(theta), 1)
 
         qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
 
@@ -1173,13 +1173,13 @@ class TestParameters(QiskitTestCase):
         theta = ParameterVector("theta", length=7)
 
         qc = QuantumCircuit(7)
-        qc.rx(numpy.abs(theta[0]), 0)
-        qc.rx(numpy.cos(theta[1]), 1)
-        qc.rx(numpy.sin(theta[2]), 2)
-        qc.rx(numpy.tan(theta[3]), 3)
-        qc.rx(numpy.arccos(theta[4]), 4)
-        qc.rx(numpy.arctan(theta[5]), 5)
-        qc.rx(numpy.arcsin(theta[6]), 6)
+        qc.rx(np.abs(theta[0]), 0)
+        qc.rx(np.cos(theta[1]), 1)
+        qc.rx(np.sin(theta[2]), 2)
+        qc.rx(np.tan(theta[3]), 3)
+        qc.rx(np.arccos(theta[4]), 4)
+        qc.rx(np.arctan(theta[5]), 5)
+        qc.rx(np.arcsin(theta[6]), 6)
 
         # transpile to different basis
         transpiled = transpile(qc, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
@@ -1416,7 +1416,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_expressions_of_parameter_with_constant(self):
         """Verify operating on a Parameter with a constant."""
 
-        good_constants = [2, 1.3, 0, -1, -1.0, numpy.pi, 1j]
+        good_constants = [2, 1.3, 0, -1, -1.0, np.pi, 1j]
 
         x = Parameter("x")
 
@@ -1480,7 +1480,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
         """Verify operations between a Parameter and a non-float will raise."""
 
-        bad_constants = ["1", numpy.Inf, numpy.NaN, None, {}, []]
+        bad_constants = ["1", np.Inf, np.NaN, None, {}, []]
 
         x = Parameter("x")
 
@@ -1525,15 +1525,15 @@ class TestParameterExpressions(QiskitTestCase):
 
             self.assertEqual(partially_bound_expr.parameters, {y})
 
-            fully_bound_expr = partially_bound_expr.bind({y: -numpy.pi})
+            fully_bound_expr = partially_bound_expr.bind({y: -np.pi})
 
             self.assertEqual(fully_bound_expr.parameters, set())
-            self.assertEqual(float(fully_bound_expr), op(2.3, -numpy.pi))
+            self.assertEqual(float(fully_bound_expr), op(2.3, -np.pi))
 
-            bound_expr = expr.bind({x: 2.3, y: -numpy.pi})
+            bound_expr = expr.bind({x: 2.3, y: -np.pi})
 
             self.assertEqual(bound_expr.parameters, set())
-            self.assertEqual(float(bound_expr), op(2.3, -numpy.pi))
+            self.assertEqual(float(bound_expr), op(2.3, -np.pi))
 
     def test_expressions_operation_order(self):
         """Verify ParameterExpressions respect order of operations."""
@@ -1647,7 +1647,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc1 = QuantumCircuit(qr1)
 
         qc1.rx(theta, qr1)
-        qc1.rz(numpy.pi / 2, qr1)
+        qc1.rz(np.pi / 2, qr1)
         qc1.ry(theta * phi, qr1)
 
         if target_type == "gate":
@@ -1668,9 +1668,9 @@ class TestParameterExpressions(QiskitTestCase):
         binds = {delta: 1, theta: 2, phi: 3}
         expected_qc = QuantumCircuit(qr2)
         expected_qc.rx(2, 1)
-        expected_qc.rz(numpy.pi / 2, 1)
+        expected_qc.rz(np.pi / 2, 1)
         expected_qc.ry(3 * 2, 1)
-        expected_qc.r(1, numpy.pi / 2, 0)
+        expected_qc.r(1, np.pi / 2, 0)
 
         if order == "bind-decompose":
             decomp_bound_qc = qc2.assign_parameters(binds).decompose()
@@ -1690,7 +1690,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc1 = QuantumCircuit(qr1)
 
         qc1.rx(theta, qr1)
-        qc1.rz(numpy.pi / 2, qr1)
+        qc1.rz(np.pi / 2, qr1)
         qc1.ry(theta * phi, qr1)
 
         theta_p = Parameter("theta")
@@ -1714,9 +1714,9 @@ class TestParameterExpressions(QiskitTestCase):
         binds = {delta: 1, theta_p: 2, phi_p: 3}
         expected_qc = QuantumCircuit(qr2)
         expected_qc.rx(2, 1)
-        expected_qc.rz(numpy.pi / 2, 1)
+        expected_qc.rz(np.pi / 2, 1)
         expected_qc.ry(3 * 2, 1)
-        expected_qc.r(1, numpy.pi / 2, 0)
+        expected_qc.r(1, np.pi / 2, 0)
 
         if order == "bind-decompose":
             decomp_bound_qc = qc2.assign_parameters(binds).decompose()
@@ -1748,7 +1748,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc.h(0)
         qc.measure(0, 0)
 
-        theta_range = numpy.linspace(0, 2 * numpy.pi, 128)
+        theta_range = np.linspace(0, 2 * np.pi, 128)
         circuits = [qc.assign_parameters({theta: theta_val}) for theta_val in theta_range]
 
         self.assertEqual(len(circuits), len(theta_range))
@@ -1851,7 +1851,7 @@ class TestParameterExpressions(QiskitTestCase):
         circuit.append(gate_class(*free_params), list(range(num_qubits)))
         bound_circuit = circuit.assign_parameters({free_params: params})
 
-        numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
+        np.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
     def test_parameter_expression_grad(self):
         """Verify correctness of ParameterExpression gradients."""
@@ -1953,7 +1953,7 @@ class TestParameterEquality(QiskitTestCase):
         """Verfiy ParameterExpression phi
         and ParameterExpression cos(phi) have the same symbol map"""
         phi = Parameter("phi")
-        cos_phi = numpy.cos(phi)
+        cos_phi = np.cos(phi)
         self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
 
 

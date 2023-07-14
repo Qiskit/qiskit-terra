@@ -13,7 +13,7 @@
 This module contains utility functions for circuits.
 """
 
-import numpy
+import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 
@@ -43,9 +43,9 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     Raises:
         QiskitError: unrecognized mode or invalid ctrl_state
     """
-    num_target = int(numpy.log2(base_mat.shape[0]))
+    num_target = int(np.log2(base_mat.shape[0]))
     ctrl_dim = 2**num_ctrl_qubits
-    ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim - 1])
+    ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim - 1])
     if ctrl_state is None:
         ctrl_state = ctrl_dim - 1
     elif isinstance(ctrl_state, str):
@@ -55,8 +55,8 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
             raise QiskitError("Invalid control state value specified.")
     else:
         raise QiskitError("Invalid control state type specified.")
-    ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_state))
-    full_mat = numpy.kron(numpy.eye(2**num_target), numpy.eye(ctrl_dim) - ctrl_proj) + numpy.kron(
+    ctrl_proj = np.diag(np.roll(ctrl_grnd, ctrl_state))
+    full_mat = np.kron(np.eye(2**num_target), np.eye(ctrl_dim) - ctrl_proj) + np.kron(
         base_mat, ctrl_proj
     )
     return full_mat

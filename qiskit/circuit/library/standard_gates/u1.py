@@ -13,7 +13,7 @@
 """U1 Gate."""
 from __future__ import annotations
 from cmath import exp
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -142,9 +142,9 @@ class U1Gate(Gate):
         return U1Gate(-self.params[0])
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the U1 gate."""
+        """Return a np.array for the U1 gate."""
         lam = float(self.params[0])
-        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
+        return np.array([[1, 0], [0, np.exp(1j * lam)]], dtype=dtype)
 
 
 class CU1Gate(ControlledGate):
@@ -260,14 +260,14 @@ class CU1Gate(ControlledGate):
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CU1 gate."""
+        """Return a np.array for the CU1 gate."""
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
-            return numpy.array(
+            return np.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
             )
         else:
-            return numpy.array(
+            return np.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype
             )
 

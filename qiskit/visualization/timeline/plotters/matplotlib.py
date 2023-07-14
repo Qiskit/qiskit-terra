@@ -16,7 +16,7 @@
 
 from typing import Optional, Tuple
 
-import matplotlib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import PatchCollection
@@ -177,7 +177,7 @@ class MplPlotter(BasePlotter):
         """
         plt.savefig(filename, bbox_inches="tight", dpi=self.canvas.formatter["general.dpi"])
 
-    def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
+    def get_image(self, interactive: bool = False) -> mpl.pyplot.Figure:
         """Get image data to return.
         Args:
             interactive: When set `True` show the circuit in a new window.

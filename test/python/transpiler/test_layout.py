@@ -14,7 +14,7 @@
 
 import copy
 import unittest
-import numpy
+import numpy as np
 
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
@@ -338,7 +338,7 @@ class LayoutTest(QiskitTestCase):
         qr1 = QuantumRegister(1, "qr1")
         qr2 = QuantumRegister(2, "qr2")
         qr3 = QuantumRegister(3, "qr3")
-        intlist_layout = numpy.array([0, 1, 2, 3, 4, 5])
+        intlist_layout = np.array([0, 1, 2, 3, 4, 5])
         layout = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
 
         expected = Layout.generate_trivial_layout(qr1, qr2, qr3)

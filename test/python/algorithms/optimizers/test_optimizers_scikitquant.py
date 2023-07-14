@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
 
-import numpy
+import numpy as np
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -69,7 +69,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             self.skipTest(str(ex))
 
     @unittest.skipIf(
-        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        tuple(map(int, np.__version__.split("."))) >= (1, 24, 0),
         "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
     )
     def test_snobfit(self):
@@ -81,7 +81,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             self.skipTest(str(ex))
 
     @unittest.skipIf(
-        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        tuple(map(int, np.__version__.split("."))) >= (1, 24, 0),
         "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
     )
     @data((None,), ([(-1, 1), (None, None)],))

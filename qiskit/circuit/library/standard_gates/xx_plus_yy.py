@@ -154,14 +154,14 @@ class XXPlusYYGate(Gate):
         return XXPlusYYGate(-self.params[0], self.params[1])
 
     def __array__(self, dtype=complex):
-        """Return a numpy.array for the XX+YY gate."""
-        import numpy
+        """Return a np.array for the XX+YY gate."""
+        import numpy as np
 
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
         cos = math.cos(half_theta)
         sin = math.sin(half_theta)
-        return numpy.array(
+        return np.array(
             [
                 [1, 0, 0, 0],
                 [0, cos, -1j * sin * exp(-1j * beta), 0],

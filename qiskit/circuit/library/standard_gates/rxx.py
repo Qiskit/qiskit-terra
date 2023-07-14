@@ -13,7 +13,7 @@
 """Two-qubit XX-rotation gate."""
 import math
 from typing import Optional
-import numpy
+import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -111,11 +111,11 @@ class RXXGate(Gate):
         return RXXGate(-self.params[0])
 
     def __array__(self, dtype=None):
-        """Return a Numpy.array for the RXX gate."""
+        """Return a np.array for the RXX gate."""
         theta2 = float(self.params[0]) / 2
         cos = math.cos(theta2)
         isin = 1j * math.sin(theta2)
-        return numpy.array(
+        return np.array(
             [[cos, 0, 0, -isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [-isin, 0, 0, cos]],
             dtype=dtype,
         )

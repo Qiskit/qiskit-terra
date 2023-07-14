@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 from typing import List, Optional, Union
-import numpy
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.exceptions import QiskitError
@@ -244,7 +244,7 @@ class GroverOperator(QuantumCircuit):
     def _build(self):
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
         circuit = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"), name="Q")
-        num_ancillas = numpy.max(
+        num_ancillas = np.max(
             [
                 self.oracle.num_ancillas,
                 self.zero_reflection.num_ancillas,
@@ -274,7 +274,7 @@ class GroverOperator(QuantumCircuit):
         )
 
         # minus sign
-        circuit.global_phase = numpy.pi
+        circuit.global_phase = np.pi
 
         self.add_register(*circuit.qregs)
         try:

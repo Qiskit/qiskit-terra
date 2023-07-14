@@ -14,7 +14,7 @@
 from __future__ import annotations
 from typing import Optional, Union, Type
 from math import ceil, pi
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -120,8 +120,8 @@ class XGate(Gate):
         return XGate()  # self-inverse
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the X gate."""
-        return numpy.array([[0, 1], [1, 0]], dtype=dtype)
+        """Return a np.array for the X gate."""
+        return np.array([[0, 1], [1, 0]], dtype=dtype)
 
 
 class CXGate(ControlledGate):
@@ -246,15 +246,11 @@ class CXGate(ControlledGate):
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CX gate."""
+        """Return a np.array for the CX gate."""
         if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=dtype
-            )
+            return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=dtype)
         else:
-            return numpy.array(
-                [[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=dtype
-            )
+            return np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=dtype)
 
 
 class CCXGate(ControlledGate):
@@ -402,12 +398,12 @@ class CCXGate(ControlledGate):
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CCX gate."""
+        """Return a np.array for the CCX gate."""
         mat = _compute_control_matrix(
             self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
         )
         if dtype:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat
 
 
@@ -467,8 +463,8 @@ class RCCXGate(Gate):
         self.definition = qc
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the simplified CCX gate."""
-        return numpy.array(
+        """Return a np.array for the simplified CCX gate."""
+        return np.array(
             [
                 [1, 0, 0, 0, 0, 0, 0, 0],
                 [0, 1, 0, 0, 0, 0, 0, 0],
@@ -531,7 +527,7 @@ class C3SXGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import CU1Gate
 
-        angle = numpy.pi / 8
+        angle = np.pi / 8
         q = QuantumRegister(4, name="q")
         rules = [
             (HGate(), [q[3]], []),
@@ -700,12 +696,12 @@ class C3XGate(ControlledGate):
         return C3XGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
+        """Return a np.array for the C4X gate."""
         mat = _compute_control_matrix(
             self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
         )
         if dtype:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat
 
 
@@ -781,8 +777,8 @@ class RC3XGate(Gate):
         self.definition = qc
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the RC3X gate."""
-        return numpy.array(
+        """Return a np.array for the RC3X gate."""
+        return np.array(
             [
                 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -858,11 +854,11 @@ class C4XGate(ControlledGate):
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[4]], []),
-            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
+            (CU1Gate(np.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
             (HGate(), [q[4]], []),
-            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
+            (CU1Gate(-np.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
             (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
@@ -900,12 +896,12 @@ class C4XGate(ControlledGate):
         return C4XGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
+        """Return a np.array for the C4X gate."""
         mat = _compute_control_matrix(
             self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
         )
         if dtype:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat
 
 
@@ -1062,7 +1058,7 @@ class MCXGrayCode(MCXGate):
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
         qc._append(HGate(), [q[-1]], [])
-        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
+        qc._append(MCU1Gate(np.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
         qc._append(HGate(), [q[-1]], [])
         self.definition = qc
 
@@ -1189,15 +1185,15 @@ class MCXVChain(MCXGate):
         if self._dirty_ancillas:
             i = self.num_ctrl_qubits - 3
             ancilla_pre_rule = [
-                (U2Gate(0, numpy.pi), [q_target], []),
+                (U2Gate(0, np.pi), [q_target], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(-np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(-np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(np.pi / 4), [q_ancillas[i]], []),
             ]
             for inst in ancilla_pre_rule:
                 definition.append(inst)
@@ -1216,15 +1212,15 @@ class MCXVChain(MCXGate):
 
         if self._dirty_ancillas:
             ancilla_post_rule = [
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(-np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(-np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (U1Gate(np.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U2Gate(0, numpy.pi), [q_target], []),
+                (U2Gate(0, np.pi), [q_target], []),
             ]
             for inst in ancilla_post_rule:
                 definition.append(inst)

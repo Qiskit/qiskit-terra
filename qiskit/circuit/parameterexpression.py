@@ -19,7 +19,7 @@ from typing import Callable, Union
 import numbers
 import operator
 
-import numpy
+import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
@@ -269,7 +269,7 @@ class ParameterExpression:
             self._raise_if_parameter_names_conflict(other._names)
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Number) and np.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:

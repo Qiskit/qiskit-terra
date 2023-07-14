@@ -19,11 +19,11 @@ import os
 import unittest
 from filecmp import cmp as cmpfile
 from shutil import copyfile
-import matplotlib
+import matplotlib as mpl
 
 from qiskit.test import QiskitTestCase
 
-matplotlib.use("ps")
+mpl.use("ps")
 
 
 def path_to_diagram_reference(filename):

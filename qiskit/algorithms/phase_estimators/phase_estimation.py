@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-import numpy
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 import qiskit
@@ -157,7 +157,7 @@ class PhaseEstimation(PhaseEstimator):
 
     def _compute_phases(
         self, num_unitary_qubits: int, circuit_result: Result
-    ) -> numpy.ndarray | qiskit.result.Counts:
+    ) -> np.ndarray | qiskit.result.Counts:
         """Compute frequencies/counts of phases from the result of running the QPE circuit.
 
         How the frequencies are computed depends on whether the backend computes amplitude or
@@ -182,7 +182,7 @@ class PhaseEstimation(PhaseEstimator):
             circuit_result: the result object returned by the backend that ran the QPE circuit.
 
         Returns:
-            Either a dict or numpy.ndarray representing the frequencies of the phases.
+            Either a dict or np.ndarray representing the frequencies of the phases.
 
         """
         if self._quantum_instance.is_statevector:

@@ -37,7 +37,10 @@ select = [
   "F632",
   "F634",
   "F823",
+  "ICN",
 ]
+[tool.ruff.flake8-import-conventions.extend-aliases]
+rustworkx = "rx"
 
 [tool.pylint.main]
 extension-pkg-allow-list = [

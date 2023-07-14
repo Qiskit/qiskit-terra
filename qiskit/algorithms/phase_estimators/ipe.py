@@ -15,7 +15,7 @@
 
 from __future__ import annotations
 
-import numpy
+import numpy as np
 
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -140,9 +140,8 @@ class IterativePhaseEstimation(PhaseEstimator):
             omega_coef /= 2
 
             if self._sampler is not None:
-
                 qc = self.construct_circuit(
-                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef, True
+                    unitary, state_preparation, k, -2 * np.pi * omega_coef, True
                 )
                 try:
                     sampler_job = self._sampler.run([qc])
@@ -153,21 +152,21 @@ class IterativePhaseEstimation(PhaseEstimator):
 
             elif self._quantum_instance.is_statevector:
                 qc = self.construct_circuit(
-                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef, measurement=False
+                    unitary, state_preparation, k, -2 * np.pi * omega_coef, measurement=False
                 )
                 result = self._quantum_instance.execute(qc)
                 complete_state_vec = result.get_statevector(qc)
                 ancilla_density_mat = qiskit.quantum_info.partial_trace(
                     complete_state_vec, range(unitary.num_qubits)
                 )
-                ancilla_density_mat_diag = numpy.diag(ancilla_density_mat)
+                ancilla_density_mat_diag = np.diag(ancilla_density_mat)
                 max_amplitude = max(
                     ancilla_density_mat_diag.min(), ancilla_density_mat_diag.max(), key=abs
                 )
-                x = numpy.where(ancilla_density_mat_diag == max_amplitude)[0][0]
+                x = np.where(ancilla_density_mat_diag == max_amplitude)[0][0]
             else:
                 qc = self.construct_circuit(
-                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef, measurement=True
+                    unitary, state_preparation, k, -2 * np.pi * omega_coef, measurement=True
                 )
                 measurements = self._quantum_instance.execute(qc).get_counts(qc)
                 x = 1 if measurements.get("1", 0) > measurements.get("0", 0) else 0

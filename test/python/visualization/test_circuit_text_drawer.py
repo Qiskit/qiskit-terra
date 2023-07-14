@@ -19,7 +19,7 @@ import unittest.mock
 from codecs import encode
 from math import pi
 
-import numpy
+import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction
@@ -1447,7 +1447,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                               "q: |0>┤ kraus ├",
                               "      └───────┘"])
         # fmt: on
-        error = SuperOp(0.75 * numpy.eye(4) + 0.25 * numpy.diag([1, -1, -1, 1]))
+        error = SuperOp(0.75 * np.eye(4) + 0.25 * np.diag([1, -1, -1, 1]))
         qr = QuantumRegister(1, name="q")
         qc = QuantumCircuit(qr)
         qc.append(error, [qr[0]])
@@ -1467,7 +1467,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             ]
         )
 
-        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([np.eye(2), np.array([[0, 1], [1, 0]])])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
@@ -1491,7 +1491,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circ = QuantumCircuit(qr)
         circ.append(XGate(), [qr[0]])
         circ.append(XGate(label="alt-X"), [qr[0]])
-        circ.append(UnitaryGate(numpy.eye(4), label="iswap"), [qr[0], qr[1]])
+        circ.append(UnitaryGate(np.eye(4), label="iswap"), [qr[0], qr[1]])
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
@@ -1928,7 +1928,7 @@ class TestTextDrawerParams(QiskitTestCase):
         # fmt: on
         qr = QuantumRegister(1, "q")
         circuit = QuantumCircuit(qr)
-        circuit.unitary(numpy.array([[0, 1], [1, 0]]), 0)
+        circuit.unitary(np.array([[0, 1], [1, 0]]), 0)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_qc_parameters(self):
@@ -3140,7 +3140,7 @@ class TestTextConditional(QiskitTestCase):
 
     def test_conditional_multiplexer_cregbundle(self):
         """Test Multiplexer with cregbundle."""
-        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([np.eye(2), np.array([[0, 1], [1, 0]])])
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -3164,7 +3164,7 @@ class TestTextConditional(QiskitTestCase):
 
     def test_conditional_multiplexer(self):
         """Test Multiplexer."""
-        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([np.eye(2), np.array([[0, 1], [1, 0]])])
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -3561,7 +3561,7 @@ class TestTextNonRational(QiskitTestCase):
                 "     └────────────────────────────────────┘",
             ]
         )
-        ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
+        ket = np.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
@@ -3578,7 +3578,7 @@ class TestTextNonRational(QiskitTestCase):
                 "        └────────────────────────────────┘",
             ]
         )
-        ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
+        ket = np.array([0.1 * np.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
@@ -3596,7 +3596,7 @@ class TestTextNonRational(QiskitTestCase):
                 "        └────────────────────────────────┘",
             ]
         )
-        ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
+        ket = np.array([0.9493702944526474, 0, 0, 0.1 * np.pi * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
@@ -5047,7 +5047,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         # fmt: on
         qr = QuantumRegister(1, "q0")
         circuit = QuantumCircuit(qr)
-        matrix = numpy.zeros((2, 2))
+        matrix = np.zeros((2, 2))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0]])
         circuit = circuit.bind_parameters({theta: 1})
@@ -5067,7 +5067,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
 
         qr = QuantumRegister(2, "q0")
         circuit = QuantumCircuit(qr)
-        matrix = numpy.zeros((4, 4))
+        matrix = np.zeros((4, 4))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
         circuit = circuit.bind_parameters({theta: 1})

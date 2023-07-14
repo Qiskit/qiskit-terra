@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 from cmath import exp
-import numpy
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -122,9 +122,9 @@ class PhaseGate(Gate):
         return PhaseGate(-self.params[0])
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the Phase gate."""
+        """Return a np.array for the Phase gate."""
         lam = float(self.params[0])
-        return numpy.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
+        return np.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -242,13 +242,13 @@ class CPhaseGate(ControlledGate):
         return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CPhase gate."""
+        """Return a np.array for the CPhase gate."""
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
-            return numpy.array(
+            return np.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
             )
-        return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
+        return np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

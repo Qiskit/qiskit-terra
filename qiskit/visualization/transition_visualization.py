@@ -158,7 +158,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         has_ipython = False
 
     try:
-        import matplotlib
+        import matplotlib as mpl
         from matplotlib import pyplot as plt
         from matplotlib import animation
         from mpl_toolkits.mplot3d import Axes3D
@@ -266,7 +266,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
-    if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+    if tuple(int(x) for x in mpl.__version__.split(".")) >= (3, 4, 0):
         _ax = Axes3D(fig, auto_add_to_figure=False)
         fig.add_axes(_ax)
     else:
@@ -356,7 +356,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         ani.save(saveas, fps=30)
     if jupyter:
         # This is necessary to overcome matplotlib memory limit
-        matplotlib.rcParams["animation.embed_limit"] = 50
+        mpl.rcParams["animation.embed_limit"] = 50
         plt.close(fig)
         return HTML(ani.to_jshtml())
     plt.show()

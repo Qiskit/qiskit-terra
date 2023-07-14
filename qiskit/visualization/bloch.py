@@ -50,7 +50,7 @@ __all__ = ["Bloch"]
 
 import os
 import numpy as np
-import matplotlib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
@@ -86,7 +86,7 @@ class Arrow3D(Patch3D, FancyArrowPatch):
     def draw(self, renderer):
         xs3d, ys3d, zs3d = zip(*self._segment3d)
         x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
-        self._path2d = matplotlib.path.Path(np.column_stack([x_s, y_s]))
+        self._path2d = mpl.path.Path(np.column_stack([x_s, y_s]))
         self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -152,7 +152,6 @@ class Bloch:
     def __init__(
         self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=20
     ):
-
         # Figure and axes
         self._ext_fig = False
         if fig is not None:
@@ -416,7 +415,7 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+            if tuple(int(x) for x in mpl.__version__.split(".")) >= (3, 4, 0):
                 self.axes = Axes3D(
                     self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
                 )
@@ -585,7 +584,6 @@ class Bloch:
         """Plot vector"""
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.vectors)):
-
             xs3d = self.vectors[k][1] * np.array([0, 1])
             ys3d = -self.vectors[k][0] * np.array([0, 1])
             zs3d = self.vectors[k][2] * np.array([0, 1])

@@ -15,7 +15,7 @@
 from math import pi
 from typing import Optional, Union
 
-import numpy
+import numpy as np
 
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -79,12 +79,12 @@ class SGate(Gate):
         return SdgGate()
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the S gate."""
-        return numpy.array([[1, 0], [0, 1j]], dtype=dtype)
+        """Return a np.array for the S gate."""
+        return np.array([[1, 0], [0, 1j]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
-        return PhaseGate(0.5 * numpy.pi * exponent)
+        return PhaseGate(0.5 * np.pi * exponent)
 
 
 class SdgGate(Gate):
@@ -143,12 +143,12 @@ class SdgGate(Gate):
         return SGate()
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the Sdg gate."""
-        return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
+        """Return a np.array for the Sdg gate."""
+        return np.array([[1, 0], [0, -1j]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
-        return PhaseGate(-0.5 * numpy.pi * exponent)
+        return PhaseGate(-0.5 * np.pi * exponent)
 
 
 class CSGate(ControlledGate):
@@ -180,7 +180,7 @@ class CSGate(ControlledGate):
             \end{pmatrix}
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _matrix1 = np.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -188,7 +188,7 @@ class CSGate(ControlledGate):
             [0, 0, 0, 1j],
         ]
     )
-    _matrix0 = numpy.array(
+    _matrix0 = np.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -214,15 +214,15 @@ class CSGate(ControlledGate):
         return CSdgGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CS gate."""
+        """Return a np.array for the CS gate."""
         mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
         if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat
 
     def power(self, exponent: float):
         """Raise gate to a power."""
-        return CPhaseGate(0.5 * numpy.pi * exponent)
+        return CPhaseGate(0.5 * np.pi * exponent)
 
 
 class CSdgGate(ControlledGate):
@@ -254,7 +254,7 @@ class CSdgGate(ControlledGate):
             \end{pmatrix}
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _matrix1 = np.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -262,7 +262,7 @@ class CSdgGate(ControlledGate):
             [0, 0, 0, -1j],
         ]
     )
-    _matrix0 = numpy.array(
+    _matrix0 = np.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -294,12 +294,12 @@ class CSdgGate(ControlledGate):
         return CSGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CSdg gate."""
+        """Return a np.array for the CSdg gate."""
         mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
         if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat
 
     def power(self, exponent: float):
         """Raise gate to a power."""
-        return CPhaseGate(-0.5 * numpy.pi * exponent)
+        return CPhaseGate(-0.5 * np.pi * exponent)

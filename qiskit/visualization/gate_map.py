@@ -1314,7 +1314,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
             plot_error_map(backend)
     """
     import seaborn as sns
-    import matplotlib
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker
 
@@ -1403,20 +1403,17 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     single_gate_errors = 100 * np.asarray(single_gate_errors)
     avg_1q_err = np.mean(single_gate_errors)
 
-    single_norm = matplotlib.colors.Normalize(
-        vmin=min(single_gate_errors), vmax=max(single_gate_errors)
-    )
+    single_norm = mpl.colors.Normalize(vmin=min(single_gate_errors), vmax=max(single_gate_errors))
     q_colors = [color_map(single_norm(err)) for err in single_gate_errors]
 
     directed = False
     line_colors = []
     if cmap:
-
         # Convert to percent
         cx_errors = 100 * np.asarray(cx_errors)
         avg_cx_err = np.mean(cx_errors)
 
-        cx_norm = matplotlib.colors.Normalize(vmin=min(cx_errors), vmax=max(cx_errors))
+        cx_norm = mpl.colors.Normalize(vmin=min(cx_errors), vmax=max(cx_errors))
         line_colors = [color_map(cx_norm(err)) for err in cx_errors]
 
     read_err = 100 * np.asarray(read_err)
@@ -1453,7 +1450,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     main_ax.axis("off")
     main_ax.set_aspect(1)
     if cmap:
-        single_cb = matplotlib.colorbar.ColorbarBase(
+        single_cb = mpl.colorbar.ColorbarBase(
             bleft_ax, cmap=color_map, norm=single_norm, orientation="horizontal"
         )
         tick_locator = ticker.MaxNLocator(nbins=5)
@@ -1467,7 +1464,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         bleft_ax.set_title(f"H error rate (%) = {round(avg_1q_err, 3)}")
 
     if cmap:
-        cx_cb = matplotlib.colorbar.ColorbarBase(
+        cx_cb = mpl.colorbar.ColorbarBase(
             bright_ax, cmap=color_map, norm=cx_norm, orientation="horizontal"
         )
         tick_locator = ticker.MaxNLocator(nbins=5)

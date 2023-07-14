@@ -18,7 +18,7 @@ import typing
 from typing import Union, Optional, Any, Sequence, Callable, Mapping
 from itertools import combinations
 
-import numpy
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
@@ -236,7 +236,7 @@ class NLocal(BlueprintCircuit):
             blocks: The new blocks for the rotation layers.
         """
         # cannot check for the attribute ``'__len__'`` because a circuit also has this attribute
-        if not isinstance(blocks, (list, numpy.ndarray)):
+        if not isinstance(blocks, (list, np.ndarray)):
             blocks = [blocks]
 
         self._invalidate()
@@ -261,7 +261,7 @@ class NLocal(BlueprintCircuit):
             blocks: The new blocks for the entanglement layers.
         """
         # cannot check for the attribute ``'__len__'`` because a circuit also has this attribute
-        if not isinstance(blocks, (list, numpy.ndarray)):
+        if not isinstance(blocks, (list, np.ndarray)):
             blocks = [blocks]
 
         self._invalidate()
@@ -608,7 +608,7 @@ class NLocal(BlueprintCircuit):
             return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
 
         # entanglement is List[int]
-        if all(isinstance(en, (int, numpy.integer)) for en in entanglement):
+        if all(isinstance(en, (int, np.integer)) for en in entanglement):
             return [[int(en) for en in entanglement]]
 
         # check if entanglement is List[List]
@@ -623,7 +623,7 @@ class NLocal(BlueprintCircuit):
             )
 
         # entanglement is List[List[int]]
-        if all(isinstance(e2, (int, numpy.int32, numpy.int64)) for en in entanglement for e2 in en):
+        if all(isinstance(e2, (int, np.int32, np.int64)) for en in entanglement for e2 in en):
             for ind, en in enumerate(entanglement):
                 entanglement[ind] = tuple(map(int, en))
             return entanglement
@@ -634,7 +634,7 @@ class NLocal(BlueprintCircuit):
 
         # entanglement is List[List[List[int]]]
         if all(
-            isinstance(e3, (int, numpy.int32, numpy.int64))
+            isinstance(e3, (int, np.int32, np.int64))
             for en in entanglement
             for e2 in en
             for e3 in e2
@@ -650,7 +650,7 @@ class NLocal(BlueprintCircuit):
 
         # entanglement is List[List[List[List[int]]]]
         if all(
-            isinstance(e4, (int, numpy.int32, numpy.int64))
+            isinstance(e4, (int, np.int32, np.int64))
             for en in entanglement
             for e2 in en
             for e3 in e2

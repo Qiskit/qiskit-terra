@@ -14,7 +14,7 @@
 
 from math import pi
 from typing import Optional, Union
-import numpy
+import numpy as np
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
@@ -115,8 +115,8 @@ class YGate(Gate):
         return YGate()  # self-inverse
 
     def __array__(self, dtype=complex):
-        """Return a numpy.array for the Y gate."""
-        return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
+        """Return a np.array for the Y gate."""
+        return np.array([[0, -1j], [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
@@ -175,8 +175,8 @@ class CYGate(ControlledGate):
 
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
-    _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
+    _matrix1 = np.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
+    _matrix0 = np.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CY gate."""
@@ -206,8 +206,8 @@ class CYGate(ControlledGate):
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the CY gate."""
+        """Return a np.array for the CY gate."""
         mat = self._matrix1 if self.ctrl_state else self._matrix0
         if dtype:
-            return numpy.asarray(mat, dtype=dtype)
+            return np.asarray(mat, dtype=dtype)
         return mat

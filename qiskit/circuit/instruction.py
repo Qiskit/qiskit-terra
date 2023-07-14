@@ -35,7 +35,7 @@ import copy
 from itertools import zip_longest
 from typing import List
 
-import numpy
+import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -130,9 +130,9 @@ class Instruction(Operation):
                 pass
 
             try:
-                self_asarray = numpy.asarray(self_param)
-                other_asarray = numpy.asarray(other_param)
-                if numpy.shape(self_asarray) == numpy.shape(other_asarray) and numpy.allclose(
+                self_asarray = np.asarray(self_param)
+                other_asarray = np.asarray(other_param)
+                if np.shape(self_asarray) == np.shape(other_asarray) and np.allclose(
                     self_param, other_param, atol=_CUTOFF_PRECISION, rtol=0
                 ):
                     continue
@@ -140,7 +140,7 @@ class Instruction(Operation):
                 pass
 
             try:
-                if numpy.isclose(
+                if np.isclose(
                     float(self_param), float(other_param), atol=_CUTOFF_PRECISION, rtol=0
                 ):
                     continue
@@ -187,14 +187,14 @@ class Instruction(Operation):
                 other_param, ParameterExpression
             ):
                 continue
-            if isinstance(self_param, numpy.ndarray) and isinstance(other_param, numpy.ndarray):
-                if numpy.shape(self_param) == numpy.shape(other_param) and numpy.allclose(
+            if isinstance(self_param, np.ndarray) and isinstance(other_param, np.ndarray):
+                if np.shape(self_param) == np.shape(other_param) and np.allclose(
                     self_param, other_param, atol=_CUTOFF_PRECISION
                 ):
                     continue
             else:
                 try:
-                    if numpy.isclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                    if np.isclose(self_param, other_param, atol=_CUTOFF_PRECISION):
                         continue
                 except TypeError:
                     pass

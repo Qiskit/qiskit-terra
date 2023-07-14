@@ -13,7 +13,7 @@
 """UnitaryGate tests"""
 
 import json
-import numpy
+import numpy as np
 from numpy.testing import assert_allclose
 
 import qiskit
@@ -57,14 +57,14 @@ class TestUnitaryGate(QiskitTestCase):
 
     def test_conjugate(self):
         """test conjugate"""
-        ymat = numpy.array([[0, -1j], [1j, 0]])
+        ymat = np.array([[0, -1j], [1j, 0]])
         uni = UnitaryGate([[0, 1j], [-1j, 0]])
-        self.assertTrue(numpy.array_equal(uni.conjugate().to_matrix(), ymat))
+        self.assertTrue(np.array_equal(uni.conjugate().to_matrix(), ymat))
 
     def test_adjoint(self):
         """test adjoint operation"""
         uni = UnitaryGate([[0, 1j], [-1j, 0]])
-        self.assertTrue(numpy.array_equal(uni.adjoint().to_matrix(), uni.to_matrix()))
+        self.assertTrue(np.array_equal(uni.adjoint().to_matrix(), uni.to_matrix()))
 
 
 class TestUnitaryCircuit(QiskitTestCase):
@@ -75,7 +75,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.array([[1, 0], [0, 1]])
+        matrix = np.array([[1, 0], [0, 1]])
         qc.x(qr[0])
         qc.append(UnitaryGate(matrix), [qr[0]])
         # test of qasm output
@@ -95,9 +95,9 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmax, sigmay)
+        sigmax = np.array([[0, 1], [1, 0]])
+        sigmay = np.array([[0, -1j], [1j, 0]])
+        matrix = np.kron(sigmax, sigmay)
         qc.x(qr[0])
         uni2q = UnitaryGate(matrix)
         qc.append(uni2q, [qr[0], qr[1]])
@@ -122,9 +122,9 @@ class TestUnitaryCircuit(QiskitTestCase):
         """test 3 qubit unitary matrix on non-consecutive bits"""
         qr = QuantumRegister(4)
         qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
+        sigmax = np.array([[0, 1], [1, 0]])
+        sigmay = np.array([[0, -1j], [1j, 0]])
+        matrix = np.kron(sigmay, np.kron(sigmax, sigmay))
         qc.x(qr[0])
         uni3q = UnitaryGate(matrix)
         qc.append(uni3q, [qr[0], qr[1], qr[3]])
@@ -141,8 +141,8 @@ class TestUnitaryCircuit(QiskitTestCase):
 
     def test_1q_unitary_int_qargs(self):
         """test single qubit unitary matrix with 'int' and 'list of ints' qubits argument"""
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmaz = numpy.array([[1, 0], [0, -1]])
+        sigmax = np.array([[0, 1], [1, 0]])
+        sigmaz = np.array([[1, 0], [0, -1]])
         # new syntax
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
@@ -160,17 +160,17 @@ class TestUnitaryCircuit(QiskitTestCase):
         """test qobj output with unitary matrix"""
         qr = QuantumRegister(4)
         qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
-        qc.rx(numpy.pi / 4, qr[0])
+        sigmax = np.array([[0, 1], [1, 0]])
+        sigmay = np.array([[0, -1j], [1j, 0]])
+        matrix = np.kron(sigmay, np.kron(sigmax, sigmay))
+        qc.rx(np.pi / 4, qr[0])
         uni = UnitaryGate(matrix)
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
         qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, "unitary")
-        assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
+        assert_allclose(np.array(instr.params[0]).astype(np.complex64), matrix)
         # check conversion to dict
         qobj_dict = qobj.to_dict()
 
@@ -178,7 +178,7 @@ class TestUnitaryCircuit(QiskitTestCase):
             """Class for encoding json str with complex and numpy arrays."""
 
             def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
+                if isinstance(obj, np.ndarray):
                     return obj.tolist()
                 if isinstance(obj, complex):
                     return (obj.real, obj.imag)
@@ -191,9 +191,9 @@ class TestUnitaryCircuit(QiskitTestCase):
         """test qobj output with unitary matrix"""
         qr = QuantumRegister(4)
         qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmax, sigmay)
+        sigmax = np.array([[0, 1], [1, 0]])
+        sigmay = np.array([[0, -1j], [1j, 0]])
+        matrix = np.kron(sigmax, sigmay)
         uni = UnitaryGate(matrix, label="xy")
         qc.append(uni, [qr[0], qr[1]])
         qobj = qiskit.compiler.assemble(qc)
@@ -207,7 +207,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2, "q0")
         cr = ClassicalRegister(1, "c0")
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.array([[1, 0], [0, 1]])
+        matrix = np.array([[1, 0], [0, 1]])
         unitary_gate = UnitaryGate(matrix)
 
         qc.x(qr[0])
@@ -231,7 +231,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2, "q0")
         cr = ClassicalRegister(1, "c0")
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.array([[1, 0], [0, 1]])
+        matrix = np.array([[1, 0], [0, 1]])
         unitary_gate = UnitaryGate(matrix)
 
         qc.x(qr[0])
@@ -255,7 +255,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2, "q0")
         cr = ClassicalRegister(1, "c0")
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.asarray([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])
+        matrix = np.asarray([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])
         unitary_gate = UnitaryGate(matrix)
 
         qc.x(qr[0])
@@ -277,7 +277,7 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_qasm_unitary_noop(self):
         """Test that an identity unitary can be converted to OpenQASM 2"""
         qc = QuantumCircuit(QuantumRegister(3, "q0"))
-        qc.unitary(numpy.eye(8), qc.qubits)
+        qc.unitary(np.eye(8), qc.qubits)
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
@@ -295,17 +295,17 @@ class TestUnitaryCircuit(QiskitTestCase):
 
     def test_unitary_decomposition_via_definition(self):
         """Test decomposition for 1Q unitary via definition."""
-        mat = numpy.array([[0, 1], [1, 0]])
-        self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
+        mat = np.array([[0, 1], [1, 0]])
+        self.assertTrue(np.allclose(Operator(UnitaryGate(mat).definition).data, mat))
 
     def test_unitary_decomposition_via_definition_2q(self):
         """Test decomposition for 2Q unitary via definition."""
-        mat = numpy.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
-        self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
+        mat = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
+        self.assertTrue(np.allclose(Operator(UnitaryGate(mat).definition).data, mat))
 
     def test_unitary_control(self):
         """Test parameters of controlled - unitary."""
-        mat = numpy.array([[0, 1], [1, 0]])
+        mat = np.array([[0, 1], [1, 0]])
         gate = UnitaryGate(mat).control()
-        self.assertTrue(numpy.allclose(gate.params, mat))
-        self.assertTrue(numpy.allclose(gate.base_gate.params, mat))
+        self.assertTrue(np.allclose(gate.params, mat))
+        self.assertTrue(np.allclose(gate.base_gate.params, mat))
