@@ -90,7 +90,8 @@ class Unroller(TransformationPass):
                         continue
 
             if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
+                node.op = node.op.replace_blocks([self.run(block) for block in node.op.blocks])
+#                node.op = control_flow.map_blocks(self.run, node.op)
                 continue
 
             try:

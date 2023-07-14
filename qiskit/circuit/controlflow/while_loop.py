@@ -61,8 +61,10 @@ class WhileLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: Optional[str] = None,
     ):
-        num_qubits = body.num_qubits
-        num_clbits = body.num_clbits
+        from qiskit.converters.circuit import num_qubits as _num_qubits
+        from qiskit.converters.circuit import num_clbits as _num_clbits
+        num_qubits = _num_qubits(body)
+        num_clbits = _num_clbits(body)
 
         super().__init__("while_loop", num_qubits, num_clbits, [body], label=label)
         self.condition = validate_condition(condition)
@@ -75,18 +77,21 @@ class WhileLoopOp(ControlFlowOp):
     def params(self, parameters):
         (body,) = parameters
 
-        if not isinstance(body, QuantumCircuit):
+        from qiskit.converters.circuit import is_circuit
+        from qiskit.converters.circuit import num_qubits as _num_qubits
+        from qiskit.converters.circuit import num_clbits as _num_clbits
+        if not is_circuit(body):
             raise CircuitError(
                 "WhileLoopOp expects a body parameter of type "
                 f"QuantumCircuit, but received {type(body)}."
             )
 
-        if body.num_qubits != self.num_qubits or body.num_clbits != self.num_clbits:
+        if _num_qubits(body) != self.num_qubits or _num_clbits(body) != self.num_clbits:
             raise CircuitError(
                 "Attempted to assign a body parameter with a num_qubits or "
                 "num_clbits different than that of the WhileLoopOp. "
                 f"WhileLoopOp num_qubits/clbits: {self.num_qubits}/{self.num_clbits} "
-                f"Supplied body num_qubits/clbits: {body.num_qubits}/{body.num_clbits}."
+                f"Supplied body num_qubits/clbits: {_num_qubits(body)}/{_num_clbits(body)}."
             )
 
         self._params = [body]

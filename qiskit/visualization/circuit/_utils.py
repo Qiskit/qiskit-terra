@@ -416,7 +416,7 @@ def _get_layered_instructions(
         qubits = new_qubits
         clbits = new_clbits
 
-    dag = circuit_to_dag(circuit)
+    dag = circuit_to_dag(circuit, recurse=False)
     dag.qubits = qubits
     dag.clbits = clbits
 

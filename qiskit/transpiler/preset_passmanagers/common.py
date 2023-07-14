@@ -1,4 +1,3 @@
-# This code is part of Qiskit.
 #
 # (C) Copyright IBM 2022.
 #
@@ -53,7 +52,9 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
-_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
+from qiskit.circuit.controlflow import _CONTROL_FLOW_OP_NAMES
+
+_CONTROL_FLOW_PROPERTIES = tuple(f"contains_{x}" for x in _CONTROL_FLOW_OP_NAMES)
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
 
@@ -78,12 +79,10 @@ _CONTROL_FLOW_STATES = {
 
 
 def _has_control_flow(property_set):
-    return any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
-
+    return any(property_set[x] for x in _CONTROL_FLOW_PROPERTIES)
 
 def _without_control_flow(property_set):
-    return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
-
+    return not _has_control_flow(property_set)
 
 class _InvalidControlFlowForBackend:
     # Explicitly stateful closure to allow pickling.

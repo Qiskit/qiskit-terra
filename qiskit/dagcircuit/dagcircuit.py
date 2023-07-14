@@ -30,6 +30,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
+from qiskit.circuit.controlflow import is_control_flow_name
 from qiskit.circuit.controlflow.condition import condition_bits
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -900,9 +901,7 @@ class DAGCircuit:
         """
         length = len(self._multi_graph) - 2 * len(self._wires)
         if not recurse:
-            if any(
-                x in self._op_names for x in ("for_loop", "while_loop", "if_else", "switch_case")
-            ):
+            if any(is_control_flow_name(op_name) for op_name in self._op_names):
                 raise DAGCircuitError(
                     "Size with control flow is ambiguous."
                     " You may use `recurse=True` to get a result,"
@@ -964,9 +963,7 @@ class DAGCircuit:
                 return node_lookup.get(target, 1)
 
         else:
-            if any(
-                x in self._op_names for x in ("for_loop", "while_loop", "if_else", "switch_case")
-            ):
+            if any(is_control_flow_name(op_name) for op_name in self._op_names):
                 raise DAGCircuitError(
                     "Depth with control flow is ambiguous."
                     " You may use `recurse=True` to get a result,"

@@ -21,3 +21,8 @@ from .if_else import IfElseOp
 from .while_loop import WhileLoopOp
 from .for_loop import ForLoopOp
 from .switch_case import SwitchCaseOp, CASE_DEFAULT
+
+_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
+
+def is_control_flow_name(name):
+    return name in _CONTROL_FLOW_OP_NAMES
