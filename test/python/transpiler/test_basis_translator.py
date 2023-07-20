@@ -16,6 +16,7 @@
 import os
 
 from numpy import pi
+import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
@@ -39,6 +40,7 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
+
 
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -1101,3 +1103,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         expected.sx(1)
         expected.rz(3 * pi, 1)
         self.assertEqual(output, expected)
+
+if __name__ == "__main__":
+    # TestBasisTranslator().test_single_substitution()
+    unittest.main()

@@ -282,6 +282,7 @@ class BasisTranslator(TransformationPass):
         return dag
 
     def _replace_node(self, dag, node, instr_map):
+        print("HERE")
         target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
         if len(node.op.params) != len(target_params):
             raise TranspilerError(
@@ -292,15 +293,20 @@ class BasisTranslator(TransformationPass):
             )
 
         if node.op.params:
-            # Convert target to circ and back to assign_parameters, since
-            # DAGCircuits won't have a ParameterTable.
-            target_circuit = dag_to_circuit(target_dag)
+            # Removed the need for conversion
+            target_dag.assign_parameters(dict(zip_longest(target_params, node.op.params)))
+            bound_target_dag = target_dag
+            
+            # NOTE, old method
+            # # Convert target to circ and back to assign_parameters, since
+            # # DAGCircuits won't have a ParameterTable.
+            # target_circuit = dag_to_circuit(target_dag)
 
-            target_circuit.assign_parameters(
-                dict(zip_longest(target_params, node.op.params)), inplace=True
-            )
+            # target_circuit.assign_parameters(
+            #     dict(zip_longest(target_params, node.op.params)), inplace=True
+            # )
 
-            bound_target_dag = circuit_to_dag(target_circuit)
+            # bound_target_dag = circuit_to_dag(target_circuit)
         else:
             bound_target_dag = target_dag
 
@@ -595,7 +601,9 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
             for node in doomed_nodes:
-
+                
+                # NOTE, equiv is a QuantumCircuit not a DAGCircuit
+                # so the conversion is needed
                 replacement = equiv.assign_parameters(
                     dict(zip_longest(equiv_params, node.op.params))
                 )

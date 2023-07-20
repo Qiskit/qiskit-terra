@@ -46,8 +46,11 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils.deprecation import deprecate_func
-
-
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
+from qiskit.circuit.parameterexpression import ParameterValueType
+from typing import Mapping, Union, Sequence
 class DAGCircuit:
     """
     Quantum circuit as a directed acyclic graph.
@@ -102,6 +105,146 @@ class DAGCircuit:
 
         self.duration = None
         self.unit = "dt"
+
+        # Initialize the parameter table
+        self._parameter_table = {}
+        # Initialize the parameters
+        self._parameters = None
+
+    @property
+    def parameters(self):
+        """Convenience function to get the parameters defined in the parameter table."""
+        if self._parameters is None:
+            self._parameters = []
+            for parameter, _ in self._parameter_table.items():
+                if parameter not in self._parameters:
+                    self._parameters.append(parameter)
+        return ParameterView(self._parameters)
+    
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]]
+    ) -> None:
+        """Assign parameters to new parameters or values.
+
+        Args:
+            parameters: Either a dictionary or iterable specifying the new parameter values.
+
+        Raises:
+            CircuitError: If parameters is a dictionary and contains parameters not present in the circuit.
+            ValueError: If parameters is a sequence and the length mismatches the number of free parameters in the circuit.
+
+        Note:
+            This function modifies the circuit instance in place. It is nearly identical to its equivalent in QuantumCircuit.
+            For better coding practices, consider refactoring this repeated code into a common function.
+        """
+        if isinstance(parameters, dict):
+            # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+            unrolled_param_dict = self._unroll_param_dict(parameters)
+            unsorted_parameters = self._unsorted_parameters()
+
+            # check that all param_dict items are in the _parameter_table for this circuit
+            params_not_in_circuit = [
+                param_key
+                for param_key in unrolled_param_dict
+                if param_key not in unsorted_parameters
+            ]
+            if len(params_not_in_circuit) > 0:
+                raise CircuitError(
+                    "Cannot bind parameters ({}) not present in the circuit.".format(
+                        ", ".join(map(str, params_not_in_circuit))
+                    )
+                )
+
+            # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+            for parameter, value in unrolled_param_dict.items():
+                self._assign_parameter(parameter, value)
+        else:
+            if len(parameters) != self.num_parameters:
+                raise ValueError(
+                    "Mismatching number of values and parameters. For partial binding, please pass a dictionary of {parameter: value} pairs."
+                )
+            # use a copy of the parameters, to ensure we don't change the contents of
+            # self.parameters while iterating over them
+            fixed_parameters_copy = self.parameters.copy()
+            for i, value in enumerate(parameters):
+                self._assign_parameter(fixed_parameters_copy[i], value)
+
+    def _assign_parameter(self, parameter: Parameter, value: ParameterValueType) -> None:
+        """Update this DAGCircuit where instances of ``parameter`` are replaced by ``value``,
+        which can be either a numeric value or a new parameter expression.
+        """
+
+        # Check if parameter is in the parameter table
+        if parameter in self._parameter_table:
+            # Fetch the nodes and indices where the parameter is used
+            nodes_and_indices = self._parameter_table[parameter]
+
+            for node, param_index in nodes_and_indices:
+                operation = node.op
+
+                # Replace the parameter
+                if isinstance(value, ParameterExpression):
+                    operation.params[param_index] = value
+                else:
+                    operation.params[param_index] = operation.validate_parameter(value)
+
+                # Update the parameter table
+                self._update_parameter_table(node)
+
+            # If the parameter was replaced by another parameter, update the operation names
+            if isinstance(value, Parameter):
+                self._op_names[value.name] = operation
+
+            # Remove the old parameter from the parameter table
+            del self._parameter_table[parameter]
+
+        # Clear the parameter cache
+        self._parameters = None
+
+    def _update_parameter_table(self, node):
+        """Update the parameter table of this DAGCircuit based on a new node."""
+        for param_index, param in enumerate(node.op.params):
+            if isinstance(param, ParameterExpression):
+                atomic_parameters = set(param.parameters)
+            else:
+                atomic_parameters = set()
+
+            for parameter in atomic_parameters:
+                if parameter in self._parameter_table:
+                    self._parameter_table[parameter].add((node, param_index))
+                else:
+                    self._parameter_table[parameter] = {(node, param_index)}
+                    # clear cache if new parameter is added
+                    self._parameters = None
+
+    ## These functions are nearly if not exactly the same as their equivalents in QuantumCircuit
+    ## NOTE, not sure better coding practices that refactor this repeated code to a common function
+    def _unroll_param_dict(
+        self, value_dict: Mapping[Parameter, ParameterValueType]
+    ) -> dict[Parameter, ParameterValueType]:
+        unrolled_value_dict: dict[Parameter, ParameterValueType] = {}
+        for (param, value) in value_dict.items():
+            if isinstance(param, ParameterVector):
+                if not len(param) == len(value):
+                    raise CircuitError(
+                        "ParameterVector {} has length {}, which "
+                        "differs from value list {} of "
+                        "len {}".format(param, len(param), value, len(value))
+                    )
+                unrolled_value_dict.update(zip(param, value))
+            # pass anything else except number through. error checking is done in assign_parameter
+            elif isinstance(param, (ParameterExpression, str)) or param is None:
+                unrolled_value_dict[param] = value
+        return unrolled_value_dict
+    
+    def _unsorted_parameters(self) -> set[Parameter]:
+        """Efficiently get all parameters in the circuit, without any sorting overhead."""
+        parameters = set(self._parameter_table)
+        if isinstance(self.global_phase, ParameterExpression):
+            parameters.update(self.global_phase.parameters)
+
+        return parameters
 
     @property
     def wires(self):

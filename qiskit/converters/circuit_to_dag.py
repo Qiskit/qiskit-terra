@@ -89,7 +89,10 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
         op = instruction.operation
         if copy_operations:
             op = copy.deepcopy(op)
-        dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits)
+        node = dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits)
+
+        # Update the parameter table with the new node
+        dagcircuit._update_parameter_table(node)
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit
