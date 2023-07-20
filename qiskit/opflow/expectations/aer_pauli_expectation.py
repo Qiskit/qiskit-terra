@@ -60,7 +60,7 @@ class AerPauliExpectation(ExpectationBase):
 
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             if isinstance(operator.primitive, ListOp):
-                is_herm = all((op.is_hermitian() for op in operator.primitive.oplist))
+                is_herm = all(op.is_hermitian() for op in operator.primitive.oplist)
             else:
                 is_herm = operator.primitive.is_hermitian()
 

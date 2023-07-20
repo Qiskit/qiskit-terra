@@ -26,6 +26,7 @@ import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
+    Literal,
     Union,
     Optional,
     Tuple,
@@ -2795,7 +2796,7 @@ class QuantumCircuit:
         self, value_dict: Mapping[Parameter, ParameterValueType]
     ) -> dict[Parameter, ParameterValueType]:
         unrolled_value_dict: dict[Parameter, ParameterValueType] = {}
-        for (param, value) in value_dict.items():
+        for param, value in value_dict.items():
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError(

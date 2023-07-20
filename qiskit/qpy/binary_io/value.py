@@ -71,7 +71,7 @@ def _write_parameter_expression(file_obj, obj):
         # serialize value
         if value == symbol._symbol_expr:
             value_key = symbol_key
-            value_data = bytes()
+            value_data = b""
         else:
             value_key, value_data = dumps_value(value)
 

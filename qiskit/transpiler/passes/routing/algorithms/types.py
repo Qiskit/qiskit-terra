@@ -35,12 +35,10 @@ PermuteElement = TypeVar("PermuteElement")
 Permutation = Dict[PermuteElement, PermuteElement]
 Swap = Tuple[PermuteElement, PermuteElement]
 
-# Represents a circuit for permuting to a mapping.
-PermutationCircuit = NamedTuple(
-    "PermutationCircuit",
-    [
-        ("circuit", DAGCircuit),
-        ("inputmap", Dict[Union[int, Qubit], Qubit])
-        # A mapping from architecture nodes to circuit registers.
-    ],
-)
+
+class PermutationCircuit(NamedTuple):
+    """Represents a circuit for permuting to a mapping."""
+
+    circuit: DAGCircuit
+    inputmap: Dict[Union[int, Qubit], Qubit]
+    # A mapping from architecture nodes to circuit registers.

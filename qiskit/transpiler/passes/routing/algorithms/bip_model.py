@@ -416,7 +416,7 @@ class BIPMappingModel:
             return 1.0 - self.default_cx_error_rate
 
     @staticmethod
-    @lru_cache()
+    @lru_cache
     def _gate_fidelities(node):
         matrix = node.op.to_matrix()
         target = TwoQubitWeylDecomposition(matrix)
@@ -424,7 +424,7 @@ class BIPMappingModel:
         return [trace_to_fid(traces[i]) for i in range(4)]
 
     @staticmethod
-    @lru_cache()
+    @lru_cache
     def _mirrored_gate_fidelities(node):
         matrix = node.op.to_matrix()
         swap = SwapGate().to_matrix()

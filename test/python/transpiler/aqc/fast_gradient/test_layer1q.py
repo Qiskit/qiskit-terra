@@ -61,7 +61,7 @@ class TestLayer1q(QiskitTestCase):
 
                 # T == P^t @ G @ P.
                 err = tut.relative_error(t_mat, iden[perm].T @ g_mat @ iden[perm])
-                self.assertLess(err, eps, "err = {:0.16f}".format(err))
+                self.assertLess(err, eps, f"err = {err:0.16f}")
                 max_rel_err = max(max_rel_err, err)
 
                 # Multiplication by permutation matrix of the left can be
@@ -127,12 +127,12 @@ class TestLayer1q(QiskitTestCase):
                 alt_ttmtt = pmat.finalize(temp_mat=tmp1)
 
                 err1 = tut.relative_error(alt_ttmtt, ttmtt)
-                self.assertLess(err1, _eps, "relative error: {:f}".format(err1))
+                self.assertLess(err1, _eps, f"relative error: {err1:f}")
 
                 prod = np.cfloat(np.trace(ttmtt @ t4))
                 alt_prod = pmat.product_q1(layer=c4, tmp1=tmp1, tmp2=tmp2)
                 err2 = abs(alt_prod - prod) / abs(prod)
-                self.assertLess(err2, _eps, "relative error: {:f}".format(err2))
+                self.assertLess(err2, _eps, f"relative error: {err2:f}")
 
                 max_rel_err = max(max_rel_err, err1, err2)
 

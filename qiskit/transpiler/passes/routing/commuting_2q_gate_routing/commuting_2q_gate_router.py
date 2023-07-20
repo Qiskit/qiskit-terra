@@ -169,7 +169,6 @@ class Commuting2qGateRouter(TransformationPass):
 
         for node in dag.topological_op_nodes():
             if isinstance(node.op, Commuting2qBlock):
-
                 # Check that the swap strategy creates enough connectivity for the node.
                 self._check_edges(dag, node, swap_strategy)
 

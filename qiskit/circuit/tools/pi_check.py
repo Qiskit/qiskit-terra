@@ -104,7 +104,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
             if power[0].shape[0]:
                 if output == "qasm":
                     if ndigits is None:
-                        str_out = "{}".format(single_inpt)
+                        str_out = f"{single_inpt}"
                     else:
                         str_out = "{:.{}g}".format(single_inpt, ndigits)
                 elif output == "latex":
@@ -119,7 +119,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         # multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
         if abs(single_inpt) >= (MAX_FRAC * np.pi):
             if ndigits is None:
-                str_out = "{}".format(single_inpt)
+                str_out = f"{single_inpt}"
             else:
                 str_out = "{:.{}g}".format(single_inpt, ndigits)
             return str_out
@@ -169,7 +169,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
 
         # Nothing found
         if ndigits is None:
-            str_out = "{}".format(single_inpt)
+            str_out = f"{single_inpt}"
         else:
             str_out = "{:.{}g}".format(single_inpt, ndigits)
         return str_out

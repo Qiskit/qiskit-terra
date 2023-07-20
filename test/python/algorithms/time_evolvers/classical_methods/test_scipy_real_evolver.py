@@ -51,7 +51,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
             one(1).expand(zero(1)),
             np.pi / 4,
             SparsePauliOp(["XX", "YY"], [0.5, 0.5]),
-            ((one(1).expand(zero(1)) - 1.0j * zero(1).expand(one(1)))) / np.sqrt(2),
+            (one(1).expand(zero(1)) - 1.0j * zero(1).expand(one(1))) / np.sqrt(2),
         ),
         (zero(12), np.pi / 2, SparsePauliOp("X" * 12), -1.0j * (one(12))),
     )
