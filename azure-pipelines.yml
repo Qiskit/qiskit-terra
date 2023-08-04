@@ -34,17 +34,17 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.8", "3.9", "3.10", "3.11"]
+    default: ["3.8", "3.9", "3.10", "3.11"]  # PYVERBUMP
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
     type: string
-    default: "3.8"
+    default: "3.8"  # PYVERBUMP
 
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.11"
+    default: "3.11"  # PYVERBUMP
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -53,17 +53,17 @@ parameters:
   - name: "branchPushPythonVersion"
     displayName: "Version of Python to run simple tests on pushes to protected branches"
     type: string
-    default: "3.9"
+    default: "3.9"  # PYVERBUMP
 
   - name: "tutorialsPythonVersion"
     displayName: "Version of Python to use to run the tutorials job"
     type: string
-    default: "3.8"
+    default: "3.8"  # PYVERBUMP
 
   - name: "documentationPythonVersion"
     displayName: "Version of Python to use to build Sphinx documentation"
     type: string
-    default: "3.9"
+    default: "3.9"  # PYVERBUMP
 
 # Conditional compilation logic.  This is all the logic for "what to run"; each
 # stage in turn delegates to various templates in ".azure" that provide the

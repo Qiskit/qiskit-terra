@@ -3,7 +3,7 @@
 First read the overall project contributing guidelines. These are all
 included in the qiskit documentation:
 
-https://qiskit.org/documentation/contributing_to_qiskit.html
+<https://qiskit.org/documentation/contributing_to_qiskit.html>
 
 ## Contributing to Qiskit Terra
 
@@ -11,7 +11,8 @@ In addition to the general guidelines there are specific details for
 contributing to terra, these are documented below.
 
 ### Contents
-* [Choose an issue to work on](#Choose-an-issue-to-work-on)
+
+* [Choose an issue to work on](#choose-an-issue-to-work-on)
 * [Pull request checklist](#pull-request-checklist)
 * [Changelog generation](#changelog-generation)
 * [Release Notes](#release-notes)
@@ -30,6 +31,7 @@ contributing to terra, these are documented below.
 * [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
 
 ### Choose an issue to work on
+
 Qiskit Terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
 
 * [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions.
@@ -57,8 +59,7 @@ please ensure that:
    documentation `autosummary` index to include it in the api documentation.
    For more details you can refer to:
 
-   https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
-
+   <https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure>
 
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
@@ -148,9 +149,9 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`.
     This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
-    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo`
     on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
@@ -168,7 +169,7 @@ deprecations:
     :func:`~qiskit.bar.foobar` calls to :func:`~qiskit.foo`.
 ```
 
-You can also look at other release notes for other examples. 
+You can also look at other release notes for other examples.
 
 Note that you can use sphinx [restructured text syntax](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
 In fact, you can use any restructured text feature in them (code sections, tables,
@@ -234,7 +235,7 @@ qiskit-terra we publish precompiled binaries on the
 [Python Package Index](https://pypi.org/) for all the supported platforms
 which only requires a functional Python environment to install. However, when
 building and installing from source you will need a rust compiler installed. You can do this very easily
-using rustup: https://rustup.rs/ which provides a single tool to install and
+using rustup: <https://rustup.rs/> which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
 exist too. For Windows users, besides rustup, you will also need install
@@ -259,7 +260,6 @@ Note that in order to run `python setup.py ...` commands you need have build
 dependency packages installed in your environment, which are listed in the
 `pyproject.toml` file under the `[build-system]` section.
 
-
 ## Test
 
 Once you've made a code change, it is important to verify that your change
@@ -278,32 +278,38 @@ on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
 version: `tox -epy310` (or replace py310 with the python version you want to use,
 py39 or py311).
+<!--- PYVERBUMP Update all -epy10 here and below if required after changes to supported python versions -->
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
 the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
-https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
+<https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection>
 
 If you want to run a single test module, test class, or individual test method
 you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
+
 ```
 tox -epy310 -- -n test.python.test_examples
 ```
+
 or to run the same module by path:
 
 ```
 tox -epy310 -- -n test/python/test_examples.py
 ```
+
 to run a class:
 
 ```
 tox -epy310 -- -n test.python.test_examples.TestPythonExamples
 ```
+
 to run a method:
+
 ```
 tox -epy310 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
 ```
@@ -340,7 +346,7 @@ the directory to `out`, just run this command:
 Linux and Mac:
 
 ``` {.bash}
-$ LOG_LEVEL=INFO python -m unittest test/python/circuit/test_circuit_operations.py
+LOG_LEVEL=INFO python -m unittest test/python/circuit/test_circuit_operations.py
 ```
 
 Windows:
@@ -389,7 +395,7 @@ you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
 1. Make sure you have pushed your latest changes to your remote branch.
-2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
+2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit <https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb>.
 This opens a Jupyter Notebook application running in the cloud that automatically runs
 the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
@@ -398,24 +404,24 @@ the snapshot tests (note this may take some time to finish loading).
 4. Fix any broken tests. Working on code for one aspect of the visualisations
 can sometimes result in minor changes elsewhere to spacing etc. In these cases
 you just need to update the reference images as follows:
-    - download the mismatched images (link at top of Jupyter Notebook output)
-    - unzip the folder
-    - copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`,
+    * download the mismatched images (link at top of Jupyter Notebook output)
+    * unzip the folder
+    * copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`,
   replacing the existing reference images
-    - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The
+    * add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The
   tests should now pass.
 5. Add new snapshot tests covering your new features, extensions, or bugfixes.
-    - add your new snapshot tests to `test/ipynb/mpl/test_circuit_matplotlib_drawer.py`
+    * add your new snapshot tests to `test/ipynb/mpl/test_circuit_matplotlib_drawer.py`
     , where you can also find existing tests to use as a guide.
-    - commit and push your changes, restart the Jupyter Notebook app in your browser.
+    * commit and push your changes, restart the Jupyter Notebook app in your browser.
     As this is the first time you run your new tests there won't be any reference
     images to compare to. Instead you should see an option in the list of tests
     to download the new images, like so:
 
     <img width="1002" alt="Screenshot_2021-03-26_at_15 38 31" src="https://user-images.githubusercontent.com/23662430/112665215-b9c3a000-8e52-11eb-89e7-b18550718522.png">
 
-    - download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
-    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The
+    * download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
+    * add, commit and push your changes, restart the Jupyter Notebook app in your browser. The
     new tests should now pass.
 
 Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
@@ -486,7 +492,7 @@ PR is opened after this date it will not be considered for inclusion in that
 release. Note, that meeting these deadlines does not guarantee inclusion in a
 release: they are preconditions. You can refer to the milestone page for each
 release to see these dates for each release (for example for 0.21.0 the page is:
-https://github.com/Qiskit/qiskit-terra/milestone/23).
+<https://github.com/Qiskit/qiskit-terra/milestone/23>).
 
 After the proposal freeze a release review period will begin, during this time
 release candidate PRs will be reviewed as we finalize the feature set and merge
@@ -501,6 +507,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
+
 The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
@@ -512,7 +519,6 @@ def test_method1(self):
 ```
 
 Deprecating `method1` means that `Obj.method1()` now raises a deprecation warning and the test will not pass. The existing test should be updated and a new test added for `method2`:
-
 
 ```python
 def test_method1_deprecated(self):
@@ -555,8 +561,7 @@ You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/op
 You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit-terra will be unusable.
 We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
 Instead, you should use [one of the "lazy testers" for optional dependencies](https://qiskit.org/documentation/apidoc/utils.html#module-qiskit.utils.optionals), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
-Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
-
+Very lightweight *requirements* can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
 
 ## Dealing with the git blame ignore list
 

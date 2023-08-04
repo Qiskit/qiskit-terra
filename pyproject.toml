@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py38', 'py39', 'py310', 'py311']  # PYVERBUMP
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* cp37-* *musllinux*"
+skip = "pp* cp36-* cp37-* *musllinux*"  # PYVERBUMP
 test-skip = "cp310-win32 cp310-manylinux_i686 cp311-win32 cp311-manylinux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -41,6 +41,7 @@ select = [
   "F823",  # undefined-local
   "C4",  # category: flake8-comprehensions
 ]
+target-version = "py38"  # PYVERBUMP
 
 [tool.pylint.main]
 extension-pkg-allow-list = [
@@ -53,7 +54,7 @@ extension-pkg-allow-list = [
     "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
-py-version = "3.8"  # update it when bumping minimum supported python version
+py-version = "3.8"  # PYVERBUMP update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]

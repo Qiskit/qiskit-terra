@@ -2048,10 +2048,7 @@ class QuantumCircuit:
         """Return number of classical bits."""
         return len(self.clbits)
 
-    # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
-    # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
-    # support is dropped.
-    def count_ops(self) -> "OrderedDict[Instruction, int]":
+    def count_ops(self) -> OrderedDict[Instruction, int]:
         """Count each operation kind in the circuit.
 
         Returns:

@@ -75,7 +75,7 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.8",  # PYVERBUMP
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
@@ -85,7 +85,7 @@ setup(
     packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
     include_package_data=True,
-    python_requires=">=3.8",
+    python_requires=">=3.8",  # PYVERBUMP
     extras_require={
         "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
@@ -116,7 +116,7 @@ setup(
             debug=rust_debug,
         ),
     ],
-    options={"bdist_wheel": {"py_limited_api": "cp38"}},
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},  # PYVERBUMP
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
