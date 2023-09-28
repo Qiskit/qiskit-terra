@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Introduced sparse inputs in :class:`.circuit.library.Diagonal(diag)` objects. 
+    For scalability, input type is changed to dictionary type. For more refer to:
+    `#10567 <https://github.com/Qiskit/qiskit-terra/issues/10567>`
+    
