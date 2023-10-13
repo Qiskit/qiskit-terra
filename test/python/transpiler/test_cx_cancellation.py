@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Tests for pass cancelling 2 consecutive CNOTs on the same qubits."""
-
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Clbit, Qubit
 from qiskit.transpiler import PassManager

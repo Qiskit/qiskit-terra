@@ -25,7 +25,7 @@ from .exceptions import VisualizationError
 
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
-def dag_drawer(dag, scale=0.7, filename=None, style="color"):
+def dag_drawer(dag, scale=0.7, filename=None, style="color", show_node_id=False):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -38,6 +38,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
+        show_node_id (bool): show the graph node_id for each node
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -149,6 +150,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
+                if show_node_id:
+                    n["label"] = f"{node._node_id}: {n['label']}"
                 return n
             else:
                 raise VisualizationError("Invalid style %s" % style)

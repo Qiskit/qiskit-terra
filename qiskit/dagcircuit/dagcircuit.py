@@ -1698,6 +1698,27 @@ class DAGCircuit:
         """Returns set of the descendants of a node as DAGOpNodes and DAGOutNodes."""
         return {self._multi_graph[x] for x in rx.descendants(self._multi_graph, node._node_id)}
 
+    def bfs_predecessors(self, node):
+        """
+        Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
+        and [DAGNode] is its predecessors in BFS order.
+        """
+        from collections import deque
+
+        queue = deque([(node, None)])
+        visited = set()
+        children = dict()
+        while queue:
+            parent, pred = queue.popleft()
+            if parent not in visited:
+                visited.add(parent)
+                children = [
+                    child for child in self.predecessors(parent) if isinstance(child, DAGOpNode)
+                ]
+                if pred is not None:
+                    yield parent, children
+                queue.extend((child, parent) for child in children if child not in visited)
+
     def bfs_successors(self, node):
         """
         Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
@@ -2078,7 +2099,7 @@ class DAGCircuit:
         }
         return summary
 
-    def draw(self, scale=0.7, filename=None, style="color"):
+    def draw(self, scale=0.7, filename=None, style="color", **kwargs):
         """
         Draws the dag circuit.
 
@@ -2091,11 +2112,11 @@ class DAGCircuit:
             style (str):
                 'plain': B&W graph;
                 'color' (default): color input/output/op nodes
-
+            kwargs (dict): addtional keyword arguments understood by dag_drawer
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
             otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
-        return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style, **kwargs)
