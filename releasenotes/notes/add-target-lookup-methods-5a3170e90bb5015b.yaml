@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Added 3 new lookup methods, :meth:`~.Target.get_instruction_properties`,
+    :meth:~.Target.get_instruction_error`, and :meth:`~.Target.get_instruction_duration`
+    to the :class:`~.Target` class. These methods are used to query the target
+    for the :class:`~.InstructionProperties`, error rate, or duration of a given
+    instruction in the target. Previously this was possible using the mapping protocol
+    (i.e. ``target[op_name][qargs]``) however it resulted in a great deal of duplicated
+    logic to handle edge cases around ideal and/or global gates which depending on the
+    type of operation are represented with ``None`` at various levels in a
+    :class:`~.Target`. THese methods provide a simple entry point that will either return
+    the desired result, ``None`` if the instruction doesn't have the property defined, or raise
+    a ``KeyError`` if the instruction isn't supported by the :class:`~.Target`.
+  - |
+    Added 3 new lookup methods, :meth:`~.Target.get_instruction_properties_by_class`,
+    :meth:~.Target.get_instruction_errors_by_class`, and :meth:`~.Target.get_instruction_durations_by_class`
+    to the :class:`~.Target` class. These methods are used to query the target
+    for the :class:`~.InstructionProperties`, error rate, or duration of a given
+    instruction in the target by the operation class instead of the canonical name for the
+    operation. These methods provide a simple entry point that will either return
+    a dictionary mapping the canonical operation names which match the input parameters
+    to desired result, ``None`` if the instruction doesn't have the property defined, or raise
+    a ``KeyError`` if the instruction isn't supported by the :class:`~.Target`.

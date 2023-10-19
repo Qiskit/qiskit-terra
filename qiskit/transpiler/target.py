@@ -709,6 +709,245 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         return res
 
+    def get_instruction_properties_by_class(self, operation_class, qargs, parameters=None):
+        """Return the instruction properties for matching instructions by operation class
+
+        This method and looking up by class is in general more expensive to compute as it
+        needs to iterate over all operations in the target instead of just a single lookup
+        by name as is done in :meth:`~.get_instruction_properties_by_name`. This method can also
+        return multiple properties as there might be multiple implementations of a class in the
+        target. The typical use case for this operation is to get the properties of a specific
+        variant of an operation on the backend. For example, if you wanted to get the properties
+        of all the instructions capable of implementing a :class:`~.RXGate` on a specific qubit
+        with a fixed angle.
+
+        Args:
+            operation_class (qiskit.circuit.Operation): The operation class to lookup the
+                properties for
+            qargs (tuple): The tuple of qubit indices for the instruction.
+            parameters (list): A list of parameters to filter the returned properties on
+                whether an operation supports them on the specified qubits. If the instruction
+                supports the parameter values specified in the list on the operation and qargs
+                specified the properties for that instruction will be included in the return.
+                If this argument is not specified this method will return the properties for
+                any instruction that is supported independent of the instruction parameters. If
+                specified with any :class:`~.Parameter` objects in the list, that entry will be
+                treated as supporting any value, however parameter names will not be checked (for
+                example if an operation in the target is listed as parameterized with ``"theta"``
+                and ``"phi"`` is passed into this function that will return properties for that
+                instruction). For example, if called with::
+
+                    parameters = [Parameter("theta")]
+                    target.get_instruction_properties_by_class(RXGate, (0,), parameters=parameters)
+
+                will return the properties of any :class:`~.RXGate` instruction that is suported on
+                qubit 0 which will accept any parameter (excluding fixed angle variants).
+
+        Returns:
+            dict: A dictionary mapping all the operation names to instruction properties for all
+                matching instructions. If there are no properties available the value will be ``None``
+
+        Raises:
+            KeyError: If the instruction isn't supported
+        """
+
+        def check_obj_params(parameters, obj):
+            for index, param in enumerate(parameters):
+                if isinstance(param, Parameter) and not isinstance(obj.params[index], Parameter):
+                    return False
+                if param != obj.params[index] and not isinstance(obj.params[index], Parameter):
+                    return False
+            return True
+
+        # Case a list if passed in by mistake
+        qargs = tuple(qargs)
+        out_dict = {}
+        for op_name, obj in self._gate_name_map.items():
+            if inspect.isclass(obj):
+                if obj != operation_class:
+                    continue
+                # If qargs set then validate no duplicates and all indices are valid on device
+                if all(qarg <= self.num_qubits for qarg in qargs) and len(set(qargs)) == len(qargs):
+                    out_dict[op_name] = None
+            elif isinstance(obj, operation_class):
+                if parameters is not None:
+                    if len(parameters) != len(obj.params):
+                        continue
+                    if not check_obj_params(parameters, obj):
+                        continue
+                if qargs in self._gate_map[op_name]:
+                    out_dict[op_name] = self._gate_map[op_name][qargs]
+                if None in self._gate_map[op_name]:
+                    out_dict[op_name] = self._gate_map[op_name][None]
+                if self._gate_map[op_name] is None:
+                    out_dict[op_name] = None
+        if not out_dict:
+            raise KeyError(
+                f"Operation class {operation_class} on qargs: {qargs} with parameters "
+                f"{parameters} is not supported"
+            )
+        return out_dict
+
+    def get_instruction_errors_by_class(self, operation_class, qargs, parameters=None):
+        """Return the error rates for instructions by operation class
+
+        This method and looking up by class is in general more expensive to compute as it
+        needs to iterate over all operations in the target instead of just a single lookup
+        by name as is done in :meth:`~.get_instruction_error`. This method can also
+        return multiple properties as there might be multiple implementations of a class in the
+        target. The typical use case for this operation is to get the properties of a specific
+        variant of an operation on the backend. For example, if you wanted to get the properties
+        of all the instructions capable of implementing a :class:`~.RXGate` on a specific qubit
+        with a fixed angle.
+
+        Args:
+            operation_class (qiskit.circuit.Operation): The operation class to lookup the
+                properties for
+            qargs (tuple): The tuple of qubit indices for the instruction.
+            parameters (list): A list of parameters to filter the returned error rates on
+                whether an operation supports them on the specified qubits. If the instruction
+                supports the parameter values specified in the list on the operation and qargs
+                specified the properties for that instruction will be included in the return.
+                If this argument is not specified this method will return the properties for
+                any instruction that is supported independent of the instruction parameters. If
+                specified with any :class:`~.Parameter` objects in the list, that entry will be
+                treated as supporting any value, however parameter names will not be checked (for
+                example if an operation in the target is listed as parameterized with ``"theta"``
+                and ``"phi"`` is passed into this function that will return the error rate for
+                that instruction). For example, if called with::
+
+                    parameters = [Parameter("theta")]
+                    target.get_errors_by_class(RXGate, (0,), parameters=parameters)
+
+                will return the properties of any :class:`~.RXGate` instruction that is suporrted on
+                qubit 0 which will accept any parameter (excluding fixed angle variants).
+
+        Returns:
+            dict: A dictionary mapping all the operation names to error rates for all matching
+                instructions with errors defined. If there are no properties available with errors
+                the return will be ``None``.
+
+        Raises:
+            KeyError: If the instruction isn't supported
+        """
+        props_dict = self.get_instruction_properties_by_class(operation_class, qargs, parameters)
+        out_dict = {}
+        for op_name, prop in props_dict.items():
+            error = getattr(prop, "error", None)
+            if error is not None:
+                out_dict[op_name] = error
+        if not out_dict:
+            return None
+        return out_dict
+
+    def get_instruction_durations_by_class(self, operation_class, qargs, parameters=None):
+        """Return the durations for instructions by operation class
+
+        This method and looking up by class is in general more expensive to compute as it
+        needs to iterate over all operations in the target instead of just a single lookup
+        by name as is done in :meth:`~.get_instruction_duration`. This method can also
+        return multiple properties as there might be multiple implementations of a class in the
+        target. The typical use case for this operation is to get the properties of a specific
+        variant of an operation on the backend. For example, if you wanted to get the properties
+        of all the instructions capable of implementing a :class:`~.RXGate` on a specific qubit
+        with a fixed angle.
+
+        Args:
+            operation_class (qiskit.circuit.Operation): The operation class to lookup the
+                properties for
+            qargs (tuple): The tuple of qubit indices for the instruction.
+            parameters (list): A list of parameters to filter the returned durations on
+                whether an operation supports them on the specified qubits. If the instruction
+                supports the parameter values specified in the list on the operation and qargs
+                specified the properties for that instruction will be included in the return.
+                If this argument is not specified this method will return the properties for
+                any instruction that is supported independent of the instruction parameters. If
+                specified with any :class:`~.Parameter` objects in the list, that entry will be
+                treated as supporting any value, however parameter names will not be checked (for
+                example if an operation in the target is listed as parameterized with ``"theta"``
+                and ``"phi"`` is passed into this function that will return the duration for that
+                instruction). For example, if called with::
+
+                    parameters = [Parameter("theta")]
+                    target.get_durations_by_class(RXGate, (0,), parameters=parameters)
+
+                will return the properties of any :class:`~.RXGate` instruction that is suporrted on
+                qubit 0 which will accept any parameter (excluding fixed angle variants).
+
+        Returns:
+            dict: A dictionary mapping all the operation names to durations for all matching
+                instructions with durations defined. If there are no properties available with
+                durations the return will be ``None``.
+
+        Raises:
+            KeyError: If the instruction isn't supported
+        """
+        props_dict = self.get_instruction_properties_by_class(operation_class, qargs, parameters)
+        out_dict = {}
+        for op_name, prop in props_dict.items():
+            error = getattr(prop, "duration", None)
+            if error is not None:
+                out_dict[op_name] = error
+        if not out_dict:
+            return None
+        return out_dict
+
+    def get_instruction_properties(self, operation_name, qargs):
+        """Return the properties for a given instruction (operation + qubits) in the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction.
+            qargs (tuple): The tuple of qubit indices for the instruction.
+
+        Returns:
+            InstructionProperties: The instruction properties of the given instruction if available,
+                otherwise ``None``
+
+        Raises:
+            KeyError: If the instruction isn't supported
+        """
+        if operation_name not in self._gate_map:
+            raise KeyError(f"Operation name {operation_name} is not supported.")
+        if self._gate_map[operation_name] is None:
+            return None
+        if qargs in self._gate_map[operation_name]:
+            return self._gate_map[operation_name][qargs]
+        if None in self._gate_map[operation_name]:
+            return self._gate_map[operation_name][None]
+        raise KeyError(f"Operation name {operation_name} is not supported on qargs: {qargs}")
+
+    def get_instruction_error(self, operation_name, qargs):
+        """Return the error rate for an instruction (operation + qubits) in the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction.
+            qargs (tuple): The tuple of qubit indices for the instruction.
+
+        Returns:
+            float: The error rate if available, otherwise ``None``
+
+        Raises:
+            KeyError: If the instruction isn't supported
+        """
+        props = self.get_instruction_properties(operation_name, qargs)
+        return getattr(props, "error", None)
+
+    def get_instruction_duration(self, operation_name, qargs):
+        """Return the duration for an instruction (operation + qubits) in the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction.
+            qargs (tuple): The tuple of qubit indices for the instruction.
+
+        Returns:
+            float: The instruction duration in seconds if available, otherwise ``None``
+
+        Raises:
+            KeyError: If the instruction isn't supported
+        """
+        props = self.get_instruction_properties(operation_name, qargs)
+        return getattr(props, "duration", None)
+
     def instruction_supported(
         self, operation_name=None, qargs=None, operation_class=None, parameters=None
     ):

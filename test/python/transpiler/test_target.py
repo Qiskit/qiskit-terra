@@ -1140,6 +1140,93 @@ Instructions:
     def test_instruction_supported_no_operation(self):
         self.assertFalse(self.ibm_target.instruction_supported(qargs=(0,), parameters=[math.pi]))
 
+    def test_get_instruction_properties(self):
+        self.assertIsInstance(
+            self.ibm_target.get_instruction_properties("rz", (0,)), InstructionProperties
+        )
+        with self.assertRaises(KeyError):
+            self.ibm_target.get_instruction_properties("nan", (0,))
+        self.assertIsNone(self.ideal_sim_target.get_instruction_properties("rx", (0,)))
+
+    def test_get_instruction_properties_by_class(self):
+        res = self.ibm_target.get_instruction_properties_by_class(RZGate, (0,))
+        self.assertIsInstance(res["rz"], InstructionProperties)
+        with self.assertRaises(KeyError):
+            self.ibm_target.get_instruction_properties_by_class(RGate, (0,))
+        self.assertIsNone(
+            self.ideal_sim_target.get_instruction_properties_by_class(RXGate, (0,))["rx"]
+        )
+        self.assertIsNone(
+            self.ideal_sim_target.get_instruction_properties_by_class(RXGate, (0,), [math.pi])["rx"]
+        )
+
+    def test_get_instruction_error_rate(self):
+        self.assertEqual(self.ibm_target.get_instruction_error("rz", (0,)), 0.0)
+        with self.assertRaises(KeyError):
+            self.ibm_target.get_instruction_error("nan", (0,))
+        self.assertIsNone(self.ideal_sim_target.get_instruction_error("rx", (0,)))
+
+    def test_get_instruction_errors_by_class(self):
+        res = self.ibm_target.get_instruction_errors_by_class(RZGate, (0,))
+        self.assertEqual(res["rz"], 0.0)
+        with self.assertRaises(KeyError):
+            self.ibm_target.get_instruction_errors_by_class(RGate, (0,))
+        self.assertIsNone(self.ideal_sim_target.get_instruction_errors_by_class(RXGate, (0,)))
+        self.assertIsNone(
+            self.ideal_sim_target.get_instruction_errors_by_class(RXGate, (0,), [math.pi])
+        )
+
+    def test_get_instruction_duration(self):
+        self.assertEqual(self.ibm_target.get_instruction_duration("rz", (0,)), 0.0)
+        with self.assertRaises(KeyError):
+            self.ibm_target.get_instruction_duration("nan", (0,))
+        self.assertIsNone(self.ideal_sim_target.get_instruction_duration("rx", (0,)))
+
+    def test_get_instruction_durations_by_class(self):
+        res = self.ibm_target.get_instruction_durations_by_class(RZGate, (0,))
+        self.assertEqual(res["rz"], 0.0)
+        with self.assertRaises(KeyError):
+            self.ibm_target.get_instruction_durations_by_class(RGate, (0,))
+        self.assertIsNone(self.ideal_sim_target.get_instruction_durations_by_class(RXGate, (0,)))
+        self.assertIsNone(
+            self.ideal_sim_target.get_instruction_durations_by_class(RXGate, (0,), [math.pi])
+        )
+
+    def test_get_instruction_properties_by_class_tuned_variants(self):
+        mumbai = FakeMumbaiFractionalCX()
+        target = mumbai.target
+        with self.assertRaises(KeyError):
+            target.get_instruction_properties_by_class(RZXGate, (0, 1), [Parameter("theta")])
+        res = target.get_instruction_properties_by_class(RZXGate, (0, 1))
+        self.assertEqual(len(res), 3)
+        res = target.get_instruction_properties_by_class(RZXGate, (0, 1), [math.pi / 2])
+        self.assertEqual(len(res), 1)
+        self.assertIsInstance(res["rzx_90"], InstructionProperties)
+        with self.assertRaises(KeyError):
+            target.get_instruction_properties_by_class(RZXGate, (0, 1), [100.213])
+
+    def test_get_instruction_errors_by_class_tuned_variants(self):
+        mumbai = FakeMumbaiFractionalCX()
+        target = mumbai.target
+        with self.assertRaises(KeyError):
+            target.get_instruction_errors_by_class(RZXGate, (0, 1), [Parameter("theta")])
+        res = target.get_instruction_errors_by_class(RZXGate, (0, 1))
+        self.assertEqual(len(res), 3)
+        res = target.get_instruction_errors_by_class(RZXGate, (0, 1), [math.pi / 2])
+        self.assertEqual(len(res), 1)
+        self.assertAlmostEqual(res["rzx_90"], 0.030671121181161276)
+
+    def test_get_instruction_durations_by_class_tuned_variants(self):
+        mumbai = FakeMumbaiFractionalCX()
+        target = mumbai.target
+        with self.assertRaises(KeyError):
+            target.get_instruction_durations_by_class(RZXGate, (0, 1), [Parameter("theta")])
+        res = target.get_instruction_durations_by_class(RZXGate, (0, 1))
+        self.assertEqual(len(res), 3)
+        res = target.get_instruction_durations_by_class(RZXGate, (0, 1), [math.pi / 2])
+        self.assertEqual(len(res), 1)
+        self.assertAlmostEqual(res["rzx_90"], 3.591111111111111e-07)
+
 
 class TestPulseTarget(QiskitTestCase):
     def setUp(self):
@@ -1836,6 +1923,16 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             },
             set(self.ibm_target.build_coupling_map().get_edges()),
         )
+
+    def test_get_instruction_properties_variable_width(self):
+        res = self.aqt_target.get_instruction_properties("while_loop", (0, 1, 2, 3))
+        self.assertIsNone(res)
+
+    def test_get_instruction_properties_by_class_variable_width(self):
+        res = self.aqt_target.get_instruction_properties_by_class(WhileLoopOp, (0, 1, 2, 3))
+        self.assertIsNone(res["while_loop"])
+        with self.assertRaises(KeyError):
+            self.aqt_target.get_instruction_properties_by_class(WhileLoopOp, tuple(range(200)))
 
 
 class TestInstructionProperties(QiskitTestCase):
