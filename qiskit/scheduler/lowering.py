@@ -97,6 +97,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             qubit_mem_slots.update(acquire_excludes)
             meas_sched = measure(
                 qubits=qubits,
+                backend=schedule_config.backend,
                 inst_map=inst_map,
                 meas_map=schedule_config.meas_map,
                 qubit_mem_slots=qubit_mem_slots,

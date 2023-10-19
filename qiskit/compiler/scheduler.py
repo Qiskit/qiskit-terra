@@ -96,7 +96,7 @@ def schedule(
             if backend is not None:
                 dt = backend.configuration().dt
 
-    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
+    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt, backend=backend)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = parallel_map(schedule_circuit, circuits, (schedule_config, method))
     end_time = time()
