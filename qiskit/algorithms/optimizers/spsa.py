@@ -182,59 +182,67 @@ class SPSA(Optimizer):
     ) -> None:
         r"""
         Args:
-            maxiter: The maximum number of iterations. Note that this is not the maximal number
-                of function evaluations.
-            blocking: If True, only accepts updates that improve the loss (up to some allowed
-                increase, see next argument).
-            allowed_increase: If ``blocking`` is ``True``, this argument determines by how much
-                the loss can increase with the proposed parameters and still be accepted.
+            maxiter: The maximum number of iterations. Note that this is not the
+                maximal number of function evaluations.
+            blocking: If True, only accepts updates that improve the loss (up to
+                some allowed increase, see next argument).
+            allowed_increase: If ``blocking`` is ``True``, this argument
+                determines by how much the loss can increase with the proposed
+                parameters and still be accepted.
                 If ``None``, the allowed increases is calibrated automatically to be twice the
                 approximated standard deviation of the loss function.
             trust_region: If ``True``, restricts the norm of the update step to be :math:`\leq 1`.
             learning_rate: The update step is the learning rate is multiplied with the gradient.
                 If the learning rate is a float, it remains constant over the course of the
-                optimization. If a NumPy array, the :math:`i`-th element is the learning rate for
-                the :math:`i`-th iteration. It can also be a callable returning an iterator which
-                yields the learning rates for each optimization step.
+                optimization. If a NumPy array, the :math:`i`-th element is the
+                learning rate for the :math:`i`-th iteration. It can also be a
+                callable returning an iterator which yields the learning rates for
+                each optimization step.
                 If ``learning_rate`` is set ``perturbation`` must also be provided.
-            perturbation: Specifies the magnitude of the perturbation for the finite difference
-                approximation of the gradients. See ``learning_rate`` for the supported types.
+            perturbation: Specifies the magnitude of the perturbation for the
+                finite difference approximation of the gradients. See
+                ``learning_rate`` for the supported types.
                 If ``perturbation`` is set ``learning_rate`` must also be provided.
-            last_avg: Return the average of the ``last_avg`` parameters instead of just the
-                last parameter values.
-            resamplings: The number of times the gradient (and Hessian) is sampled using a random
-                direction to construct a gradient estimate. Per default the gradient is estimated
-                using only one random direction. If an integer, all iterations use the same number
-                of resamplings. If a dictionary, this is interpreted as
+            last_avg: Return the average of the ``last_avg`` parameters instead of
+                just the last parameter values.
+            resamplings: The number of times the gradient (and Hessian) is sampled
+                using a random direction to construct a gradient estimate. Per default
+                the gradient is estimated using only one random direction. If an
+                integer, all iterations use the same number of resamplings. If a
+                dictionary, this is interpreted as
                 ``{iteration: number of resamplings per iteration}``.
-            perturbation_dims: The number of perturbed dimensions. Per default, all dimensions
-                are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
-                dimensions are chosen uniformly at random.
-            second_order: If True, use 2-SPSA instead of SPSA. In 2-SPSA, the Hessian is estimated
-                additionally to the gradient, and the gradient is preconditioned with the inverse
-                of the Hessian to improve convergence.
-            regularization: To ensure the preconditioner is symmetric and positive definite, the
-                identity times a small coefficient is added to it. This generator yields that
-                coefficient.
-            hessian_delay: Start multiplying the gradient with the inverse Hessian only after a
-                certain number of iterations. The Hessian is still evaluated and therefore this
-                argument can be useful to first get a stable average over the last iterations before
-                using it as preconditioner.
-            lse_solver: The method to solve for the inverse of the Hessian. Per default an
-                exact LSE solver is used, but can e.g. be overwritten by a minimization routine.
-            initial_hessian: The initial guess for the Hessian. By default the identity matrix
-                is used.
-            callback: A callback function passed information in each iteration step. The
-                information is, in this order: the number of function evaluations, the parameters,
-                the function value, the stepsize, whether the step was accepted.
-            termination_checker: A callback function executed at the end of each iteration step. The
-                arguments are, in this order: the parameters, the function value, the number
-                of function evaluations, the stepsize, whether the step was accepted. If the callback
-                returns True, the optimization is terminated.
-                To prevent additional evaluations of the objective method, if the objective has not yet
-                been evaluated, the objective is estimated by taking the mean of the objective
-                evaluations used in the estimate of the gradient.
-
+            perturbation_dims: The number of perturbed dimensions. Per default,
+                all dimensions are perturbed, but a smaller, fixed number can be
+                perturbed. If set, the perturbed dimensions are chosen uniformly at
+                random.
+            second_order: If True, use 2-SPSA instead of SPSA. In 2-SPSA, the
+                Hessian is estimated additionally to the gradient, and the gradient is
+                preconditioned with the inverse of the Hessian to improve convergence.
+            regularization: To ensure the preconditioner is symmetric and positive
+                definite, the identity times a small coefficient is added to it. This
+                generator yields that coefficient.
+            hessian_delay: Start multiplying the gradient with the inverse Hessian
+                only after a certain number of iterations. The Hessian is still
+                evaluated and therefore this argument can be useful to first get a
+                stable average over the last iterations before using it as
+                preconditioner.
+            lse_solver: The method to solve for the inverse of the Hessian. Per
+                default an exact LSE solver is used, but can e.g. be overwritten by a
+                minimization routine.
+            initial_hessian: The initial guess for the Hessian. By default the
+                identity matrix is used.
+            callback: A callback function passed information in each iteration
+            step. The information is, in this order: the number of function
+                evaluations, the parameters, the function value, the stepsize, whether
+                the step was accepted.
+            termination_checker: A callback function executed at the end of each
+            iteration step. The arguments are, in this order: the parameters, the
+                function value, the number of function evaluations, the stepsize,
+                whether the step was accepted. If the callback returns True, the
+                optimization is terminated.
+            To prevent additional evaluations of the objective method, if the objective has not yet
+                been evaluated, the objective is estimated by taking the mean of
+                the objective evaluations used in the estimate of the gradient.
 
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
@@ -382,6 +390,14 @@ class SPSA(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """
+        Return a dictionary containing the settings of the object.
+
+        The dictionary contains various attributes and their corresponding values.
+
+        Returns:
+            dict[str, Any]: A dictionary with the settings of the object.
+        """
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
@@ -414,7 +430,19 @@ class SPSA(Optimizer):
         }
 
     def _point_sample(self, loss, x, eps, delta1, delta2):
-        """A single sample of the gradient at position ``x`` in direction ``delta``."""
+        """A single sample of the gradient at position `x` in direction `delta`.
+
+        Args:
+            loss: The loss function to be evaluated.
+            x: The position at which the gradient is evaluated.
+            eps (float): The small value used to calculate the points to be evaluated.
+            delta1: The first direction vector.
+            delta2: The second direction vector (only used if second_order is True).
+
+        Returns:
+            tuple: A tuple containing the mean of the evaluated points, the
+            gradient sample, and the hessian sample (if applicable).
+        """
         # points to evaluate
         points = [x + eps * delta1, x - eps * delta1]
         self._nfev += 2
@@ -441,7 +469,18 @@ class SPSA(Optimizer):
         return np.mean(values), gradient_sample, hessian_sample
 
     def _point_estimate(self, loss, x, eps, num_samples):
-        """The gradient estimate at point x."""
+        """The gradient estimate at point x.
+
+        Args:
+            loss: The loss function.
+            x: The point at which to calculate the gradient estimate.
+            eps: The perturbation parameter.
+            num_samples: The number of samples to use for the estimate.
+
+        Returns:
+            Tuple[float, ndarray, ndarray]: The value estimate, gradient estimate, and
+            hessian estimate.
+        """
         # set up variables to store averages
         value_estimate = 0
         gradient_estimate = np.zeros(x.size)
@@ -479,6 +518,20 @@ class SPSA(Optimizer):
         )
 
     def _compute_update(self, loss, x, k, eps, lse_solver):
+        """
+        Compute the perturbations and perform various calculations based on the input
+        parameters.
+
+        Args:
+            loss: The loss function.
+            x: The input data.
+            k: The number of iterations.
+            eps: The perturbation value.
+            lse_solver: The solver for solving the linear system of equations.
+
+        Returns:
+            The computed value and gradient.
+        """
         # compute the perturbations
         if isinstance(self.resamplings, dict):
             num_samples = self.resamplings.get(k, 1)
@@ -508,6 +561,30 @@ class SPSA(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Perform optimization using the SPSA (Simultaneous Perturbation Stochastic
+        Approximation) algorithm.
+
+        This method minimizes a given function 'fun' by iteratively updating the
+        parameters starting from an initial point 'x0'. Optionally, a Jacobian
+        function 'jac' and bounds for the variables can be provided. The method
+        returns an 'OptimizerResult' object containing the optimized parameters,
+        the optimized function value, the number of function evaluations, and the
+        number of iterations.
+
+        Args:
+            fun (Callable[[POINT], float]): The function to be minimized.
+            x0 (POINT): The initial point for optimization.
+            jac (Callable[[POINT], POINT], optional): The Jacobian of the function.
+                Defaults to None.
+            bounds (list[tuple[float, float]], optional): Bounds for the variables.
+                Defaults to None.
+
+        Returns:
+            OptimizerResult: An object containing the optimized parameters, the optimized
+            function value, the number of function evaluations, and the number of
+            iterations.
+        """
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
@@ -641,7 +718,13 @@ class SPSA(Optimizer):
         return result
 
     def get_support_level(self):
-        """Get the support level dictionary."""
+        """
+        Get the support level dictionary.
+
+        Returns:
+            dict: A dictionary containing the support level of different optimizer features.
+
+        """
         return {
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.ignored,
@@ -649,6 +732,7 @@ class SPSA(Optimizer):
         }
 
     # pylint: disable=bad-docstring-quotes
+
     @deprecate_func(
         additional_msg=(
             "Instead, use ``SPSA.minimize`` as a replacement, which supports the same arguments "
@@ -685,7 +769,17 @@ class SPSA(Optimizer):
 
 
 def bernoulli_perturbation(dim, perturbation_dims=None):
-    """Get a Bernoulli random perturbation."""
+    """Get a Bernoulli random perturbation.
+
+    Args:
+        dim (int): The dimension of the perturbation.
+        perturbation_dims (int or None, optional): The size of the perturbation. If
+            None, it generates a perturbation of the same size as the dimension. Defaults
+            to None.
+
+    Returns:
+        numpy.ndarray: The generated perturbation.
+    """
     if perturbation_dims is None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -704,7 +798,16 @@ def bernoulli_perturbation(dim, perturbation_dims=None):
 
 
 def powerseries(eta=0.01, power=2, offset=0):
-    """Yield a series decreasing by a powerlaw."""
+    """Yield a series decreasing by a powerlaw.
+
+    Args:
+        eta (float, optional): The initial value of the series. Defaults to 0.01.
+        power (float, optional): The power for the power law. Defaults to 2.
+        offset (float, optional): The offset for the power law. Defaults to 0.
+
+    Yields:
+        float: The next value in the series.
+    """
 
     n = 1
     while True:
@@ -713,17 +816,26 @@ def powerseries(eta=0.01, power=2, offset=0):
 
 
 def constant(eta=0.01):
-    """Yield a constant series."""
+    """Yield a constant series.
+
+    Args:
+        eta (float, optional): The value of the series. Defaults to 0.01.
+
+    Yields:
+        float: The constant value.
+    """
 
     while True:
         yield eta
 
 
 def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
-    """Evaluate a function on all points with batches of max_evals_grouped.
+    """
+    Evaluate a function on all points with batches of max_evals_grouped.
 
     The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
-    inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
+    inputs are tuples (because the function takes multiple inputs), set
+    ``unpack_points`` to ``True``.
     """
 
     # if the function cannot handle lists of points as input, cover this case immediately
@@ -755,7 +867,9 @@ def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
 
 
 def _as_list(obj):
-    """Convert a list or numpy array into a list."""
+    """
+    Convert a list or numpy array into a list.
+    """
     return obj.tolist() if isinstance(obj, np.ndarray) else obj
 
 

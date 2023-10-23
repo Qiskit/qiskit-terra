@@ -27,8 +27,9 @@ from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 class SNOBFIT(Optimizer):
     """Stable Noisy Optimization by Branch and FIT algorithm.
 
-    SnobFit is used for the optimization of derivative-free, noisy objective functions providing
-    robust and fast solutions of problems with continuous variables varying within bound.
+    SnobFit is used for the optimization of derivative-free, noisy objective
+    functions providing robust and fast solutions of problems with continuous
+    variables varying within bound.
 
     Uses skquant.opt installed with pip install scikit-quant.
     For further detail, please refer to
@@ -43,17 +44,20 @@ class SNOBFIT(Optimizer):
         verbose: bool = False,
     ) -> None:
         """
+        Initialize the class instance.
+
         Args:
-            maxiter: Maximum number of function evaluations.
-            maxmp: Maximum number of  model points requested for the local fit.
-                 Default = 2 * number of parameters + 6 set to this value when None.
-            maxfail: Maximum number of failures to improve the solution. Stops the algorithm
-                    after maxfail is reached.
-            verbose: Provide verbose (debugging) output.
+            maxiter (int): Maximum number of function evaluations.
+            maxfail (int): Maximum number of failures to improve the solution.
+                Stops the algorithm after maxfail is reached.
+            maxmp (int): Maximum number of model points requested for the local fit. Default is
+                2 * number of parameters + 6 if None is provided.
+            verbose (bool): Provide verbose (debugging) output.
 
         Raises:
-            MissingOptionalLibraryError: scikit-quant or SQSnobFit not installed
-            QiskitError: If NumPy 1.24.0 or above is installed.
+            MissingOptionalLibraryError: Raised if the scikit-quant or SQSnobFit libraries
+                are not installed.
+            QiskitError: Raised if NumPy version 1.24.0 or above is installed.
                 See https://github.com/scikit-quant/scikit-quant/issues/24 for more details.
         """
         # check version
@@ -71,7 +75,11 @@ class SNOBFIT(Optimizer):
         self._verbose = verbose
 
     def get_support_level(self):
-        """Returns support level dictionary."""
+        """Returns support level dictionary.
+
+        Returns:
+            dict: A dictionary containing support levels for different optimizer features.
+        """
         return {
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.required,
@@ -80,6 +88,11 @@ class SNOBFIT(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """Returns a dictionary of settings for the optimizer.
+
+        Returns:
+            dict[str, Any]: A dictionary of settings for the optimizer.
+        """
         return {
             "maxiter": self._maxiter,
             "maxfail": self._maxfail,
@@ -94,6 +107,23 @@ class SNOBFIT(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Perform optimization using the SNOBFIT algorithm.
+
+        This method minimizes the given function 'fun' with respect to the parameters
+        using the SNOBFIT algorithm.
+
+        Args:
+            fun (Callable[[POINT], float]): The objective function to minimize.
+            x0 (POINT): The initial point for optimization.
+            jac (Callable[[POINT], POINT] | None, optional): The gradient function
+                of 'fun'. Defaults to None.
+            bounds (list[tuple[float, float]] | None, optional): The bounds for
+                the parameters. Defaults to None.
+
+        Returns:
+            OptimizerResult: An object containing the optimization result.
+        """
         import skquant.opt as skq
         from SQSnobFit import optset
 

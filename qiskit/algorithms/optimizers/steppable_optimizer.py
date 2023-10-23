@@ -154,6 +154,8 @@ class SteppableOptimizer(Optimizer):
         maxiter: int = 100,
     ):
         """
+        Initialize the optimizer.
+
         Args:
             maxiter: Number of steps in the optimization process before ending the loop.
         """
@@ -217,7 +219,7 @@ class SteppableOptimizer(Optimizer):
 
     def _callback_wrapper(self) -> None:
         """
-        Wraps the callback function to accomodate each optimizer.
+        Wraps the callback function to accommodate each optimizer.
         """
         pass
 

@@ -35,10 +35,12 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     """
     Parallelized Limited-memory BFGS optimizer.
 
-    P-BFGS is a parallelized version of :class:`L_BFGS_B` with which it shares the same parameters.
-    P-BFGS can be useful when the target hardware is a quantum simulator running on a classical
-    machine. This allows the multiple processes to use simulation to potentially reach a minimum
-    faster. The parallelization may also help the optimizer avoid getting stuck at local optima.
+    P-BFGS is a parallelized version of :class:`L_BFGS_B` with which it shares the
+    same parameters.
+    P-BFGS can be useful when the target hardware is a quantum simulator running on
+    a classical machine. This allows the multiple processes to use simulation
+    to potentially reach a minimum faster. The parallelization may also help
+    the optimizer avoid getting stuck at local optima.
 
     Uses scipy.optimize.fmin_l_bfgs_b.
     For further detail, please refer to
@@ -59,18 +61,23 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         **kwargs,
     ) -> None:
         r"""
+        Initialize the class instance.
+
         Args:
-            maxfun: Maximum number of function evaluations.
-            ftol: The iteration stops when (f\^k - f\^{k+1})/max{\|f\^k\|,\|f\^{k+1}\|,1} <= ftol.
-            iprint: Controls the frequency of output. iprint < 0 means no output;
-                iprint = 0 print only one line at the last iteration; 0 < iprint < 99
-                print also f and \|proj g\| every iprint iterations; iprint = 99 print
-                details of every iteration except n-vectors; iprint = 100 print also the
-                changes of active set and final x; iprint > 100 print details of
-                every iteration including x and g.
-            max_processes: maximum number of processes allowed, has a min. value of 1 if not None.
-            options: A dictionary of solver options.
-            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
+            maxfun (int): Maximum number of function evaluations.
+            ftol (SupportsFloat): The iteration stops when (f^k -
+                f^{k+1})/max{|f^k|,|f^{k+1}|,1} <= ftol.
+            iprint (int): Controls the frequency of output. iprint < 0 means no
+                output; iprint = 0 print only one line at the last iteration; 0 <
+                iprint < 99 print also f and |proj g| every iprint iterations; iprint
+                = 99 print details of every iteration except n-vectors; iprint = 100
+                print also the changes of active set and final x; iprint > 100 print
+                details of every iteration including x and g.
+            max_processes (int | None): maximum number of processes allowed, has a min.
+                value of 1 if not None.
+            options (dict | None): A dictionary of solver options.
+            max_evals_grouped (int): Max number of default gradient evaluations
+                performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if max_processes:
@@ -176,6 +183,28 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         gradient_function=None,
         variable_bounds=None,
     ) -> tuple[POINT, float, int]:
+        """
+        Optimize the objective function using the minimize method.
+
+        This method calls the minimize method from the superclass to perform the
+        optimization of the objective function. It takes the objective function,
+        initial point, optional gradient function, and optional variable bounds as
+        input parameters. It returns a tuple containing the optimized point, the
+        value of the objective function at the optimized point, and the number of
+        function evaluations performed.
+
+        Args:
+            objective_function: The objective function to be optimized.
+            initial_point: The initial point for the optimization.
+            gradient_function: The gradient function for the optimization.
+            (default: None) variable_bounds: The variable bounds for the
+            optimization. (default: None)
+
+        Returns:
+            tuple[POINT, float, int]: A tuple containing the optimized point, the
+            value of the objective function at the optimized point, and the number
+            of function evaluations performed.
+        """
         result = super().minimize(
             objective_function, initial_point, gradient_function, variable_bounds
         )

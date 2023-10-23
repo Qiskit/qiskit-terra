@@ -25,9 +25,10 @@ class IMFIL(Optimizer):
     """IMplicit FILtering algorithm.
 
     Implicit filtering is a way to solve bound-constrained optimization problems for
-    which derivatives are not available. In comparison to methods that use interpolation to
-    reconstruct the function and its higher derivatives, implicit filtering builds upon
-    coordinate search followed by interpolation to get an approximate gradient.
+    which derivatives are not available. In comparison to methods that use
+    interpolation to reconstruct the function and its higher derivatives,
+    implicit filtering builds upon coordinate search followed by interpolation
+    to get an approximate gradient.
 
     Uses skquant.opt installed with pip install scikit-quant.
     For further detail, please refer to
@@ -58,6 +59,7 @@ class IMFIL(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """Returns a dictionary of algorithm settings."""
         return {
             "maxiter": self._maxiter,
         }
@@ -69,6 +71,20 @@ class IMFIL(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Perform optimization using the 'imfil' method.
+
+        Args:
+            fun (Callable[[POINT], float]): The objective function to be minimized.
+            x0 (POINT): The initial point for the optimization.
+            jac (Callable[[POINT], POINT] | None, optional): The gradient function.
+            Defaults to None.
+            bounds (list[tuple[float, float]] | None, optional): The variable bounds.
+            Defaults to None.
+
+        Returns:
+            OptimizerResult: The result of the optimization.
+        """
         from skquant import opt as skq
 
         res, history = skq.minimize(

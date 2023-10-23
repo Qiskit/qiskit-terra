@@ -45,11 +45,14 @@ class POWELL(SciPyOptimizer):
         **kwargs,
     ) -> None:
         """
+        Initialize the class instance.
+
         Args:
-            maxiter: Maximum allowed number of iterations. If both maxiter and maxfev
-                are set, minimization will stop at the first reached.
-            maxfev: Maximum allowed number of function evaluations. If both maxiter and
+            maxiter: Maximum allowed number of iterations. If both maxiter and
                 maxfev are set, minimization will stop at the first reached.
+            maxfev: Maximum allowed number of function evaluations. If both
+                maxiter and maxfev are set, minimization will stop at the first
+                reached.
             disp: Set to True to print convergence messages.
             xtol: Relative error in solution xopt acceptable for convergence.
             tol: Tolerance for termination.

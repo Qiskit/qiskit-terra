@@ -62,20 +62,20 @@ class AQGD(Optimizer):
         Performs Analytical Quantum Gradient Descent (AQGD) with Epochs.
 
         Args:
-            maxiter: Maximum number of iterations (full gradient steps)
-            eta: The coefficient of the gradient update. Increasing this value
-                results in larger step sizes: param = previous_param - eta * deriv
+            maxiter: Maximum number of iterations (full gradient steps).
+            eta: The coefficient of the gradient update. Increasing this value results
+                in larger step sizes: param = previous_param - eta * deriv
             tol: Tolerance for change in windowed average of objective values.
                 Convergence occurs when either objective tolerance is met OR parameter
                 tolerance is met.
             momentum: Bias towards the previous gradient momentum in current
-                update. Must be within the bounds: [0,1)
+                update. Must be within the bounds: [0,1).
             param_tol: Tolerance for change in norm of parameters.
-            averaging: Length of window over which to average objective values for objective
-                convergence criterion
+            averaging: Length of window over which to average objective values for
+                objective convergence criterion.
 
         Raises:
-            AlgorithmError: If the length of ``maxiter``, `momentum``, and ``eta`` is not the same.
+            AlgorithmError: If the length of ``maxiter``, ``momentum``, and ``eta`` is not the same.
         """
         super().__init__()
         if isinstance(maxiter, int):
@@ -123,6 +123,11 @@ class AQGD(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """Settings dictionary
+
+        Returns:
+            Dict[str, Any]: A dictionary with various optimizer settings.
+        """
         return {
             "maxiter": self._maxiter,
             "eta": self._eta,
@@ -136,16 +141,18 @@ class AQGD(Optimizer):
         self, params: np.ndarray | list[float], obj: Callable
     ) -> tuple[float, np.ndarray]:
         """
-        Obtains the objective function value for params and the analytical quantum derivatives of
-        the objective function with respect to each parameter. Requires
+        Obtains the objective function value for params and the analytical quantum
+        derivatives of the objective function with respect to each parameter.
+        Requires
         2*(number parameters) + 1 objective evaluations
 
         Args:
-            params: Current value of the parameters to evaluate the objective function
-            obj: Objective function of interest
+            params: Current value of the parameters to evaluate the objective
+            function obj: Objective function of interest
 
         Returns:
-            Tuple containing the objective value and array of gradients for the given parameter set.
+            Tuple containing the objective value and an array of gradients for the given
+            parameter set.
         """
         num_params = len(params)
         param_sets_to_eval = params + np.concatenate(
@@ -201,7 +208,8 @@ class AQGD(Optimizer):
 
     def _converged_objective(self, objval: float, tol: float, window_size: int) -> bool:
         """
-        Tests convergence based on the change in a moving windowed average of past objective values
+        Tests convergence based on the change in a moving windowed average of past
+        objective values
 
         Args:
             objval: Current value of the objective function
@@ -303,6 +311,22 @@ class AQGD(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Perform optimization using a variant of stochastic gradient descent.
+
+        This function takes in several arguments including a callable function 'fun'
+        that represents the objective function to be minimized, an initial point
+        'x0', an optional function 'jac' representing the Jacobian of the
+        objective function, and optional bounds for the variables.
+        The function returns an 'OptimizerResult' object containing the optimized parameters,
+        the objective function value, the number of function evaluations, and the
+        number of iterations.
+
+        The function iterates over multiple epochs, updating the parameters using the
+        specified learning rate 'eta' and momentum coefficient 'mom_coeff'. It
+        checks for convergence of both the parameters and the objective function
+        at each iteration.
+        """
         params = np.asarray(x0)
         momentum = np.zeros(shape=(params.size,))
         # empty out history of previous objectives/gradients/parameters

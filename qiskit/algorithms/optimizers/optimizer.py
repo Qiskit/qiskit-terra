@@ -138,11 +138,12 @@ class Minimizer(Protocol):
         /scipy/reference/generated/scipy.optimize.minimize.html>`__.
 
         Args:
-            fun: The objective function to minimize (for example the energy in the case of the VQE).
+            fun: The objective function to minimize (for example the energy in the
+                case of the VQE).
             x0: The initial point for the optimization.
             jac: The gradient of the objective function.
-            bounds: Parameters bounds for the optimization. Note that these might not be supported
-                by all optimizers.
+            bounds: Parameters bounds for the optimization. Note that these might
+                not be supported by all optimizers.
 
         Returns:
              The minimization result object (either SciPy's or Qiskit's).
@@ -186,9 +187,10 @@ class Optimizer(ABC):
         Sets or updates values in the options dictionary.
 
         The options dictionary may be used internally by a given optimizer to
-        pass additional optional values for the underlying optimizer/optimization
-        function used. The options dictionary may be initially populated with
-        a set of key/values when the given optimizer is constructed.
+        pass additional optional values for the underlying
+        optimizer/optimization function used. The options dictionary may be
+        initially populated with a set of key/values when the given optimizer
+        is constructed.
 
         Args:
             kwargs (dict): options, given as name=value.
@@ -385,5 +387,5 @@ class Optimizer(ABC):
             logger.debug("%s = %s", name, str(self._options[name]))
 
     def set_max_evals_grouped(self, limit):
-        """Set max evals grouped"""
+        """Set max evals grouped."""
         self._max_evals_grouped = limit

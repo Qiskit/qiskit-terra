@@ -26,8 +26,9 @@ from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 class BOBYQA(Optimizer):
     """Bound Optimization BY Quadratic Approximation algorithm.
 
-    BOBYQA finds local solutions to nonlinear, non-convex minimization problems with optional
-    bound constraints, without requirement of derivatives of the objective function.
+    BOBYQA finds local solutions to nonlinear, non-convex minimization problems
+    with optional bound constraints, without requirement of derivatives of the
+    objective function.
 
     Uses skquant.opt installed with pip install scikit-quant.
     For further detail, please refer to
@@ -58,6 +59,12 @@ class BOBYQA(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """
+        Returns a dictionary with the maximum number of iterations.
+
+        Returns:
+            dict[str, Any]: A dictionary containing the maximum number of iterations.
+        """
         return {"maxiter": self._maxiter}
 
     def minimize(
@@ -67,6 +74,24 @@ class BOBYQA(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Minimize a function using the 'bobyqa' method.
+
+        This function takes in a function 'fun', an initial point 'x0', a Jacobian
+        function 'jac', and a list of bounds. It uses the 'skquant' library to
+        perform minimization using the 'bobyqa' method. The result of the
+        optimization is then extracted and stored in an 'OptimizerResult' object,
+        which is returned.
+
+        Args:
+            fun: The objective function to be minimized.
+            x0: The initial point for the optimization.
+            jac: The Jacobian function to be used for optimization (optional).
+            bounds: A list of bounds for the optimization variables (optional).
+
+        Returns:
+            OptimizerResult: An object containing the result of the optimization.
+        """
         from skquant import opt as skq
 
         res, history = skq.minimize(

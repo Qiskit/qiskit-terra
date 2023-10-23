@@ -45,6 +45,8 @@ class NLoptOptimizer(Optimizer):
 
     def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
         """
+        Initialize the optimizer with the maximum number of function evaluations.
+
         Args:
             max_evals: Maximum allowed number of function evaluations.
 
@@ -68,11 +70,15 @@ class NLoptOptimizer(Optimizer):
 
     @abstractmethod
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """return NLopt optimizer enum type"""
+        """
+        Return the NLopt optimizer enum type.
+        """
         raise NotImplementedError
 
     def get_support_level(self):
-        """return support level dictionary"""
+        """
+        Return the support level dictionary.
+        """
         return {
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.supported,

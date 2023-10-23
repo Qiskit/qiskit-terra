@@ -20,14 +20,16 @@ class ISRES(NLoptOptimizer):
     Improved Stochastic Ranking Evolution Strategy optimizer.
 
     Improved Stochastic Ranking Evolution Strategy (ISRES) is an algorithm for
-    non-linearly constrained global optimization. It has heuristics to escape local optima,
-    even though convergence to a global optima is not guaranteed. The evolution strategy is based
-    on a combination of a mutation rule and differential variation. The fitness ranking is simply
-    via the objective function for problems without nonlinear constraints. When nonlinear
-    constraints are included, the `stochastic ranking proposed by Runarsson and Yao
+    non-linearly constrained global optimization. It has heuristics to escape
+    local optima, even though convergence to a global optima is not
+    guaranteed. The evolution strategy is based on a combination of a mutation
+    rule and differential variation. The fitness ranking is simply via the
+    objective function for problems without nonlinear constraints. When
+    nonlinear constraints are included, the `stochastic ranking proposed by
+    Runarsson and Yao
     <https://notendur.hi.is/tpr/software/sres/Tec311r.pdf>`__
-    is employed. This method supports arbitrary nonlinear inequality and equality constraints, in
-    addition to the bound constraints.
+    is employed. This method supports arbitrary nonlinear inequality and
+    equality constraints, in addition to the bound constraints.
 
     NLopt global optimizer, derivative-free.
     For further detail, please refer to

@@ -73,17 +73,18 @@ class GSLS(Optimizer):
             max_eval: Maximum number of evaluations.
             disp: Set to True to display convergence messages.
             sampling_radius: Sampling radius to determine gradient estimate.
-            sample_size_factor: The size of the sample set at each iteration is this number
-                multiplied by the dimension of the problem, rounded to the nearest integer.
+            sample_size_factor: The size of the sample set at each iteration is
+                this number multiplied by the dimension of the problem, rounded to the
+                nearest integer.
             initial_step_size: Initial step size for the descent algorithm.
             min_step_size: Minimum step size for the descent algorithm.
-            step_size_multiplier: Step size reduction after unsuccessful steps, in the
-                interval (0, 1).
-            armijo_parameter: Armijo parameter for sufficient decrease criterion, in the
-                interval (0, 1).
+            step_size_multiplier: Step size reduction after unsuccessful steps, in
+                the interval (0, 1).
+            armijo_parameter: Armijo parameter for sufficient decrease criterion,
+                in the interval (0, 1).
             min_gradient_norm: If the gradient norm is below this threshold, the algorithm stops.
-            max_failed_rejection_sampling: Maximum number of attempts to sample points within
-                bounds.
+            max_failed_rejection_sampling: Maximum number of attempts to sample
+                points within bounds.
         """
         super().__init__()
         for k, v in list(locals().items()):
@@ -104,6 +105,11 @@ class GSLS(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """Return the current settings.
+
+        Returns:
+            A dictionary with the current options.
+        """
         return {key: self._options.get(key, None) for key in self._OPTIONS}
 
     def minimize(
@@ -113,6 +119,17 @@ class GSLS(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """Perform the optimization.
+
+        Args:
+            fun: The objective function to be minimized.
+            x0: The initial point for the optimization.
+            jac: The gradient function, optional.
+            bounds: The bounds for the variables, optional.
+
+        Returns:
+            An OptimizerResult instance with the optimization results.
+        """
         if not isinstance(x0, np.ndarray):
             x0 = np.asarray(x0)
 
@@ -146,10 +163,12 @@ class GSLS(Optimizer):
             n: Dimension of the problem.
             obj_fun: Objective function.
             initial_point: Initial point.
-            var_lb: Vector of lower bounds on the decision variables. Vector elements can be -np.inf
-                    if the corresponding variable is unbounded from below.
-            var_ub: Vector of upper bounds on the decision variables. Vector elements can be np.inf
-                    if the corresponding variable is unbounded from below.
+            var_lb: Vector of lower bounds on the decision variables. Vector
+                elements can be -np.inf if the corresponding variable is unbounded
+                from below.
+            var_ub: Vector of upper bounds on the decision variables. Vector
+                elements can be np.inf if the corresponding variable is unbounded from
+                below.
 
         Returns:
             Final iterate as a vector, corresponding objective function value,
@@ -281,10 +300,12 @@ class GSLS(Optimizer):
         Args:
             n: Dimension of the problem.
             x: Point around which the sample set is constructed.
-            var_lb: Vector of lower bounds on the decision variables. Vector elements can be -np.inf
-                if the corresponding variable is unbounded from below.
-            var_ub: Vector of lower bounds on the decision variables. Vector elements can be np.inf
-                if the corresponding variable is unbounded from above.
+            var_lb: Vector of lower bounds on the decision variables. Vector
+                elements can be -np.inf if the corresponding variable is unbounded
+                from below.
+            var_ub: Vector of lower bounds on the decision variables. Vector
+                elements can be np.inf if the corresponding variable is unbounded from
+                above.
             num_points: Number of points in the sample set.
 
         Returns:

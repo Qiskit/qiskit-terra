@@ -132,13 +132,16 @@ class UMDA(Optimizer):
         alpha: float = 0.5,
         callback: Callable[[int, np.array, float], None] | None = None,
     ) -> None:
-        r"""
+        """
+        Initialize the class with the specified parameters.
+
         Args:
-            maxiter: Maximum number of iterations.
-            size_gen: Population size of each generation.
-            alpha: Percentage (0, 1] of the population to be selected as elite selection.
-            callback: A callback function passed information in each iteration step. The
-                information is, in this order: the number of function evaluations, the parameters,
+            maxiter (int): Maximum number of iterations.
+            size_gen (int): Population size of each generation.
+            alpha (float): Percentage (0, 1] of the population to be selected as elite selection.
+            callback (Callable[[int, np.array, float], None] | None): A callback
+                function passed information in each iteration step. The information
+            is, in this order: the number of function evaluations, the parameters,
                 the best function value in this iteration.
         """
 
@@ -163,6 +166,7 @@ class UMDA(Optimizer):
         self.callback = callback
 
     def _initialization(self) -> np.ndarray:
+        """Initialize the vector for a new generation."""
         vector = np.zeros((4, self._n_variables))
 
         vector[0, :] = np.pi  # mu
@@ -216,6 +220,24 @@ class UMDA(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Perform optimization using the Truncated Random Search algorithm.
+
+        This function takes a fitness function, an initial point, an optional Jacobian
+        function, and optional bounds for the variables. It returns an
+        OptimizerResult object containing the optimized values.
+
+        Args:
+            fun (Callable[[POINT], float]): The fitness function to be minimized.
+            x0 (POINT): The initial point for the optimization.
+            jac (Callable[[POINT], POINT] | None, optional): The Jacobian function
+                of the fitness function. Defaults to None.
+            bounds (list[tuple[float, float]] | None, optional): The bounds for
+                the variables. Defaults to None.
+
+        Returns:
+            OptimizerResult: An object containing the optimized values.
+        """
 
         not_better_count = 0
         result = OptimizerResult()
@@ -275,7 +297,15 @@ class UMDA(Optimizer):
 
     @property
     def size_gen(self) -> int:
-        """Returns the size of the generations (number of individuals per generation)"""
+        """
+        Sets the size of the generations of the algorithm.
+
+        Args:
+            value: Size of the generations (number of individuals per generation).
+
+        Raises:
+            ValueError: If `value` is lower than 1.
+        """
         return self._size_gen
 
     @size_gen.setter
@@ -295,7 +325,15 @@ class UMDA(Optimizer):
 
     @property
     def maxiter(self) -> int:
-        """Returns the maximum number of iterations"""
+        """
+        Sets the maximum number of iterations of the algorithm.
+
+        Args:
+            value: Maximum number of iterations of the algorithm.
+
+        Raises:
+            ValueError: If `value` is lower than 1.
+        """
         return self._maxiter
 
     @maxiter.setter
@@ -339,6 +377,10 @@ class UMDA(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """
+        Returns a dictionary containing the values of the 'maxiter', 'alpha',
+        'size_gen', and 'callback' properties.
+        """
         return {
             "maxiter": self.maxiter,
             "alpha": self.alpha,
@@ -347,7 +389,9 @@ class UMDA(Optimizer):
         }
 
     def get_support_level(self):
-        """Get the support level dictionary."""
+        """
+        Get the support level dictionary.
+        """
         return {
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.ignored,

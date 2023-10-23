@@ -137,57 +137,65 @@ class QNSPSA(SPSA):
         callback: CALLBACK | None = None,
         termination_checker: TERMINATIONCHECKER | None = None,
     ) -> None:
-        r"""
+        """
+        Initialize an instance of the class with various parameters.
+
         Args:
-            fidelity: A function to compute the fidelity of the ansatz state with itself for
-                two different sets of parameters.
-            maxiter: The maximum number of iterations. Note that this is not the maximal number
-                of function evaluations.
-            blocking: If True, only accepts updates that improve the loss (up to some allowed
-                increase, see next argument).
-            allowed_increase: If ``blocking`` is ``True``, this argument determines by how much
-                the loss can increase with the proposed parameters and still be accepted.
+            fidelity: A function to compute the fidelity of the ansatz state with
+                itself for two different sets of parameters.
+            maxiter: The maximum number of iterations. Note that this is not the
+                maximal number of function evaluations.
+            blocking: If True, only accepts updates that improve the loss (up to
+                some allowed increase, see next argument).
+            allowed_increase: If ``blocking`` is ``True``, this argument
+                determines by how much the loss can increase with the proposed
+                parameters and still be accepted.
                 If ``None``, the allowed increases is calibrated automatically to be twice the
                 approximated standard deviation of the loss function.
             learning_rate: The update step is the learning rate is multiplied with the gradient.
                 If the learning rate is a float, it remains constant over the course of the
-                optimization. It can also be a callable returning an iterator which yields the
-                learning rates for each optimization step.
+                optimization. It can also be a callable returning an iterator
+                which yields the learning rates for each optimization step.
                 If ``learning_rate`` is set ``perturbation`` must also be provided.
-            perturbation: Specifies the magnitude of the perturbation for the finite difference
-                approximation of the gradients. Can be either a float or a generator yielding
-                the perturbation magnitudes per step.
+            perturbation: Specifies the magnitude of the perturbation for the
+                finite difference approximation of the gradients. Can be either a
+                float or a generator yielding the perturbation magnitudes per step.
                 If ``perturbation`` is set ``learning_rate`` must also be provided.
-            resamplings: The number of times the gradient (and Hessian) is sampled using a random
-                direction to construct a gradient estimate. Per default the gradient is estimated
-                using only one random direction. If an integer, all iterations use the same number
-                of resamplings. If a dictionary, this is interpreted as
+            resamplings: The number of times the gradient (and Hessian) is sampled
+                using a random direction to construct a gradient estimate. Per default
+                the gradient is estimated using only one random direction. If an
+                integer, all iterations use the same number of resamplings. If a
+                dictionary, this is interpreted as
                 ``{iteration: number of resamplings per iteration}``.
-            perturbation_dims: The number of perturbed dimensions. Per default, all dimensions
-                are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
-                dimensions are chosen uniformly at random.
-            regularization: To ensure the preconditioner is symmetric and positive definite, the
-                identity times a small coefficient is added to it. This generator yields that
-                coefficient.
-            hessian_delay: Start multiplying the gradient with the inverse Hessian only after a
-                certain number of iterations. The Hessian is still evaluated and therefore this
-                argument can be useful to first get a stable average over the last iterations before
-                using it as preconditioner.
-            lse_solver: The method to solve for the inverse of the Hessian. Per default an
-                exact LSE solver is used, but can e.g. be overwritten by a minimization routine.
-            initial_hessian: The initial guess for the Hessian. By default the identity matrix
-                is used.
-            callback: A callback function passed information in each iteration step. The
-                information is, in this order: the parameters, the function value, the number
-                of function evaluations, the stepsize, whether the step was accepted.
-            termination_checker: A callback function executed at the end of each iteration step. The
-                arguments are, in this order: the parameters, the function value, the number
-                of function evaluations, the stepsize, whether the step was accepted. If the callback
-                returns True, the optimization is terminated.
-                To prevent additional evaluations of the objective method, if the objective has not yet
-                been evaluated, the objective is estimated by taking the mean of the objective
-                evaluations used in the estimate of the gradient.
-
+            perturbation_dims: The number of perturbed dimensions. Per default,
+                all dimensions are perturbed, but a smaller, fixed number can be
+                perturbed. If set, the perturbed dimensions are chosen uniformly at
+                random.
+            regularization: To ensure the preconditioner is symmetric and positive
+                definite, the identity times a small coefficient is added to it. This
+                generator yields that coefficient.
+            hessian_delay: Start multiplying the gradient with the inverse Hessian
+                only after a certain number of iterations. The Hessian is still
+                evaluated and therefore this argument can be useful to first get a
+                stable average over the last iterations before using it as
+                preconditioner.
+            lse_solver: The method to solve for the inverse of the Hessian. Per
+                default an exact LSE solver is used, but can e.g. be overwritten by a
+                minimization routine.
+            initial_hessian: The initial guess for the Hessian. By default the
+                identity matrix is used.
+            callback: A callback function passed information in each iteration
+            step. The information is, in this order: the parameters, the function
+                value, the number of function evaluations, the stepsize, whether the
+                step was accepted.
+            termination_checker: A callback function executed at the end of each
+            iteration step. The arguments are, in this order: the parameters, the
+                function value, the number of function evaluations, the stepsize,
+                whether the step was accepted. If the callback returns True, the
+                optimization is terminated.
+            To prevent additional evaluations of the objective method, if the objective has not yet
+                been evaluated, the objective is estimated by taking the mean of
+                the objective evaluations used in the estimate of the gradient.
 
         """
         super().__init__(
@@ -212,6 +220,28 @@ class QNSPSA(SPSA):
         self.fidelity = fidelity
 
     def _point_sample(self, loss, x, eps, delta1, delta2):
+        """
+        Compute the point sample for a given loss function and input parameters.
+
+        This method calculates the loss points and fidelity points based on the input
+        parameters.
+        It then evaluates the loss and fidelity functions for these points.
+        The gradient approximation and the preconditioner point estimate are computed
+        based on the evaluated values.
+        Finally, the method returns the mean of the loss values, the gradient estimate,
+        and the hessian estimate.
+
+        Args:
+            loss: The loss function.
+            x: The input parameters.
+            eps: The epsilon value.
+            delta1: The first delta value.
+            delta2: The second delta value.
+
+        Returns:
+            tuple: A tuple containing the mean of the loss values, the gradient
+            estimate, and the hessian estimate.
+        """
         loss_points = [x + eps * delta1, x - eps * delta1]
         fidelity_points = [
             (x, x + eps * delta1),

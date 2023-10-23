@@ -59,21 +59,25 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
         **kwargs,
     ):
         r"""
+        Initialize the instance of the class with various parameters and set the
+        options for the solver.
+
         Args:
-            maxfun: Maximum number of function evaluations.
-            maxiter: Maximum number of iterations.
-            ftol: The iteration stops when
+            maxfun (int): Maximum number of function evaluations.
+            maxiter (int): Maximum number of iterations.
+            ftol (SupportsFloat): The iteration stops when
                 :math:`(f^k - f^{k+1}) / \max\{|f^k|, |f^{k+1}|,1\} \leq \text{ftol}`.
-            iprint: Controls the frequency of output. ``iprint < 0`` means no output;
+            iprint (int): Controls the frequency of output. ``iprint < 0`` means no output;
                 ``iprint = 0`` print only one line at the last iteration; ``0 < iprint < 99``
                 print also :math:`f` and :math:`|\text{proj} g|` every iprint iterations;
                 ``iprint = 99`` print details of every iteration except n-vectors; ``iprint = 100``
                 print also the changes of active set and final :math:`x`; ``iprint > 100`` print
                 details of every iteration including :math:`x` and :math:`g`.
-            eps: If jac is approximated, use this value for the step size.
-            options: A dictionary of solver options.
-            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
-            kwargs: additional kwargs for ``scipy.optimize.minimize``.
+            eps (float): If jac is approximated, use this value for the step size.
+            options (dict | None): A dictionary of solver options.
+            max_evals_grouped (int): Max number of default gradient evaluations
+                performed simultaneously.
+            kwargs: Additional kwargs for scipy.optimize.minimize.
         """
         if options is None:
             options = {}

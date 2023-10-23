@@ -78,18 +78,20 @@ class ADAM(Optimizer):
         snapshot_dir: str | None = None,
     ) -> None:
         """
+        Initialize the optimizer.
+
         Args:
-            maxiter: Maximum number of iterations
-            tol: Tolerance for termination
-            lr: Value >= 0, Learning rate.
-            beta_1: Value in range 0 to 1, Generally close to 1.
-            beta_2: Value in range 0 to 1, Generally close to 1.
-            noise_factor: Value >= 0, Noise factor
-            eps : Value >=0, Epsilon to be used for finite differences if no analytic
-                gradient method is given.
-            amsgrad: True to use AMSGRAD, False if not
-            snapshot_dir: If not None save the optimizer's parameter
-                after every step to the given directory
+            maxiter (int): Maximum number of iterations.
+            tol (float): Tolerance for termination.
+            lr (float): Learning rate (>= 0).
+            beta_1 (float): Value in range 0 to 1, generally close to 1.
+            beta_2 (float): Value in range 0 to 1, generally close to 1.
+            noise_factor (float): Noise factor (>= 0).
+            eps (float): Epsilon to be used for finite differences if no analytic
+                gradient method is given (>= 0).
+            amsgrad (bool): True to use AMSGRAD, False if not.
+            snapshot_dir (str | None): If not None, save the optimizer's parameter
+                after every step to the given directory.
         """
         super().__init__()
         for k, v in list(locals().items()):
@@ -124,6 +126,12 @@ class ADAM(Optimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """
+        Returns a dictionary of settings.
+
+        Returns:
+            dict[str, Any]: A dictionary containing the settings.
+        """
         return {
             "maxiter": self._maxiter,
             "tol": self._tol,
@@ -137,7 +145,12 @@ class ADAM(Optimizer):
         }
 
     def get_support_level(self):
-        """Return support level dictionary"""
+        """
+        Returns a dictionary representing the support level of different optimization options.
+
+        Returns:
+            dict: A dictionary representing the support level.
+        """
         return {
             "gradient": OptimizerSupportLevel.supported,
             "bounds": OptimizerSupportLevel.ignored,

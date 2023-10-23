@@ -19,10 +19,12 @@ class CRS(NLoptOptimizer):
     """
     Controlled Random Search (CRS) with local mutation optimizer.
 
-    Controlled Random Search (CRS) with local mutation is part of the family of the CRS optimizers.
-    The CRS optimizers start with a random population of points, and randomly evolve these points
-    by heuristic rules. In the case of CRS with local mutation, the evolution is a randomized
-    version of the :class:`NELDER_MEAD` local optimizer.
+    Controlled Random Search (CRS) with local mutation is part of the family of the
+    CRS optimizers.
+    The CRS optimizers start with a random population of points, and randomly
+    evolve these points by heuristic rules. In the case of CRS with local
+    mutation, the evolution is a randomized version of the
+    :class:`NELDER_MEAD` local optimizer.
 
 
     NLopt global optimizer, derivative-free.

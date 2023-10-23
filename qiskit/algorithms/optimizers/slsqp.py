@@ -21,13 +21,14 @@ class SLSQP(SciPyOptimizer):
     """
     Sequential Least SQuares Programming optimizer.
 
-    SLSQP minimizes a function of several variables with any combination of bounds, equality
-    and inequality constraints. The method wraps the SLSQP Optimization subroutine originally
-    implemented by Dieter Kraft.
+    SLSQP minimizes a function of several variables with any combination of bounds,
+    equality and inequality constraints. The method wraps the SLSQP
+    Optimization subroutine originally implemented by Dieter Kraft.
 
-    SLSQP is ideal for mathematical problems for which the objective function and the constraints
-    are twice continuously differentiable. Note that the wrapper handles infinite values in bounds
-    by converting them into large floating values.
+    SLSQP is ideal for mathematical problems for which the objective function and
+    the constraints are twice continuously differentiable. Note that the
+    wrapper handles infinite values in bounds by converting them into large
+    floating values.
 
     Uses scipy.optimize.minimize SLSQP.
     For further detail, please refer to
@@ -49,15 +50,19 @@ class SLSQP(SciPyOptimizer):
         **kwargs,
     ) -> None:
         """
+        Initialize a new instance of the class with the specified parameters and set
+        the options for the solver.
+
         Args:
-            maxiter: Maximum number of iterations.
-            disp: Set to True to print convergence messages.
-            ftol: Precision goal for the value of f in the stopping criterion.
-            tol: Tolerance for termination.
-            eps: Step size used for numerical approximation of the Jacobian.
-            options: A dictionary of solver options.
-            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
-            kwargs: additional kwargs for scipy.optimize.minimize.
+            maxiter (int): Maximum number of iterations.
+            disp (bool): Set to True to print convergence messages.
+            ftol (float): Precision goal for the value of f in the stopping criterion.
+            tol (float | None): Tolerance for termination.
+            eps (float): Step size used for numerical approximation of the Jacobian.
+            options (dict | None): A dictionary of solver options.
+            max_evals_grouped (int): Max number of default gradient evaluations
+                performed simultaneously.
+            **kwargs: Additional kwargs for scipy.optimize.minimize.
         """
         if options is None:
             options = {}

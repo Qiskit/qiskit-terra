@@ -76,6 +76,7 @@ def nakanishi_fujii_todo(
     """
     Find the global minimum of a function using the nakanishi_fujii_todo
     algorithm [1].
+
     Args:
         fun (callable): ``f(x, *args)``
             Function to be optimized.  ``args`` can be passed as an optional item
@@ -86,24 +87,22 @@ def nakanishi_fujii_todo(
             where 'n' is the number of independent variables.
         args (tuple, optional):
             Extra arguments passed to the objective function.
-        maxiter (int):
-            Maximum number of iterations to perform.
+        maxiter (int): Maximum number of iterations to perform.
             Default: None.
-        maxfev (int):
-            Maximum number of function evaluations to perform.
+        maxfev (int): Maximum number of function evaluations to perform.
             Default: 1024.
-        reset_interval (int):
-            The minimum estimates directly once in ``reset_interval`` times.
+        reset_interval (int): The minimum estimates directly once in ``reset_interval`` times.
             Default: 32.
         eps (float): eps
+        callback (callable, optional): Called after each iteration.
         **_ : additional options
-        callback (callable, optional):
-            Called after each iteration.
+
     Returns:
         OptimizeResult:
             The optimization result represented as a ``OptimizeResult`` object.
             Important attributes are: ``x`` the solution array. See
             `OptimizeResult` for a description of other attributes.
+
     Notes:
         In this optimization method, the optimization function have to satisfy
         three conditions written in [2]_.

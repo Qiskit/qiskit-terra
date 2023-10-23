@@ -21,10 +21,11 @@ class TNC(SciPyOptimizer):
     """
     Truncated Newton (TNC) optimizer.
 
-    TNC uses a truncated Newton algorithm to minimize a function with variables subject to bounds.
+    TNC uses a truncated Newton algorithm to minimize a function with variables
+    subject to bounds.
     This algorithm uses gradient information; it is also called Newton Conjugate-Gradient.
-    It differs from the :class:`CG` method as it wraps a C implementation and allows each variable
-    to be given upper and lower bounds.
+    It differs from the :class:`CG` method as it wraps a C implementation and
+    allows each variable to be given upper and lower bounds.
 
     Uses scipy.optimize.minimize TNC
     For further detail, please refer to
@@ -49,24 +50,27 @@ class TNC(SciPyOptimizer):
         **kwargs,
     ) -> None:
         """
+        Initialize the object.
+
         Args:
-            maxiter: Maximum number of function evaluation.
-            disp: Set to True to print convergence messages.
-            accuracy: Relative precision for finite difference calculations.
+            maxiter (int): Maximum number of function evaluations.
+            disp (bool): Set to True to print convergence messages.
+            accuracy (float): Relative precision for finite difference calculations.
                 If <= machine_precision, set to sqrt(machine_precision). Defaults to 0.
-            ftol: Precision goal for the value of f in the stopping criterion.
+            ftol (float): Precision goal for the value of f in the stopping criterion.
                 If ftol < 0.0, ftol is set to 0.0 defaults to -1.
-            xtol: Precision goal for the value of x in the stopping criterion
-                (after applying x scaling factors).
+            xtol (float): Precision goal for the value of x in the stopping criterion
+                    (after applying x scaling factors).
                 If xtol < 0.0, xtol is set to sqrt(machine_precision). Defaults to -1.
-            gtol: Precision goal for the value of the projected gradient in
-                the stopping criterion (after applying x scaling factors).
+            gtol (float): Precision goal for the value of the projected gradient
+                in the stopping criterion (after applying x scaling factors).
                 If gtol < 0.0, gtol is set to 1e-2 * sqrt(accuracy).
                 Setting it to 0.0 is not recommended. Defaults to -1.
-            tol: Tolerance for termination.
-            eps: Step size used for numerical approximation of the Jacobian.
-            options: A dictionary of solver options.
-            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
+            tol (float | None): Tolerance for termination.
+            eps (float): Step size used for numerical approximation of the Jacobian.
+            options (dict | None): A dictionary of solver options.
+            max_evals_grouped (int): Max number of default gradient evaluations
+                performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:

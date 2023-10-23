@@ -28,7 +28,8 @@ CALLBACK = Callable[[int, np.ndarray, float, SupportsFloat], None]
 class GradientDescentState(OptimizerState):
     """State of :class:`~.GradientDescent`.
 
-    Dataclass with all the information of an optimizer plus the learning_rate and the stepsize.
+    Dataclass with all the information of an optimizer plus the learning_rate and
+    the stepsize.
     """
 
     stepsize: float | None
@@ -186,16 +187,21 @@ class GradientDescent(SteppableOptimizer):
         perturbation: float | None = None,
     ) -> None:
         """
+        Initialize the class object.
+
         Args:
-            maxiter: The maximum number of iterations.
-            learning_rate: A constant, list, array or factory of generators yielding learning rates
-                           for the parameter updates. See the docstring for an example.
-            tol: If the norm of the parameter update is smaller than this threshold, the
-                optimizer has converged.
-            perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
-                approximated with a forward finite difference scheme with ``perturbation``
-                perturbation in both directions (defaults to 1e-2 if required).
+            maxiter (int): The maximum number of iterations.
+            learning_rate (float | list[float] | np.ndarray | Callable[[], Generator[float,
+                None, None]]): A constant, list, array, or factory of generators yielding
+                learning rates for parameter updates.
+            tol (float): The convergence threshold. If the norm of the parameter
+                update is smaller than this threshold, the optimizer has converged.
+            perturbation (float | None): If no gradient is passed to :meth:`~.minimize`, the
+                gradient is approximated with a forward finite difference scheme with
+                perturbation perturbation in both directions (defaults to 1e-2 if
+                required).
                 Ignored when we have an explicit function for the gradient.
+
         Raises:
             ValueError: If ``learning_rate`` is an array and its lenght is less than ``maxiter``.
         """
@@ -266,6 +272,10 @@ class GradientDescent(SteppableOptimizer):
 
     @property
     def settings(self) -> dict[str, Any]:
+        """
+        Returns a dictionary containing the maxiter, tol, learning_rate, perturbation,
+        and callback attributes of the current object.
+        """
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
@@ -365,6 +375,22 @@ class GradientDescent(SteppableOptimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> None:
+        """Starts the optimization process.
+
+        Initializes the state of the optimization process by creating a
+        GradientDescentState object.
+        The state is initialized with the provided arguments, including the learning
+        rate and step size.
+        There is no return value for this function.
+
+        Args:
+            fun (Callable[[POINT], float]): The objective function to be minimized.
+            x0 (POINT): The initial point for the optimization process.
+            jac (Callable[[POINT], POINT] | None, optional): The Jacobian function
+                for the optimization process. Defaults to None.
+            bounds (list[tuple[float, float]] | None, optional): The bounds for
+                the optimization process. Defaults to None.
+        """
 
         self.state = GradientDescentState(
             fun=fun,

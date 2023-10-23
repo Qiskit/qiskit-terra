@@ -55,11 +55,15 @@ class SciPyOptimizer(Optimizer):
         **kwargs,
     ):
         """
+        Initialize an instance of the class.
+
         Args:
-            method: Type of solver.
-            options: A dictionary of solver options.
-            kwargs: additional kwargs for scipy.optimize.minimize.
-            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
+            method (str | Callable): Type of solver.
+            options (dict[str, Any] | None, optional): A dictionary of solver options.
+            Defaults to None.
+            max_evals_grouped (int, optional): Max number of default gradient
+                evaluations performed simultaneously. Defaults to 1.
+            **kwargs: Additional kwargs for scipy.optimize.minimize.
         """
         self._method = method.lower() if isinstance(method, str) else method
         # Set support level
@@ -122,6 +126,29 @@ class SciPyOptimizer(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
+        """
+        Perform a minimization optimization.
+
+        This function uses the 'minimize' function from the 'scipy.optimize' module to
+        perform a minimization optimization. It first checks if certain parameters
+        should be ignored based on the state of the optimizer. It then sets the
+        'jac' parameter based on whether gradient information is supported and the
+        value of 'self._max_evals_grouped'. It also applies a workaround for the
+        'l-bfgs-b' method.
+        Finally, it calls the 'minimize' function and creates an 'OptimizerResult' object
+        based on the result.
+
+        Args:
+            fun (Callable[[POINT], float]): The objective function to minimize.
+            x0 (POINT): The initial guess for the optimization parameters.
+            jac (Callable[[POINT], POINT] | None, optional): The function that
+                computes the gradient of the objective function. Defaults to None.
+            bounds (list[tuple[float, float]] | None, optional): The bounds on the
+                optimization parameters. Defaults to None.
+
+        Returns:
+            OptimizerResult: The result of the optimization.
+        """
         # Remove ignored parameters to supress the warning of scipy.optimize.minimize
         if self.is_bounds_ignored:
             bounds = None
@@ -174,6 +201,7 @@ class SciPyOptimizer(Optimizer):
 
     @staticmethod
     def _wrap_gradient(gradient_function):
+
         def wrapped_gradient(x):
             gradient = gradient_function(x)
             if isinstance(gradient, np.ndarray):

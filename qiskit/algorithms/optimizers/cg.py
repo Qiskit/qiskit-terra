@@ -20,10 +20,11 @@ from .scipy_optimizer import SciPyOptimizer
 class CG(SciPyOptimizer):
     """Conjugate Gradient optimizer.
 
-    CG is an algorithm for the numerical solution of systems of linear equations whose matrices are
-    symmetric and positive-definite. It is an *iterative algorithm* in that it uses an initial
-    guess to generate a sequence of improving approximate solutions for a problem,
-    in which each approximation is derived from the previous ones.  It is often used to solve
+    CG is an algorithm for the numerical solution of systems of linear equations
+    whose matrices are symmetric and positive-definite. It is an *iterative
+    algorithm* in that it uses an initial guess to generate a sequence of
+    improving approximate solutions for a problem, in which each approximation
+    is derived from the previous ones.  It is often used to solve
     unconstrained optimization problems, such as energy minimization.
 
     Uses scipy.optimize.minimize CG.
