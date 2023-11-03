@@ -15,13 +15,19 @@
 import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, Gate
 from qiskit.circuit.library import CXGate, XGate
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeLima, FakeYorktown, FakeLimaV2, FakeYorktownV2
+from qiskit.providers.fake_provider import (
+    FakeLima,
+    FakeYorktown,
+    FakeLimaV2,
+    FakeYorktownV2,
+    FakeGuadalupeV2,
+)
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
@@ -388,6 +394,51 @@ class TestVF2PostLayout(QiskitTestCase):
         vf2_pass.run(dag)
         # No layout selected because nothing will beat initial layout
         self.assertNotIn("post_layout", vf2_pass.property_set)
+
+    def test_target_with_None_qargs(self):
+        """Test vf2layout with a target that has an ideal gate on all qubits."""
+        backend = FakeGuadalupeV2()
+
+        class CustomGate(Gate):
+            """A custom gate."""
+
+            def __init__(self):
+                super().__init__("custom_gate", 1, [])
+
+        backend.target.add_instruction(CustomGate())
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        vf2_pass = VF2PostLayout(target=backend.target, seed=1234)
+        vf2_pass(qc)
+        self.assertEqual(
+            vf2_pass.property_set["VF2PostLayout_stop_reason"],
+            VF2PostLayoutStopReason.SOLUTION_FOUND,
+        )
+        layout = vf2_pass.property_set["post_layout"]
+        self.assertEqual(list(layout.get_physical_bits().keys()), [12])
+
+    def test_target_with_None_qargs_weak_direction(self):
+        """Test vf2layout with a target that has an ideal gate on all qubits."""
+        backend = FakeGuadalupeV2()
+
+        class CustomGate(Gate):
+            """A custom gate."""
+
+            def __init__(self):
+                super().__init__("custom_gate", 1, [])
+
+        backend.target.add_instruction(CustomGate())
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        vf2_pass = VF2PostLayout(target=backend.target, seed=1234, strict_direction=False)
+        vf2_pass(qc)
+        self.assertEqual(
+            vf2_pass.property_set["VF2PostLayout_stop_reason"],
+            VF2PostLayoutStopReason.SOLUTION_FOUND,
+        )
+        layout = vf2_pass.property_set["post_layout"]
+        self.assertEqual(list(layout.get_physical_bits().keys()), [6, 7])
 
 
 class TestVF2PostLayoutScoring(QiskitTestCase):

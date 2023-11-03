@@ -36,7 +36,7 @@ from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeGuadalupeV2,
 )
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, Gate
 from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
@@ -751,6 +751,27 @@ class TestMultipleTrials(QiskitTestCase):
         pm += generate_embed_passmanager(backend.coupling_map)
         res = pm.run(qc)
         self.assertEqual(res.num_qubits, 16)
+
+    def test_target_with_None_qargs(self):
+        """Test vf2layout with a target that has an ideal gate on all qubits."""
+        backend = FakeGuadalupeV2()
+
+        class CustomGate(Gate):
+            """A custom gate."""
+
+            def __init__(self):
+                super().__init__("custom_gate", 1, [])
+
+        backend.target.add_instruction(CustomGate())
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        vf2_pass = VF2Layout(seed=12345, target=backend.target)
+        vf2_pass(qc)
+        self.assertEqual(
+            vf2_pass.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND
+        )
+        layout = vf2_pass.property_set["layout"]
+        self.assertEqual(list(layout.get_physical_bits().keys()), [15])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :class:`~.VF2Layout` and :class:`~.VF2PostLayout`
+    transpiler passes when run with a :class:`~.Target` containing an ideal
+    globally implemented gate. Previously, in cases where the
+    :class:`~.Target` contained a gate represented with properties set to
+    ``None`` which was used to indicate an ideal globally implemented gate
+    (such as in ideal simulation) the passes would error trying to compute
+    which qubits have operations on them.
+    Fixed `#10604 <https://github.com/Qiskit/qiskit-terra/issues/10604>`__
