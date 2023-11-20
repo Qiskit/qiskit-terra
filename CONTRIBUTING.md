@@ -66,6 +66,57 @@ please ensure that:
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.
 
+### Pull request review, CI, and merge queue
+
+After you've submitted a pull request to Qiskit it will need to pass CI and be
+reviewed by an approved code owner. CI runs get triggered automatically when
+your pull request is opened and on every subsequent commit made to your pull
+request's branch. Code review however may take some time, sometimes even weeks
+or months, there are many new pull requests opened every day and limited number
+of reviewers available, and while every proposed change is a valuable addition
+to the project not everything is the highest priority. You can help this
+process move more quickly by actively reviewing other open PRs. While only
+members of the `@Qiskit/terra-core` group or listed contributors in `CODEOWNERS`
+file have permission to provide final approval and mark a PR as ready for
+merging reviewing code is open to everyone and all reviews are welcome and
+extremely valued contributions. Helping with code review also helps reduce
+the burden on the core team and CODEOWNERs to enable them to review more
+code faster.
+
+The code review process is a bit of back and forth where you will receive
+feedback and questions about your proposed changes to the project. You will
+likely have multiple rounds of feedback with suggestions or changes requested
+before approval. Please do not get discouraged as this is normal and part of
+ensuring the quality of the Qiskit project and even what first appears as a
+straightforward or simple change might have larger implications that aren't
+obvious at first. If you receive feedback feel free to request re-review from
+reviewers after you've adjusted your PR based on the comments received.
+
+Another thing to keep in mind is that CI time is a constrained resource and not
+infinite. While waiting for review and approval it is not necessary to keep your
+PR branch up to date on every change to the `main` branch. Doing it periodically
+is fine to make sure there are no regressions as the codebase changes, but doing
+it too often will just needlessly waste CI resources. This will contribute to
+resource starvation on CI, slowing down total throughput for the project. If
+possible try to bundle updating your branch to the current HEAD on the `main`
+branch with other changes made to the PR branch (like making adjustments from
+code review). This will result in a single CI run instead of doing standalone
+updates with no code changes.
+
+Once your PR has the necessary approvals it will be tagged with the `automerge`
+tag. This is a signal to the [mergify bot](https://mergify.io/) that the PR has been approved and is
+ready for merging. The mergify bot will then enqueue the PR onto its merge
+queue. At this point the process of updating a PR to the current HEAD of the
+`main` branch is fully automated and once CI passes mergify will merge the PR
+automatically. In an effort to conserve CI resources and maximize throughput
+the mergify bot will only update a PR when it's next in the merge queue. It
+might appear as activity on your PR is idle at this point, but this likely just
+means the mergify merge queue is deep and/or CI has a backlog. Do **not**
+manually update a PR branch to HEAD on the `main` branch after it has the
+necessary approvals and is tagged as `automerge` unless it has a merge conflict
+or has a failed CI run. Doing so will just waste CI resources and delay
+everything from merging, including your PR.
+
 ### Changelog generation
 
 The changelog is automatically generated as part of the release process
