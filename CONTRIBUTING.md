@@ -13,6 +13,7 @@ contributing to terra, these are documented below.
 ### Contents
 * [Choose an issue to work on](#Choose-an-issue-to-work-on)
 * [Pull request checklist](#pull-request-checklist)
+* [Code review](#code-review)
 * [Changelog generation](#changelog-generation)
 * [Release Notes](#release-notes)
 * [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
@@ -65,6 +66,115 @@ please ensure that:
 4. Ensure that if your change has an end user facing impact (new feature,
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.
+
+
+### Code review
+
+All code merged to Qiskit, even from maintainers, goes through a code-review
+process after a pull request is made.  There are a small number of
+maintainers who can authorize a final merge, but code review involves everyone
+working together to make Qiskit better.  You can review code even if you
+are not a maintainer, which helps make sure pull requests are technically
+correct, well tested, and easier to tackle in their final maintainer review.
+
+The code-review process is a normal part of software development, and nothing to
+be scared of; for very easy changes it can be as simple as a maintainer saying
+"looks good to me!" (or in short, "LGTM!") and merging the PR.  For more complex changes, it's often a
+back-and-forth where the reviewer may ask a couple of questions about why things
+were done a particular way, and make suggestions for improvement.  You don't
+need to do everything suggested if you've got good reasons to disagree, but
+communicate that clearly and politely.
+
+If you're struggling with code review or a PR on Qiskit, you can ask for help in
+the `#qiskit-pr-help` channel on [the public Qiskit Slack](https://qisk.it/join-slack).
+
+Remember that the PR author is a human, not just a username!  It's OK to ask
+questions about the code, but don't be mean or rude about it even if you don't
+like it.  It's also fine to provide comments that are just compliments with no
+suggested changes, if you particularly like something!
+
+#### What to focus on in review
+
+* Is everything in [the PR checklist](#pull-request-checklist) done?
+* Are any new public APIs easy to use, well documented, and consistent with
+  other parts of the Qiskit API?
+* Do any changes to the code have knock-on effects for other parts of Qiskit
+  that may be using them, or do they imply changes to the assumptions in
+  our data structures?
+* Are there any edge cases you can think of that the code might not handle well?
+  Could the PR benefit from extra tests to cover these, or to verify other edge
+  cases that it *does* handle successfully?
+* Is the code reasonably easy for you to understand?  This particular point is
+  tricky; the more you review code, the easier it will be for you to understand
+  other code, so don't worry about this as much if you're getting started.
+
+#### Writing review comments
+
+* Make concrete suggestions when you think something should be changed, but
+  remember that the author might have already thought about it and have a
+  reason.  Try "What do you think about us raising a `TypeError` here instead of
+  returning `None`?", rather than "You should raise an exception here".
+* Try to make each round of review thorough.  Don't add one or two comments on
+  one file, then come back a day later and add a couple of other unrelated
+  comments on a different file, and so on.  Try to review the whole PR
+  thoroughly in one go; it's easier to catch bugs like this, and less
+  frustrating for the PR creator. If that's too much for you, consider
+  asking if the PR could be split into smaller independent chunks.
+* Try to keep the number of comments reasonable.  This depends on the size of
+  the PR, but remember that there's somebody who'll read all your comments, and
+  it can be demoralizing if you get a PR back and it's got 30 comments on from a
+  50-line change.  If you feel like you're putting too many comments on,
+  consider if you could group several of them into one theme, and ask them as a
+  more detailed question with a focus on only one part of the code.  Try not to
+  comment the same thing in many places.
+* Try to avoid saying "you do" in review comments, and instead try to
+  say things like "we do" even when talking about new code. It's not a big
+  change, yet it helps to make us think about Qiskit's code as something that we
+  all own and care about, and that we're all working together to make it better.
+
+#### Responding to review comments
+
+* Ask questions if you don't understand what a reviewer is saying, or if you're
+  not certain whether they're suggesting changes.
+* Feel free to respond to suggestions or questions with your reasoning for doing
+  things a different way, if you don't fully agree with the review comment.
+  Code review is a collaborative two-way process.
+* Don't use the "update branch" on GitHub unless a maintainer suggests it or
+  there are merge conflicts.  The merge queue will take care of this when the
+  PR is approved, and pressing it unnecessarily uses up CI resources that other
+  PRs might need.
+* Try not to take suggestions personally.  It's hard to communicate over text,
+  especially when we might have different native languages and we're talking
+  about improving something.  Assume that the reviewer was acting in good faith,
+  trying to be polite, and knows what they're talking about; it's unlikely that
+  they meant to make you feel bad or insult you.  If you _do_ feel like somebody
+  is not following [the code of conduct](/CODE_OF_CONDUCT.md), please report it
+  using the violation form there.
+
+#### Things that shouldn't be said
+
+* Anything about the formatting of the code.  We have automated code formatters
+  that enforce a uniform style, and CI requires them to have been run.
+* Minor stylistic changes in _how_ people code, except where they might be
+  seriously affecting performance or legibility.  There are lots of ways to
+  program, especially in Python, and lots of ways that achieve the same thing.
+  For example, if somebody has written
+  ```python
+  if my_condition:
+      my_first_variable = 123
+      my_second_variable = 456
+  else:
+      my_first_variable = 456
+      my_second_variable = 123
+  ```
+  there's no need to suggest changes like
+  ```python
+  my_first_variable = 123 if my_condition else 456
+  my_second_variable = 456 if my_condition else 123
+  ```
+  Both are perfectly legible, and focusing on small details like this is
+  frustrating for everybody.
+
 
 ### Changelog generation
 
