@@ -13,3 +13,4 @@ Use the primitives
 
   use_sampler
   use_estimator
+  use_qasm2
