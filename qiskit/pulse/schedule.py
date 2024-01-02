@@ -274,6 +274,30 @@ class Schedule:
         """Parameters which determine the schedule behavior."""
         return self._parameter_manager.parameters
 
+    def get_pulses(self, name: Optional[str] = None) -> List:
+        """
+        Get a list of pulses used in the schedule.
+
+        Args:
+            name: Name of the pulse to filter by. If provided, only pulses with a matching name
+                  will be returned. Defaults to None, which returns all pulses.
+
+        Returns:
+            List of pulse objects used in the schedule, filtered by name if specified.
+        """
+        if not name:
+            pulses = []
+            for instruction in self.instructions:
+                if hasattr(instruction[1], "pulse"):
+                    pulses.append(instruction[1].pulse)
+            return pulses
+
+        matching_pulses = []
+        for instruction in self.instructions:
+            if hasattr(instruction[1], "pulse") and instruction[1].pulse.name == name:
+                matching_pulses.append(instruction[1].pulse)
+        return matching_pulses
+
     def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
 
@@ -1224,6 +1248,32 @@ class ScheduleBlock:
             out_params |= subroutine.parameters
 
         return out_params
+
+    def get_pulses(self, name: Optional[str] = None) -> List:
+        """
+        Get a list of pulses used in the ScheduleBlock.
+
+        Args:
+            name: Name of the pulse to filter by. If provided, only pulses with a matching name
+                  will be returned. Defaults to None, which returns all pulses.
+
+        Returns:
+            List of pulse objects used in the ScheduleBlock, filtered by name if specified.
+        """
+        if not name:
+            pulses = []
+            for block in self.blocks:
+                for instruction in block.instructions:
+                    if hasattr(instruction[1], "pulse"):
+                        pulses.append(instruction[1].pulse)
+            return pulses
+
+        matching_pulses = []
+        for block in self.blocks:
+            for instruction in block.instructions:
+                if hasattr(instruction[1], "pulse") and instruction[1].pulse.name == name:
+                    matching_pulses.append(instruction[1].pulse)
+        return matching_pulses
 
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
