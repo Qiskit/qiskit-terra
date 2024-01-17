@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Reverting to the previous behavior. 
+    Add back noisy simulation of Pulse job for FakeBackendV2.
+    Aer >= 0.11.2 is now required for users who want noisy simulation with FakeBackendV2 
+    Update FakeBackendV2.run method after Aer adds support for BackendV2.
