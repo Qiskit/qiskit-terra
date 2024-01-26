@@ -39,7 +39,7 @@ from collections import defaultdict
 from typing import Dict, List, Union, Optional
 
 from qiskit import pulse
-from qiskit.providers import BackendConfigurationError
+from qiskit.providers import BackendConfigurationError, BackendPropertyError
 from qiskit.providers.backend import Backend
 
 
@@ -96,6 +96,99 @@ class DrawerBackendInfo(ABC):
 class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
+    def raise_attribute_doesnt_exist(
+        self,
+        attributes: [str],
+        required_attributes: [str],
+        exception: Union[BackendConfigurationError, BackendPropertyError],
+        attribute_from: Optional[str] = None,
+    ):
+        """Check if all required attributes exist into a set."""
+        for attribute in required_attributes:
+            if not attribute in attributes:
+                message = (
+                    "Backend"
+                    + ((f" {attribute_from} ") if attribute_from else " ")
+                    + (f"has no {attribute}")
+                )
+                raise exception(message)
+
+    def backend_v1_adapter(self, backend):
+        """Adapter for backends based on BackendV1."""
+        self.raise_attribute_doesnt_exist(dir(backend), ["defaults"], BackendPropertyError)
+
+        configuration = backend.configuration()
+        defaults = backend.defaults()
+
+        required_conf_attributes = [
+            "backend_name",
+            "n_qubits",
+            "u_channel_lo",
+            "drive",
+            "measure",
+            "control",
+            "dt",
+        ]
+        required_defaults_attributes = ["qubit_freq_est", "meas_freq_est"]
+
+        self.raise_attribute_doesnt_exist(
+            dir(configuration),
+            required_conf_attributes,
+            BackendConfigurationError,
+            "configuration",
+        )
+        self.raise_attribute_doesnt_exist(
+            dir(defaults), required_defaults_attributes, BackendConfigurationError, "defaults"
+        )
+
+        return (configuration.backend_name, configuration, configuration.dt, defaults)
+
+    def backend_v2_adapter(self, backend):
+        """Adapter for backends based on BackendV2."""
+        required_backend_attributes = ["name", "defaults", "dt", "num_qubits"]
+        required_defaults_attributes = ["qubit_freq_est", "meas_freq_est"]
+
+        self.raise_attribute_doesnt_exist(
+            dir(backend), required_backend_attributes, BackendPropertyError
+        )
+
+        if "u_channel_lo" in dir(backend.target):
+            u_channel_lo = backend.target.u_channel_lo
+        else:
+            try:
+                u_channel_lo = backend.u_channel_lo
+            except AttributeError as error:
+                raise BackendPropertyError("Backend has no u_channel_lo") from error
+
+        defaults = backend.defaults()
+
+        self.raise_attribute_doesnt_exist(
+            dir(defaults), required_defaults_attributes, BackendConfigurationError, "defaults"
+        )
+
+        class Configuration:
+            """Wrapper for backend required configurations."""
+
+            def __init__(self, backend):
+                self.n_qubits = backend.num_qubits
+                self.measure = backend.measure_channel
+                self.drive = backend.drive_channel
+                self.control = backend.control_channel
+                self.u_channel_lo = u_channel_lo
+
+        return (backend.name, Configuration(backend), backend.dt, defaults)
+
+    def get_backend_adapter(self, backend: Backend):
+        """Get the correct adapter based on backend version."""
+        backend_version = backend.version
+        adapters = [self.backend_v1_adapter, self.backend_v2_adapter]
+
+        if backend_version < 1 or backend_version > 2:
+            raise BackendPropertyError("Invalid Backend version")
+
+        selected_adapter = adapters[backend_version - 1]
+        return selected_adapter
+
     @classmethod
     def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
@@ -106,14 +199,8 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         Returns:
             OpenPulseBackendInfo: New configured instance.
         """
-        configuration = backend.configuration()
-        defaults = backend.defaults()
-
-        # load name
-        name = backend.name()
-
-        # load cycle time
-        dt = configuration.dt
+        backend_adapter = OpenPulseBackendInfo().get_backend_adapter(backend)
+        name, configuration, dt, defaults = backend_adapter(backend)
 
         # load frequencies
         chan_freqs = {}

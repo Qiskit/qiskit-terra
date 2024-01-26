@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with `pulse_v2` visualization that doesn't differ
+    the backend version passed through it. Before these changes,
+    some backend attributes could be expected from a wrong place, raising
+    `AttributeError`.
+    Now, the function checks what's the backend version, and get
+    the relative adapter that takes charge to get the correct values.
+    Fixed `#10993 <https://github.com/Qiskit/qiskit/issues/10993>`__
