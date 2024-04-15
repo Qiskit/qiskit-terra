@@ -100,3 +100,6 @@ from .frames import (
 from .mixed_frames import (
     MixedFrame,
 )
+
+# TODO Alias to minimize logical change. Name will be updated in the followup PR.
+PulseEndpoint = PulseTarget

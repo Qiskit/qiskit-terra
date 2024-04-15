@@ -45,3 +45,7 @@ class UnassignedDurationError(PulseError):
 
 class UnassignedReferenceError(PulseError):
     """Raised if subroutine is unassigned."""
+
+
+class NotExistingComponent(PulseError):
+    """Raised if specified pulse component is not available on hardware."""
