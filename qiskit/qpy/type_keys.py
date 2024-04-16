@@ -15,6 +15,7 @@
 """
 QPY Type keys for several namespace.
 """
+from __future__ import annotations
 
 from abc import abstractmethod
 from enum import Enum, IntEnum
@@ -87,7 +88,7 @@ class TypeKeyBase(bytes, Enum):
 
     @classmethod
     @abstractmethod
-    def retrieve(cls, type_key):
+    def retrieve(cls, type_key: bytes):
         """Get a class from given type key.
 
         Args:
@@ -117,7 +118,7 @@ class Value(TypeKeyBase):
     MODIFIER = b"m"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj: object) -> "Value":
         if isinstance(obj, int):
             return cls.INTEGER
         if isinstance(obj, float):
@@ -173,7 +174,7 @@ class Container(TypeKeyBase):
     TUPLE = b"t"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj) -> bytes:
         if isinstance(obj, range):
             return cls.RANGE
         if isinstance(obj, tuple):
@@ -198,7 +199,9 @@ class CircuitInstruction(TypeKeyBase):
     ANNOTATED_OPERATION = b"a"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(
+        cls, obj: PauliEvolutionGate | ControlledGate | AnnotatedOperation | Gate | Instruction
+    ) -> bytes:
         if isinstance(obj, PauliEvolutionGate):
             return cls.PAULI_EVOL_GATE
         if isinstance(obj, ControlledGate):
@@ -230,7 +233,7 @@ class ScheduleAlignment(TypeKeyBase):
     # AlignFunc is not serializable due to the callable in context parameter
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj: AlignLeft | AlignRight | AlignSequential | AlignEquispaced) -> bytes:
         if isinstance(obj, AlignLeft):
             return cls.LEFT
         if isinstance(obj, AlignRight):
@@ -245,7 +248,7 @@ class ScheduleAlignment(TypeKeyBase):
         )
 
     @classmethod
-    def retrieve(cls, type_key):
+    def retrieve(cls, type_key: bytes):
         if type_key == cls.LEFT:
             return AlignLeft
         if type_key == cls.RIGHT:
@@ -282,7 +285,21 @@ class ScheduleInstruction(TypeKeyBase):
     # Also snapshot is not suppored because of its limited usecase.
 
     @classmethod
-    def assign(cls, obj):
+    def assign(
+        cls,
+        obj: (
+            Acquire
+            | Play
+            | Delay
+            | SetFrequency
+            | ShiftFrequency
+            | SetPhase
+            | ShiftPhase
+            | RelativeBarrier
+            | TimeBlockade
+            | Reference
+        ),
+    ) -> bytes:
         if isinstance(obj, Acquire):
             return cls.ACQUIRE
         if isinstance(obj, Play):
@@ -352,7 +369,7 @@ class ScheduleOperand(TypeKeyBase):
     OPERAND_STR = b"o"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj) -> bytes:
         if isinstance(obj, Waveform):
             return cls.WAVEFORM
         if isinstance(obj, SymbolicPulse):
@@ -433,7 +450,7 @@ class Program(TypeKeyBase):
     SCHEDULE_BLOCK = b"s"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj: QuantumCircuit | ScheduleBlock) -> bytes:
         if isinstance(obj, QuantumCircuit):
             return cls.CIRCUIT
         if isinstance(obj, ScheduleBlock):
@@ -498,7 +515,7 @@ class ExprVar(TypeKeyBase):
     REGISTER = b"R"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj: Clbit | ClassicalRegister) -> "ExprVar":
         if isinstance(obj, Clbit):
             return cls.CLBIT
         if isinstance(obj, ClassicalRegister):
@@ -519,7 +536,7 @@ class ExprValue(TypeKeyBase):
     INT = b"i"
 
     @classmethod
-    def assign(cls, obj):
+    def assign(cls, obj: bool | int) -> "ExprValue":
         if isinstance(obj, bool):
             return cls.BOOL
         if isinstance(obj, int):

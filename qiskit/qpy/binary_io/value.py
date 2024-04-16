@@ -17,6 +17,8 @@ from __future__ import annotations
 import collections.abc
 import struct
 import uuid
+from collections.abc import Sequence, Mapping
+from typing import IO, Any
 
 import numpy as np
 import symengine
@@ -33,13 +35,13 @@ from qiskit.circuit.parametervector import ParameterVector, ParameterVectorEleme
 from qiskit.qpy import common, formats, exceptions, type_keys
 
 
-def _write_parameter(file_obj, obj):
+def _write_parameter(file_obj: IO, obj) -> None:
     name_bytes = obj.name.encode(common.ENCODE)
     file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
     file_obj.write(name_bytes)
 
 
-def _write_parameter_vec(file_obj, obj):
+def _write_parameter_vec(file_obj: IO, obj) -> None:
     name_bytes = obj._vector._name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
@@ -53,7 +55,7 @@ def _write_parameter_vec(file_obj, obj):
     file_obj.write(name_bytes)
 
 
-def _write_parameter_expression(file_obj, obj, use_symengine):
+def _write_parameter_expression(file_obj: IO, obj, use_symengine: bool) -> None:
     if use_symengine:
         expr_bytes = obj._symbol_expr.__reduce__()[1][0]
     else:
@@ -152,7 +154,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
         else:
             raise exceptions.QpyError(f"unhandled Value object '{node.value}'")
 
-    def visit_cast(self, node, /):
+    def visit_cast(self, node, /) -> None:
         self.file_obj.write(type_keys.Expression.CAST)
         _write_expr_type(self.file_obj, node.type)
         self.file_obj.write(
@@ -160,7 +162,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
         )
         node.operand.accept(self)
 
-    def visit_unary(self, node, /):
+    def visit_unary(self, node, /) -> None:
         self.file_obj.write(type_keys.Expression.UNARY)
         _write_expr_type(self.file_obj, node.type)
         self.file_obj.write(
@@ -168,7 +170,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
         )
         node.operand.accept(self)
 
-    def visit_binary(self, node, /):
+    def visit_binary(self, node, /) -> None:
         self.file_obj.write(type_keys.Expression.BINARY)
         _write_expr_type(self.file_obj, node.type)
         self.file_obj.write(
@@ -178,11 +180,13 @@ class _ExprWriter(expr.ExprVisitor[None]):
         node.right.accept(self)
 
 
-def _write_expr(file_obj, node: expr.Expr, clbit_indices: collections.abc.Mapping[Clbit, int]):
+def _write_expr(
+    file_obj: IO, node: expr.Expr, clbit_indices: collections.abc.Mapping[Clbit, int]
+) -> None:
     node.accept(_ExprWriter(file_obj, clbit_indices))
 
 
-def _write_expr_type(file_obj, type_: types.Type):
+def _write_expr_type(file_obj: IO, type_: types.Type) -> None:
     if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)
     elif type_.kind is types.Uint:
@@ -203,7 +207,7 @@ def _read_parameter(file_obj):
     return Parameter(name, uuid=param_uuid)
 
 
-def _read_parameter_vec(file_obj, vectors):
+def _read_parameter_vec(file_obj: IO, vectors: dict[str, tuple]):
     data = formats.PARAMETER_VECTOR_ELEMENT(
         *struct.unpack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
@@ -221,7 +225,7 @@ def _read_parameter_vec(file_obj, vectors):
     return vector[data.index]
 
 
-def _read_parameter_expression(file_obj):
+def _read_parameter_expression(file_obj) -> ParameterExpression:
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
@@ -257,7 +261,9 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(symbol_map, expr_)
 
 
-def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
+def _read_parameter_expression_v3(
+    file_obj: IO, vectors: dict[str, tuple], use_symengine: bool
+) -> ParameterExpression:
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
@@ -312,7 +318,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
 
 def _read_expr(
-    file_obj,
+    file_obj: IO,
     clbits: collections.abc.Sequence[Clbit],
     cregs: collections.abc.Mapping[str, ClassicalRegister],
 ) -> expr.Expr:
@@ -383,7 +389,7 @@ def _read_expr(
     raise exceptions.QpyError("Invalid classical-expression Expr key '{type_key}'")
 
 
-def _read_expr_type(file_obj) -> types.Type:
+def _read_expr_type(file_obj: IO) -> types.Type:
     type_key = file_obj.read(formats.EXPR_TYPE_DISCRIMINATOR_SIZE)
     if type_key == type_keys.ExprType.BOOL:
         return types.Bool()
@@ -395,7 +401,9 @@ def _read_expr_type(file_obj) -> types.Type:
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
 
-def dumps_value(obj, *, index_map=None, use_symengine=False):
+def dumps_value(
+    obj: Any, *, index_map: dict[str, dict] | None = None, use_symengine: bool = False
+) -> tuple[type_keys.Value, bytes]:
     """Serialize input value object.
 
     Args:
@@ -445,7 +453,7 @@ def dumps_value(obj, *, index_map=None, use_symengine=False):
     return type_key, binary_data
 
 
-def write_value(file_obj, obj, *, index_map=None, use_symengine=False):
+def write_value(file_obj: IO, obj: Any, *, index_map=None, use_symengine: bool = False) -> None:
     """Write a value to the file like object.
 
     Args:
@@ -464,8 +472,15 @@ def write_value(file_obj, obj, *, index_map=None, use_symengine=False):
 
 
 def loads_value(
-    type_key, binary_data, version, vectors, *, clbits=(), cregs=None, use_symengine=False
-):
+    type_key: type_keys.Value,
+    binary_data: bytes,
+    version: int,
+    vectors: dict[str, tuple],
+    *,
+    clbits: Sequence[Clbit] = (),
+    cregs: Mapping[str, ClassicalRegister] | None = None,
+    use_symengine: bool = False,
+) -> Any:
     """Deserialize input binary data to value object.
 
     Args:
@@ -525,7 +540,15 @@ def loads_value(
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
 
-def read_value(file_obj, version, vectors, *, clbits=(), cregs=None, use_symengine=False):
+def read_value(
+    file_obj: IO,
+    version: int,
+    vectors: dict[str, tuple],
+    *,
+    clbits: Sequence[Clbit] = (),
+    cregs: Mapping[str, ClassicalRegister] | None = None,
+    use_symengine: bool = False,
+) -> Any:
     """Read a value from the file like object.
 
     Args:

@@ -11,12 +11,16 @@
 # that they have been altered from the originals.
 
 """Read and write schedule and schedule instructions."""
+from __future__ import annotations
+
 import json
 import struct
 import zlib
 import warnings
 
 from io import BytesIO
+from json import JSONDecoder
+from typing import IO
 
 import numpy as np
 import symengine as sym
@@ -25,15 +29,16 @@ from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-mo
 )
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import library, channels, instructions
+from qiskit.pulse import library, channels, instructions, Instruction
 from qiskit.pulse.schedule import ScheduleBlock
+from qiskit.pulse.transforms import AlignmentKind
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
 from qiskit.pulse.configuration import Kernel, Discriminator
 
 
-def _read_channel(file_obj, version):
+def _read_channel(file_obj: IO, version: int) -> channels.Channel:
     type_key = common.read_type_key(file_obj)
     index = value.read_value(file_obj, version, {})
 
@@ -42,7 +47,7 @@ def _read_channel(file_obj, version):
     return channel_cls(index)
 
 
-def _read_waveform(file_obj, version):
+def _read_waveform(file_obj: IO, version: int) -> library.Waveform:
     header = formats.WAVEFORM._make(
         struct.unpack(
             formats.WAVEFORM_PACK,
@@ -79,7 +84,7 @@ def _loads_obj(type_key, binary_data, version, vectors):
         return value.loads_value(type_key, binary_data, version, vectors)
 
 
-def _read_kernel(file_obj, version):
+def _read_kernel(file_obj: IO, version: int) -> Kernel:
     params = common.read_mapping(
         file_obj=file_obj,
         deserializer=_loads_obj,
@@ -90,7 +95,7 @@ def _read_kernel(file_obj, version):
     return Kernel(name=name, **params)
 
 
-def _read_discriminator(file_obj, version):
+def _read_discriminator(file_obj: IO, version: int) -> Discriminator:
     params = common.read_mapping(
         file_obj=file_obj,
         deserializer=_loads_obj,
@@ -101,7 +106,7 @@ def _read_discriminator(file_obj, version):
     return Discriminator(name=name, **params)
 
 
-def _loads_symbolic_expr(expr_bytes, use_symengine=False):
+def _loads_symbolic_expr(expr_bytes, use_symengine: bool = False):
     if expr_bytes == b"":
         return None
     expr_bytes = zlib.decompress(expr_bytes)
@@ -115,7 +120,9 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
         return sym.sympify(expr)
 
 
-def _read_symbolic_pulse(file_obj, version):
+def _read_symbolic_pulse(
+    file_obj: IO, version: int
+) -> library.SymbolicPulse | library.ScalableSymbolicPulse:
     make = formats.SYMBOLIC_PULSE._make
     pack = formats.SYMBOLIC_PULSE_PACK
     size = formats.SYMBOLIC_PULSE_SIZE
@@ -191,7 +198,9 @@ def _read_symbolic_pulse(file_obj, version):
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
+def _read_symbolic_pulse_v6(
+    file_obj: IO, version: int, use_symengine: bool
+) -> library.SymbolicPulse | library.ScalableSymbolicPulse:
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -261,7 +270,7 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-def _read_alignment_context(file_obj, version):
+def _read_alignment_context(file_obj: IO, version: int) -> AlignmentKind:
     type_key = common.read_type_key(file_obj)
 
     context_params = common.read_sequence(
@@ -309,7 +318,9 @@ def _loads_operand(type_key, data_bytes, version, use_symengine):
     return value.loads_value(type_key, data_bytes, version, {})
 
 
-def _read_element(file_obj, version, metadata_deserializer, use_symengine):
+def _read_element(
+    file_obj: IO, version: int, metadata_deserializer, use_symengine: bool
+) -> Instruction:
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
@@ -346,13 +357,13 @@ def _loads_reference_item(type_key, data_bytes, version, metadata_deserializer):
     )
 
 
-def _write_channel(file_obj, data):
+def _write_channel(file_obj: IO, data) -> None:
     type_key = type_keys.ScheduleChannel.assign(data)
     common.write_type_key(file_obj, type_key)
     value.write_value(file_obj, data.index)
 
 
-def _write_waveform(file_obj, data):
+def _write_waveform(file_obj: IO, data) -> None:
     samples_bytes = common.data_to_binary(data.samples, np.save)
 
     header = struct.pack(
@@ -384,21 +395,21 @@ def _dumps_obj(obj):
         return value.dumps_value(obj)
 
 
-def _write_kernel(file_obj, data):
+def _write_kernel(file_obj: IO, data) -> None:
     name = data.name
     params = data.params
     common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
     value.write_value(file_obj, name)
 
 
-def _write_discriminator(file_obj, data):
+def _write_discriminator(file_obj: IO, data) -> None:
     name = data.name
     params = data.params
     common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
     value.write_value(file_obj, name)
 
 
-def _dumps_symbolic_expr(expr, use_symengine):
+def _dumps_symbolic_expr(expr, use_symengine: bool) -> bytes:
     if expr is None:
         return b""
     if use_symengine:
@@ -410,7 +421,7 @@ def _dumps_symbolic_expr(expr, use_symengine):
     return zlib.compress(expr_bytes)
 
 
-def _write_symbolic_pulse(file_obj, data, use_symengine):
+def _write_symbolic_pulse(file_obj: IO, data, use_symengine: bool):
     class_name_bytes = data.__class__.__name__.encode(common.ENCODE)
     pulse_type_bytes = data.pulse_type.encode(common.ENCODE)
     envelope_bytes = _dumps_symbolic_expr(data.envelope, use_symengine)
@@ -441,7 +452,7 @@ def _write_symbolic_pulse(file_obj, data, use_symengine):
     value.write_value(file_obj, data.name)
 
 
-def _write_alignment_context(file_obj, context):
+def _write_alignment_context(file_obj: IO, context) -> None:
     type_key = type_keys.ScheduleAlignment.assign(context)
     common.write_type_key(file_obj, type_key)
     common.write_sequence(
@@ -451,7 +462,7 @@ def _write_alignment_context(file_obj, context):
     )
 
 
-def _dumps_operand(operand, use_symengine):
+def _dumps_operand(operand, use_symengine: bool):
     if isinstance(operand, library.Waveform):
         type_key = type_keys.ScheduleOperand.WAVEFORM
         data_bytes = common.data_to_binary(operand, _write_waveform)
@@ -478,7 +489,7 @@ def _dumps_operand(operand, use_symengine):
     return type_key, data_bytes
 
 
-def _write_element(file_obj, element, metadata_serializer, use_symengine):
+def _write_element(file_obj: IO, element, metadata_serializer, use_symengine: bool):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
         write_schedule_block(file_obj, element, metadata_serializer, use_symengine)
@@ -508,7 +519,12 @@ def _dumps_reference_item(schedule, metadata_serializer):
     return type_key, data_bytes
 
 
-def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_schedule_block(
+    file_obj: IO,
+    version: int,
+    metadata_deserializer: type[JSONDecoder] | None = None,
+    use_symengine: bool = False,
+) -> ScheduleBlock:
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -575,7 +591,11 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
 
 
 def write_schedule_block(
-    file_obj, block, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
+    file_obj: IO,
+    block: ScheduleBlock,
+    metadata_serializer=None,
+    use_symengine=False,
+    version=common.QPY_VERSION,
 ):  # pylint: disable=unused-argument
     """Write a single ScheduleBlock object in the file like object.
 

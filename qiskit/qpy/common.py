@@ -14,9 +14,12 @@
 """
 Common functions across several serialization and deserialization modules.
 """
+from __future__ import annotations
 
 import io
 import struct
+from collections.abc import Callable
+from typing import IO, Any
 
 from qiskit.qpy import formats
 
@@ -41,7 +44,7 @@ def read_generic_typed_data(file_obj):
     return data.type, file_obj.read(data.size)
 
 
-def read_sequence(file_obj, deserializer, **kwargs):
+def read_sequence(file_obj: IO, deserializer: Callable, **kwargs) -> list:
     """Read a sequence of data from the file like object.
 
     Args:
@@ -65,7 +68,7 @@ def read_sequence(file_obj, deserializer, **kwargs):
     return sequence
 
 
-def read_mapping(file_obj, deserializer, **kwargs):
+def read_mapping(file_obj: IO, deserializer, **kwargs) -> dict:
     """Read a mapping from the file like object.
 
     .. note::
@@ -100,7 +103,7 @@ def read_mapping(file_obj, deserializer, **kwargs):
     return mapping
 
 
-def read_type_key(file_obj):
+def read_type_key(file_obj: IO) -> bytes:
     """Read a type key from the file like object.
 
     Args:
@@ -113,7 +116,7 @@ def read_type_key(file_obj):
     return struct.unpack("!1c", file_obj.read(key_size))[0]
 
 
-def write_generic_typed_data(file_obj, type_key, data_binary):
+def write_generic_typed_data(file_obj: IO, type_key, data_binary: bytes) -> None:
     """Write statically typed binary data to the file like object.
 
     Args:
@@ -126,7 +129,7 @@ def write_generic_typed_data(file_obj, type_key, data_binary):
     file_obj.write(data_binary)
 
 
-def write_sequence(file_obj, sequence, serializer, **kwargs):
+def write_sequence(file_obj: IO, sequence, serializer, **kwargs):
     """Write a sequence of data in the file like object.
 
     Args:
@@ -144,7 +147,7 @@ def write_sequence(file_obj, sequence, serializer, **kwargs):
         write_generic_typed_data(file_obj, type_key, datum_bytes)
 
 
-def write_mapping(file_obj, mapping, serializer, **kwargs):
+def write_mapping(file_obj: IO, mapping, serializer, **kwargs) -> None:
     """Write a mapping in the file like object.
 
     .. note::
@@ -173,7 +176,7 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         file_obj.write(datum_bytes)
 
 
-def write_type_key(file_obj, type_key):
+def write_type_key(file_obj: IO, type_key: bytes) -> None:
     """Write a type key in the file like object.
 
     Args:
@@ -183,7 +186,7 @@ def write_type_key(file_obj, type_key):
     file_obj.write(struct.pack("!1c", type_key))
 
 
-def data_to_binary(obj, serializer, **kwargs):
+def data_to_binary(obj: Any, serializer: Callable[..., bytes], **kwargs) -> bytes:
     """Convert object into binary data with specified serializer.
 
     Args:
@@ -201,7 +204,7 @@ def data_to_binary(obj, serializer, **kwargs):
     return binary_data
 
 
-def sequence_to_binary(sequence, serializer, **kwargs):
+def sequence_to_binary(sequence, serializer, **kwargs) -> bytes:
     """Convert sequence into binary data with specified serializer.
 
     Args:
@@ -220,7 +223,7 @@ def sequence_to_binary(sequence, serializer, **kwargs):
     return binary_data
 
 
-def mapping_to_binary(mapping, serializer, **kwargs):
+def mapping_to_binary(mapping, serializer, **kwargs) -> bytes:
     """Convert mapping into binary data with specified serializer.
 
     .. note::
@@ -246,7 +249,7 @@ def mapping_to_binary(mapping, serializer, **kwargs):
     return binary_data
 
 
-def data_from_binary(binary_data, deserializer, **kwargs):
+def data_from_binary(binary_data: bytes, deserializer: Callable, **kwargs) -> Any:
     """Load object from binary data with specified deserializer.
 
     Args:
@@ -263,7 +266,7 @@ def data_from_binary(binary_data, deserializer, **kwargs):
     return obj
 
 
-def sequence_from_binary(binary_data, deserializer, **kwargs):
+def sequence_from_binary(binary_data: bytes, deserializer: Callable, **kwargs) -> Any:
     """Load object from binary sequence with specified deserializer.
 
     Args:

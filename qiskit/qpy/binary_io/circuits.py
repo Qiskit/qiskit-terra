@@ -13,6 +13,7 @@
 # pylint: disable=invalid-name
 
 """Binary IO for circuit objects."""
+from __future__ import annotations
 
 from collections import defaultdict
 import io
@@ -20,11 +21,14 @@ import json
 import struct
 import uuid
 import warnings
+from json import JSONEncoder, JSONDecoder
+from typing import Any, IO, Literal
 
 import numpy as np
+from qiskit.pulse.schedule import ScheduleBlock
 
 from qiskit import circuit as circuit_mod
-from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
+from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, Register, Bit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -47,7 +51,9 @@ from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
-def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
+def _read_header_v2(
+    file_obj: IO, version: int, vectors, metadata_deserializer=None
+) -> tuple[dict[str, Any], str, dict[str, Any]]:
     data = formats.CIRCUIT_HEADER_V2._make(
         struct.unpack(
             formats.CIRCUIT_HEADER_V2_PACK,
@@ -75,7 +81,9 @@ def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
     return header, name, metadata
 
 
-def _read_header(file_obj, metadata_deserializer=None):
+def _read_header(
+    file_obj: IO, metadata_deserializer=None
+) -> tuple[dict[str, Any], str, dict[str, Any]]:
     data = formats.CIRCUIT_HEADER._make(
         struct.unpack(formats.CIRCUIT_HEADER_PACK, file_obj.read(formats.CIRCUIT_HEADER_SIZE))
     )
@@ -92,8 +100,10 @@ def _read_header(file_obj, metadata_deserializer=None):
     return header, name, metadata
 
 
-def _read_registers_v4(file_obj, num_registers):
-    registers = {"q": {}, "c": {}}
+def _read_registers_v4(
+    file_obj: IO, num_registers: int
+) -> dict[Literal["c", "q"], dict[str, tuple]]:
+    registers: dict[Literal["c", "q"], dict[str, tuple]] = {"q": {}, "c": {}}
     for _reg in range(num_registers):
         data = formats.REGISTER_V4._make(
             struct.unpack(
@@ -112,8 +122,10 @@ def _read_registers_v4(file_obj, num_registers):
     return registers
 
 
-def _read_registers(file_obj, num_registers):
-    registers = {"q": {}, "c": {}}
+def _read_registers(
+    file_obj: IO, num_registers: int
+) -> dict[Literal["c", "q"], dict[str, tuple[bool, list[int], bool]]]:
+    registers: dict[Literal["c", "q"], dict[str, tuple]] = {"q": {}, "c": {}}
     for _reg in range(num_registers):
         data = formats.REGISTER._make(
             struct.unpack(
@@ -133,7 +145,13 @@ def _read_registers(file_obj, num_registers):
 
 
 def _loads_instruction_parameter(
-    type_key, data_bytes, version, vectors, registers, circuit, use_symengine
+    type_key,
+    data_bytes,
+    version,
+    vectors,
+    registers: dict[Literal["c", "q"], dict[str, tuple]],
+    circuit,
+    use_symengine: bool,
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
@@ -177,7 +195,9 @@ def _loads_instruction_parameter(
     return param
 
 
-def _loads_register_param(data_bytes, circuit, registers):
+def _loads_register_param(
+    data_bytes, circuit, registers: dict[Literal["c", "q"], dict[str, tuple]]
+) -> tuple[bool, list[int], bool]:
     # If register name prefixed with null character it's a clbit index for single bit condition.
     if data_bytes[0] == "\x00":
         conditional_bit = int(data_bytes[1:])
@@ -186,7 +206,13 @@ def _loads_register_param(data_bytes, circuit, registers):
 
 
 def _read_instruction(
-    file_obj, circuit, registers, custom_operations, version, vectors, use_symengine
+    file_obj,
+    circuit,
+    registers: dict[Literal["c", "q"], dict[str, tuple]],
+    custom_operations,
+    version: int,
+    vectors: dict[str, tuple],
+    use_symengine: bool,
 ):
     if version < 5:
         instruction = formats.CIRCUIT_INSTRUCTION._make(
@@ -361,8 +387,14 @@ def _read_instruction(
 
 
 def _parse_custom_operation(
-    custom_operations, gate_name, params, version, vectors, registers, use_symengine
-):
+    custom_operations,
+    gate_name: str,
+    params,
+    version: int,
+    vectors: dict[str, tuple],
+    registers: dict[Literal["c", "q"], dict[str, tuple]],
+    use_symengine: bool,
+) -> Instruction | Gate | ControlledGate | AnnotatedOperation:
     if version >= 5:
         (
             type_str,
@@ -424,7 +456,9 @@ def _parse_custom_operation(
     raise ValueError("Invalid custom instruction type '%s'" % type_str)
 
 
-def _read_pauli_evolution_gate(file_obj, version, vectors):
+def _read_pauli_evolution_gate(
+    file_obj: IO, version: int, vectors: dict[str, tuple]
+) -> library.PauliEvolutionGate:
     pauli_evolution_def = formats.PAULI_EVOLUTION_DEF._make(
         struct.unpack(
             formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
@@ -482,7 +516,9 @@ def _read_modifier(file_obj):
         raise TypeError("Unsupported modifier.")
 
 
-def _read_custom_operations(file_obj, version, vectors):
+def _read_custom_operations(
+    file_obj: IO, version: int, vectors: dict[str, tuple]
+) -> dict[str, tuple]:
     custom_operations = {}
     custom_definition_header = formats.CUSTOM_CIRCUIT_DEF_HEADER._make(
         struct.unpack(
@@ -537,7 +573,9 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
-def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
+def _read_calibrations(
+    file_obj: IO, version, vectors: dict[str, tuple], metadata_deserializer
+) -> dict[str, dict[tuple, ScheduleBlock]]:
     calibrations = {}
 
     header = formats.CALIBRATION._make(
@@ -565,14 +603,22 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
     return calibrations
 
 
-def _dumps_register(register, index_map):
+def _dumps_register(
+    register: ClassicalRegister | Clbit,
+    index_map: dict[Literal["q", "c"], dict[Qubit, int] | dict[Clbit, int]],
+) -> bytes:
     if isinstance(register, ClassicalRegister):
         return register.name.encode(common.ENCODE)
     # Clbit.
     return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
 
 
-def _dumps_instruction_parameter(param, index_map, use_symengine):
+def _dumps_instruction_parameter(
+    param,
+    index_map: dict[Literal["q", "c"], dict[Qubit, int] | dict[Clbit, int]],
+    use_symengine: bool,
+) -> tuple[type_keys.Program | type_keys.Value | type_keys.Container, bytes]:
+    type_key: type_keys.Program | type_keys.Value | type_keys.Container
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
@@ -607,7 +653,14 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 
 # pylint: disable=too-many-boolean-expressions
-def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine, version):
+def _write_instruction(
+    file_obj: IO,
+    instruction,
+    custom_operations,
+    index_map: dict[Literal["q", "c"], dict],
+    use_symengine: bool,
+    version: int,
+) -> list[str]:
     if isinstance(instruction.operation, Instruction):
         gate_class_name = instruction.operation.base_class.__name__
     else:
@@ -723,7 +776,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
     return custom_operations_list
 
 
-def _write_pauli_evolution_gate(file_obj, evolution_gate):
+def _write_pauli_evolution_gate(file_obj: IO, evolution_gate) -> None:
     operator_list = evolution_gate.operator
     standalone = False
     if not isinstance(operator_list, list):
@@ -731,7 +784,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
         standalone = True
     num_operators = len(operator_list)
 
-    def _write_elem(buffer, op):
+    def _write_elem(buffer, op) -> None:
         elem_data = common.data_to_binary(op.to_list(array=True), np.save)
         elem_metadata = struct.pack(formats.SPARSE_PAULI_OP_LIST_ELEM_PACK, len(elem_data))
         buffer.write(elem_metadata)
@@ -763,7 +816,9 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_modifier(file_obj, modifier):
+def _write_modifier(
+    file_obj: IO, modifier: InverseModifier | ControlModifier | PowerModifier
+) -> None:
     if isinstance(modifier, InverseModifier):
         type_key = b"i"
         num_ctrl_qubits = 0
@@ -788,7 +843,9 @@ def _write_modifier(file_obj, modifier):
     file_obj.write(modifier_data)
 
 
-def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine, version):
+def _write_custom_operation(
+    file_obj: IO, name, operation, custom_operations, use_symengine: bool, version: int
+):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
     size = 0
@@ -859,7 +916,7 @@ def _write_custom_operation(file_obj, name, operation, custom_operations, use_sy
     return new_custom_instruction
 
 
-def _write_calibrations(file_obj, calibrations, metadata_serializer):
+def _write_calibrations(file_obj: IO, calibrations, metadata_serializer: type[JSONEncoder]) -> None:
     flatten_dict = {}
     for gate, caldef in calibrations.items():
         for (qubits, params), schedule in caldef.items():
@@ -887,7 +944,7 @@ def _write_calibrations(file_obj, calibrations, metadata_serializer):
         schedules.write_schedule_block(file_obj, schedule, metadata_serializer)
 
 
-def _write_registers(file_obj, in_circ_regs, full_bits):
+def _write_registers(file_obj: IO, in_circ_regs, full_bits) -> int:
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
 
     out_circ_regs = set()
@@ -920,7 +977,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
     return len(in_circ_regs) + len(out_circ_regs)
 
 
-def _write_layout(file_obj, circuit):
+def _write_layout(file_obj: IO, circuit: QuantumCircuit) -> None:
     if circuit.layout is None:
         # Write a null header if there is no layout present
         file_obj.write(struct.pack(formats.LAYOUT_V2_PACK, False, -1, -1, -1, 0, 0))
@@ -1000,7 +1057,7 @@ def _write_layout(file_obj, circuit):
         file_obj.write(struct.pack("!I", i))
 
 
-def _read_layout(file_obj, circuit):
+def _read_layout(file_obj: IO, circuit: QuantumCircuit) -> None:
     header = formats.LAYOUT._make(
         struct.unpack(formats.LAYOUT_PACK, file_obj.read(formats.LAYOUT_SIZE))
     )
@@ -1009,7 +1066,9 @@ def _read_layout(file_obj, circuit):
     _read_common_layout(file_obj, header, circuit)
 
 
-def _read_common_layout(file_obj, header, circuit):
+def _read_common_layout(
+    file_obj: IO, header: formats.LAYOUT_V2 | formats.LAYOUT, circuit: QuantumCircuit
+) -> None:
     registers = {
         name: QuantumRegister(len(v[1]), name)
         for name, v in _read_registers_v4(file_obj, header.extra_registers)["q"].items()
@@ -1058,7 +1117,7 @@ def _read_common_layout(file_obj, header, circuit):
     circuit._layout = TranspileLayout(initial_layout, input_qubit_mapping, final_layout)
 
 
-def _read_layout_v2(file_obj, circuit):
+def _read_layout_v2(file_obj: IO, circuit: QuantumCircuit) -> None:
     header = formats.LAYOUT_V2._make(
         struct.unpack(formats.LAYOUT_V2_PACK, file_obj.read(formats.LAYOUT_V2_SIZE))
     )
@@ -1071,8 +1130,12 @@ def _read_layout_v2(file_obj, circuit):
 
 
 def write_circuit(
-    file_obj, circuit, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
-):
+    file_obj: IO,
+    circuit: QuantumCircuit,
+    metadata_serializer: type[JSONEncoder] | None = None,
+    use_symengine: bool = False,
+    version: int = common.QPY_VERSION,
+) -> None:
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
@@ -1121,7 +1184,7 @@ def write_circuit(
     # Write header payload
     file_obj.write(registers_raw)
     instruction_buffer = io.BytesIO()
-    custom_operations = {}
+    custom_operations: dict[str, Any] = {}
     index_map = {}
     index_map["q"] = {bit: index for index, bit in enumerate(circuit.qubits)}
     index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
@@ -1159,7 +1222,12 @@ def write_circuit(
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_circuit(
+    file_obj: IO,
+    version: int,
+    metadata_deserializer: type[JSONDecoder] | None = None,
+    use_symengine: bool = False,
+) -> QuantumCircuit:
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1183,7 +1251,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
     Raises:
         QpyError: Invalid register.
     """
-    vectors = {}
+    vectors: dict[str, tuple] = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
     else:
@@ -1198,9 +1266,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
     num_instructions = header["num_instructions"]
     # `out_registers` is two "name: register" maps segregated by type for the rest of QPY, and
     # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
-    out_registers = {"q": {}, "c": {}}
+    out_registers: dict[str, dict[str, Register]] = {"q": {}, "c": {}}
     all_registers = []
-    out_bits = {"q": [None] * num_qubits, "c": [None] * num_clbits}
+    out_bits: dict[str, list[Bit | None]] = {"q": [None] * num_qubits, "c": [None] * num_clbits}
     if num_registers > 0:
         if version < 4:
             registers = _read_registers(file_obj, num_registers)

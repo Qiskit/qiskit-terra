@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 import struct
 import warnings
 import re
@@ -79,7 +79,7 @@ def dump(
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = True,
     version: int = common.QPY_VERSION,
-):
+) -> None:
     """Write QPY binary data to a file
 
     This function is used to save a circuit to a file for later use or transfer
@@ -210,7 +210,7 @@ def dump(
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-) -> List[QPY_SUPPORTED_TYPES]:
+) -> Sequence[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
