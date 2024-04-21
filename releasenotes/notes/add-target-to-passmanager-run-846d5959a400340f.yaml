@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added new argument ``target`` to :meth:`qiskit.passmanager.BasePassManager.run`.
+    Given target is shared among scheduled passes, so that we don't need to set
+    target object to individual passes. 
+
+    .. code-block:: python
+
+      pm = PassManager(...)
+      pm.run(circuits, target=backend.target)
+
+    In future we may drop target argument from the constructor of builtin passses.

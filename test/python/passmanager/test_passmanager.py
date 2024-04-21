@@ -145,3 +145,105 @@ class TestPassManager(PassManagerTestCase):
         self.assertIs(pm.property_set["check_property"], sentinel)
         pm.run(1)
         self.assertIs(pm.property_set["check_property"], sentinel)
+
+    def test_run_with_target(self):
+        """Test case: Running pass manager with target system information."""
+
+        test_target = {"system_value": "6"}
+
+        class TargetAwareTask(GenericPass):
+            def run(self, passmanager_ir):
+                return passmanager_ir + self.target["system_value"]
+
+        task = TargetAwareTask()
+        data = 12345
+        pm = ToyPassManager(task)
+        out = pm.run(data, target=test_target)
+        self.assertEqual(out, 123456)
+
+    def test_run_multiple_with_target(self):
+        """Test case: Running pass manager for multipule inputs with target system information."""
+
+        test_target = {"system_value": "6"}
+
+        class TargetAwareTask(GenericPass):
+            def run(self, passmanager_ir):
+                return passmanager_ir + self.target["system_value"]
+
+        task = TargetAwareTask()
+        data = [12345, 24]
+        pm = ToyPassManager(task)
+        out = pm.run(data, target=test_target)
+        self.assertListEqual(out, [123456, 246])
+
+    def test_run_with_different_target(self):
+        """Test case: Running the same pass manager with different targets."""
+
+        test_target1 = {"system_value": "6"}
+        test_target2 = {"system_value": "7"}
+
+        class TargetAwareTask(GenericPass):
+            def run(self, passmanager_ir):
+                return passmanager_ir + self.target["system_value"]
+
+        task = TargetAwareTask()
+        data = 12345
+        pm = ToyPassManager(task)
+
+        out = pm.run(data, target=test_target1)
+        self.assertEqual(out, 123456)
+
+        out = pm.run(data, target=test_target2)
+        self.assertEqual(out, 123457)
+
+    def test_user_provided_target_public(self):
+        """Test case: Prioritize user provided target if designed so."""
+
+        # TODO remove this test after we drop self.target from
+        #  existing transpiler passes.
+
+        sys_target = {"system_value": "6"}
+        usr_target = {"system_value": "7"}
+
+        class TargetAwareTask(GenericPass):
+
+            def __init__(self, target):
+                super().__init__()
+                self.target = target
+
+            def run(self, passmanager_ir):
+                return passmanager_ir + self.target["system_value"]
+
+        with self.assertWarns(PendingDeprecationWarning):
+            task = TargetAwareTask(usr_target)
+        data = 12345
+        pm = ToyPassManager(task)
+
+        out = pm.run(data, target=sys_target)
+        self.assertEqual(out, 123457)
+
+    def test_user_provided_target_protected(self):
+        """Test case: Prioritize user provided target if designed so."""
+
+        # TODO remove this test after we drop self._target from
+        #  existing transpiler passes.
+
+        sys_target = {"system_value": "6"}
+        usr_target = {"system_value": "7"}
+
+        class TargetAwareTask(GenericPass):
+
+            def __init__(self, target):
+                super().__init__()
+                self._target = target
+
+            def run(self, passmanager_ir):
+                return passmanager_ir + self._target["system_value"]
+
+        with self.assertWarns(PendingDeprecationWarning):
+            task = TargetAwareTask(usr_target)
+        data = 12345
+        pm = ToyPassManager(task)
+
+        out = pm.run(data, target=sys_target)
+        self.assertEqual(out, 123457)

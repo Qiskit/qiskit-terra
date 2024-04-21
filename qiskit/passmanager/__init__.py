@@ -36,7 +36,12 @@ depending on the context of the optimization.
     as long as the IR implements all methods required by subsequent passes.
     A concrete design for the use of multiple IRs might be provided in the future release.
 
-The passes may consume the hardware constraints that the Qiskit backend may provide.
+The passes may consume the hardware constraints we call `target`, 
+which may be provided by the Qiskit backend.
+This information can be optionally passed to the pass manager at running time, 
+and this information is shared among all scheduled passes.
+This implies the construction of individual pass element can be decoupled from 
+the target computing system digesting output programs.
 Finally, the IR is converted back to some Python object.
 Note that the input type and output type are not necessarily the same.
 
@@ -184,6 +189,59 @@ Output:
 
 The "remove five" task is triggered only for the first and third input
 values, which have more than six digits.
+
+Now let's look into more practical case to review a best practice in writing passes.
+Since we optimize the input programs for a particular computing system, 
+the system may give us some constraints, which we call `target`, for execution of programs.
+For example, our computing system of example may provide the following target 
+that some pass may need to consider during execution.
+Note that the data model is arbitrary here.
+In practice, we must follow what our target system provides with us.
+
+.. code-block:: python
+
+    my_target = {"system_parameter": 6}
+
+While the target system enforces some constraints, the pass may also get 
+the preference of a user in how to optimize the input programs.
+We recommend to hand over such user arguments to the pass via the constructor of it,
+and provide the target information separately at running time of the pass manager.
+
+As you expect, the following example code will replace a digit of '3' with '6',
+in which '3' is specified by a user and '6' is the target system value.
+
+.. code-block:: python
+
+    class ReplaceNumber(GenericPass):
+    
+        def __init__(self, to_replace: int):
+            self._to_replace = to_replace
+
+        def run(self, passmanager_ir: str):        
+            system_value = self.target["system_parameter"]
+
+            return passmanager_ir.replace(
+                str(self._to_replace), 
+                str(system_value),
+            )
+
+    task = ReplaceNumber(3)
+    pm = ToyPassManager()
+    pm.append(task)
+
+    pm.run([12345], target=my_target)      
+
+Output:
+
+.. parsed-literal::
+
+    [12645]
+
+On the one hand it's possible to directly give the system value to the pass constructor,
+but on the other hand it may induce unnecessary tight coupling of the pass manager 
+to a particular system constraint as a consequence.
+In other words, as long as the flow controller, or workflow, is target system independent,
+we should be able to run the same pass manager with different system constraints.
 
 With the pass manager framework, a developer can flexibly customize
 the optimization task by combining multiple passes and flow controllers.

@@ -30,6 +30,7 @@ from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
+from .target import Target
 
 _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 
@@ -130,6 +131,7 @@ class PassManager(BasePassManager):
         output_name: str | None = None,
         callback: Callable = None,
         num_processes: int = None,
+        target: Target | None = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -172,6 +174,7 @@ class PassManager(BasePassManager):
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
+            target: Information of target quantum backend that input quantum circuits are optimized for.
 
         Returns:
             The transformed circuit(s).
@@ -179,8 +182,11 @@ class PassManager(BasePassManager):
         if callback is not None:
             callback = _legacy_style_callback(callback)
 
+        # TODO turn target into required after
+        #  we remove target from the constructor of existing passes.
         return super().run(
             in_programs=circuits,
+            target=target,
             callback=callback,
             output_name=output_name,
             num_processes=num_processes,
@@ -392,9 +398,16 @@ class StagedPassManager(PassManager):
         output_name: str | None = None,
         callback: Callable | None = None,
         num_processes: int = None,
+        target: Target | None = None,
     ) -> _CircuitsT:
         self._update_passmanager()
-        return super().run(circuits, output_name, callback, num_processes=num_processes)
+        return super().run(
+            circuits,
+            output_name,
+            callback,
+            num_processes=num_processes,
+            target=target,
+        )
 
     def to_flow_controller(self) -> FlowControllerLinear:
         self._update_passmanager()

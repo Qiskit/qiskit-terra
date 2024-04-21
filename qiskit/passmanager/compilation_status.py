@@ -11,10 +11,14 @@
 # that they have been altered from the originals.
 
 """A property set dictionary that shared among optimization passes."""
-
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
+
+# Type alias
+AnyTarget = Any
 
 
 class PropertySet(dict):
@@ -58,13 +62,22 @@ class PassManagerState:
 
     This object can contain every information about the running pass manager workflow,
     except for the IR object being optimized.
-    The data structure consists of two elements; one for the status of the
-    workflow itself, and another one for the additional information about the IR
-    analyzed through pass executions. This container aims at just providing
-    a robust interface for the :meth:`.Task.execute`, and no logic that modifies
-    the container elements must be implemented.
+    This container aims at providing a robust interface for the the :meth:`.Task.execute`
+    method, and no logic that modifies the container elements must be implemented.
+    The data structure consists of three elements.
 
-    This object is mutable, and might be mutated by pass executions.
+    * :attr:`.workflow_status`: Status of current workflow, which is consumed by
+      the given pass manager callback and system logger.
+      Execution of passes may be condition on the status.
+    * :attr:`.property_set`: Information of the IR gained through pass executions.
+      Typically, analysis-type pass mutates and updates the property set, and
+      transform-type pass consumes the data for optimization task.
+    * :attr:`.target`: Read-only information about a computing system that
+      IR is optimized for. Any type of pass can consume this information
+      to perform hardware-aware task. Altough this object may not be protected from
+      falsification, modified target infomation may result in the failure in execution.
+
+    This object is mutable, and might be mutated by pass executions except for :attr:`.target`.
     """
 
     workflow_status: WorkflowStatus
@@ -72,3 +85,6 @@ class PassManagerState:
 
     property_set: PropertySet
     """Information about IR being optimized."""
+
+    target: AnyTarget | None = None
+    """Information about target system that IR is optimized for."""

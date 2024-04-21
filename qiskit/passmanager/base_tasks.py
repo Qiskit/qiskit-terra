@@ -15,11 +15,12 @@ from __future__ import annotations
 
 import logging
 import time
+import warnings
 from abc import abstractmethod, ABC
 from collections.abc import Iterable, Callable, Generator
 from typing import Any
 
-from .compilation_status import RunState, PassManagerState, PropertySet
+from .compilation_status import RunState, PassManagerState, PropertySet, AnyTarget
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,41 @@ class GenericPass(Task, ABC):
     """
 
     def __init__(self):
-        self.property_set = PropertySet()
+        self.property_set: PropertySet = PropertySet()
+        """Information about IR being optimized."""
+
         self.requires: Iterable[Task] = []
+        """Dependency of this pass."""
+
+        self.__usr_target: AnyTarget | None = None
+        self.__target: AnyTarget | None = None
+
+    @property
+    def target(self) -> AnyTarget:
+        """Constraints of target computing system."""
+        # TODO remove after self.target is dropped from builtin passes.
+        return self.__usr_target or self.__target
+
+    @target.setter
+    def target(self, usr_target):
+        # TODO remove after self.target is dropped from builtin passes.
+        warnings.warn(
+            "Manually providing target is no longer necessary. "
+            "Target is automatically set to the instance at run time. "
+            "The target attribute is now reserved by the base GenericPass class.",
+            PendingDeprecationWarning,
+        )
+        self.__usr_target = usr_target
+
+    @property
+    def _target(self) -> AnyTarget:
+        # TODO remove after self.target is dropped from builtin passes.
+        return self.target
+
+    @target.setter
+    def _target(self, usr_target):
+        # TODO remove after self.target is dropped from builtin passes.
+        self.target = usr_target
 
     def name(self) -> str:
         """Name of the pass."""
@@ -78,7 +112,9 @@ class GenericPass(Task, ABC):
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
+
         self.property_set = state.property_set
+        self.__target = state.target
 
         if self.requires:
             # pylint: disable=cyclic-import

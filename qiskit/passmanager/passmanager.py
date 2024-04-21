@@ -23,6 +23,7 @@ import dill
 
 from qiskit.utils.parallel import parallel_map
 from .base_tasks import Task, PassManagerIR
+from .compilation_status import AnyTarget
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
@@ -174,6 +175,7 @@ class BasePassManager(ABC):
         in_programs: Any | list[Any],
         callback: Callable = None,
         num_processes: int = None,
+        target: AnyTarget | None = None,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -211,6 +213,8 @@ class BasePassManager(ABC):
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
+            target: Information of the target computing system that
+                input programs are optimized for, if available.
 
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
@@ -229,6 +233,7 @@ class BasePassManager(ABC):
             out_program = _run_workflow(
                 program=in_programs[0],
                 pass_manager=self,
+                target=target,
                 callback=callback,
                 **kwargs,
             )
@@ -246,7 +251,7 @@ class BasePassManager(ABC):
         return parallel_map(
             _run_workflow_in_new_process,
             values=in_programs,
-            task_kwargs={"pass_manager_bin": dill.dumps(self)},
+            task_kwargs={"pass_manager_bin": dill.dumps(self), "target": dill.dumps(target)},
             num_processes=num_processes,
         )
 
@@ -270,12 +275,14 @@ class BasePassManager(ABC):
 def _run_workflow(
     program: Any,
     pass_manager: BasePassManager,
+    target: AnyTarget | None = None,
     **kwargs,
 ) -> Any:
     """Run single program optimization with a pass manager.
 
     Args:
         program: Arbitrary program to optimize.
+        target: Information of the target computing system.
         pass_manager: Pass manager with scheduled passes.
         **kwargs: Keyword arguments for IR conversion.
 
@@ -294,6 +301,7 @@ def _run_workflow(
         state=PassManagerState(
             workflow_status=initial_status,
             property_set=PropertySet(),
+            target=target,
         ),
         callback=kwargs.get("callback", None),
     )
@@ -317,11 +325,13 @@ def _run_workflow(
 def _run_workflow_in_new_process(
     program: Any,
     pass_manager_bin: bytes,
+    target: AnyTarget | None = None,
 ) -> Any:
     """Run single program optimization in new process.
 
     Args:
         program: Arbitrary program to optimize.
+        target: Information of the target computing system.
         pass_manager_bin: Binary of the pass manager with scheduled passes.
 
     Returns:
@@ -330,4 +340,5 @@ def _run_workflow_in_new_process(
     return _run_workflow(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
+        target=dill.loads(target),
     )
