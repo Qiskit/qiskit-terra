@@ -33,6 +33,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.providers import basic_provider
 from qiskit.transpiler import Target
 from qiskit.providers.backend_compat import convert_to_target
+from qiskit.qobj import QasmQobj
 
 from .utils.json_decoder import (
     decode_backend_configuration,
@@ -546,6 +547,50 @@ class FakeBackend(BackendV1):
                     pulse_job = True
                 elif all(isinstance(x, circuit.QuantumCircuit) for x in circuits):
                     pulse_job = False
+        if isinstance(circuits, list):
+            if circuits:
+                for x in circuits:
+                    if not x.num_qubits <= self.configuration().n_qubits:
+                        raise QiskitError(
+                            "Invalid number of qubits, %s, attempted be run on "
+                            "simulated device with %s qubits."
+                            % (x.num_qubits, self.configuration().n_qubits)
+                        )
+                    for instruction in x:
+                        if isinstance(
+                            instruction.operation, circuit.Gate
+                        ) and instruction.operation.name not in (
+                            set(self.configuration().basis_gates)
+                        ):
+                            raise QiskitError(
+                                "Invalid basis gate, %s, attempted be run on "
+                                "simulated device with support for the following gates, %s."
+                                % (
+                                    instruction.operation.name,
+                                    set(self.configuration().basis_gates),
+                                )
+                            )
+        elif not isinstance(circuits, QasmQobj) and not isinstance(circuits, pulse.ScheduleBlock):
+            if not circuits.num_qubits <= self.configuration().n_qubits:
+                raise QiskitError(
+                    "Invalid number of qubits, %s, attempted be run on "
+                    "simulated device with %s qubits"
+                    % (circuits.num_qubits, self.configuration().n_qubits)
+                )
+            for instruction in circuits:
+                if isinstance(
+                    instruction.operation, circuit.Gate
+                ) and instruction.operation.name not in (set(self.configuration().basis_gates)):
+                    raise QiskitError(
+                        "Invalid basis gate, %s, attempted be run on "
+                        "simulated device with support for the following gates, %s."
+                        % (
+                            instruction.operation.name,
+                            set(self.configuration().basis_gates),
+                        )
+                    )
+        else:
+            pass
         if pulse_job is None:
             raise QiskitError(
                 "Invalid input object %s, must be either a "

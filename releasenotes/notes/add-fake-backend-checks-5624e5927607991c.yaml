@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    This release fixes the fake backend and makes it check that the 
+    number of qubits is compatible with the simulated provider and it 
+    ensures that the basis gates used are supported by the provider.
+    Fixed `#8590 <https://github.com/Qiskit/qiskit/issues/8509>`__
