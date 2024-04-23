@@ -117,6 +117,59 @@ class TestFakeBackends(QiskitTestCase):
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
 
+    # @combine(
+    #     backend=[be for be in FAKE_PROVIDER_FOR_BACKEND_V2.backends() if be.num_qubits > 1],
+    #     optimization_level=[0, 1, 2, 3],
+    # )
+    # def test_no_such_basis_gate_fail_fake_backend_v2(self, backend, optimization_level):
+    #     if not optionals.HAS_AER and backend.num_qubits > 20:
+    #         self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
+    #     # Composing a quantum circuit using gates that are not among backend basis gates
+    #     qc = QuantumCircuit(2)
+    #     qc.h(0)
+    #     qc.h(1)
+    #     qc.h(0)
+    #     qc.h(1)
+    #     qc.cx(0,1)
+    #     qc.ry(0, 0)
+    #     qc.ry(0, 1)
+    #     qc.x(0)
+    #     qc.x(1)
+    #     qc.measure_all()
+    #     with self.assertRaises(QiskitError) as raised_exception:
+    #         job = execute(
+    #             qc,
+    #             backend,
+    #             optimization_level=optimization_level,
+    #             seed_simulator=42,
+    #             seed_transpiler=42,
+    #         )
+    #     exception_message = raised_exception.exception.message
+    #     print(exception_message)
+    #     self.assertEqual(exception_message, "1106")
+    #     # self.assertEqual(exception_message[-5: -1], "1106")
+    
+    # @combine(
+    #     backend=[be for be in FAKE_PROVIDER_FOR_BACKEND_V2.backends() if be.num_qubits > 1],
+    #     optimization_level=[0, 1, 2, 3],
+    # )
+    # def test_too_many_qubits_fail_fake_backend_v2(self, backend, optimization_level):
+    #     # Composing a quantum circuit using gates that are not among backend basis gates
+    #     qc = QuantumCircuit(10)
+    #     qc.measure_all()
+    #     with self.assertRaises(QiskitError) as raised_exception:
+    #         job = execute(
+    #             qc,
+    #             backend,
+    #             optimization_level=optimization_level,
+    #             seed_simulator=42,
+    #             seed_transpiler=42,
+    #         )
+    #     exception_message = raised_exception.exception.message
+    #     print(exception_message)
+    #     self.assertEqual(exception_message, "1109")
+    #     # self.assertEqual(exception_message[-5: -1], "1109")
+
     @combine(
         backend=BACKENDS,
         optimization_level=[0, 1, 2, 3],
@@ -139,6 +192,66 @@ class TestFakeBackends(QiskitTestCase):
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
+
+    # @combine(
+    #     backend=[be for be in FAKE_PROVIDER.backends() if be.configuration().num_qubits > 1],
+    #     optimization_level=[0, 1, 2, 3],
+    #     dsc="Test execution path on {backend} with optimization level {optimization_level}",
+    #     name="{backend}_opt_level_{optimization_level}",
+    # )
+    # def test_no_such_basis_gate_fail_fake_backend(self, backend, optimization_level):
+    #     if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
+    #         self.skipTest(
+    #             "Unable to run fake_backend %s without qiskit-aer"
+    #             % backend.configuration().backend_name
+    #         )
+    #     # Composing a quantum circuit using gates that are not among backend basis gates
+    #     qc = QuantumCircuit(2)
+    #     qc.h(0)
+    #     qc.h(1)
+    #     qc.h(0)
+    #     qc.h(1)
+    #     qc.cx(0,1)
+    #     qc.ry(0, 0)
+    #     qc.ry(0, 1)
+    #     qc.x(0)
+    #     qc.x(1)
+    #     qc.measure_all()
+    #     with self.assertRaises(QiskitError) as raised_exception:
+    #         job = execute(
+    #             qc,
+    #             backend,
+    #             optimization_level=optimization_level,
+    #             seed_simulator=42,
+    #             seed_transpiler=42,
+    #         )
+    #     exception_message = raised_exception.exception.message
+    #     print(exception_message)
+    #     self.assertEqual(exception_message[-5: -1], "1106")
+    #     self.assertEqual(exception_message, "1106")
+
+    # @combine(
+    #     backend=[be for be in FAKE_PROVIDER.backends() if be.configuration().num_qubits > 1],
+    #     optimization_level=[0, 1, 2, 3],
+    #     dsc="Test execution path on {backend} with optimization level {optimization_level}",
+    #     name="{backend}_opt_level_{optimization_level}",
+    # )
+    # def test_too_many_qubits_fail_fake_backend(self, backend, optimization_level):
+    #     # Composing a quantum circuit using gates that are not among backend basis gates
+    #     qc = QuantumCircuit(10)
+    #     qc.measure_all()
+    #     with self.assertRaises(QiskitError) as raised_exception:
+    #         job = execute(
+    #             qc,
+    #             backend,
+    #             optimization_level=optimization_level,
+    #             seed_simulator=42,
+    #             seed_transpiler=42,
+    #         )
+    #     exception_message = raised_exception.exception.message
+    #     print(exception_message)
+    #     # self.assertEqual(exception_message[-5: -1], "1109")
+    #     self.assertEqual(exception_message, "1109")
 
     def test_qobj_failure(self):
         backend = BACKENDS[-1]

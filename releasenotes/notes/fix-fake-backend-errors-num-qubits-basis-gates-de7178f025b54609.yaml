@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where fake backends could run circuits
+    with gates not in basis gates, or circuits with more
+    qubits than available on the corresponding real device.
+    Attempting to do so now raises appropriate errors.
+    Refer to `#8509 <https://github.com/Qiskit/qiskit-terra/issues/8509>`
+    for more details.
