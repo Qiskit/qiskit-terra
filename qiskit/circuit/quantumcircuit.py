@@ -213,6 +213,9 @@ class QuantumCircuit:
            qc.measure(qr, cr)
 
            qc.draw('mpl')
+
+    .. automethod:: __eq__
+
     """
 
     instances = 0
@@ -515,6 +518,34 @@ class QuantumCircuit:
         return str(self.draw(output="text"))
 
     def __eq__(self, other) -> bool:
+        """Check if two circuits are equal.
+        This will check :attr:`~QuantumCircuit.calibrations` and :attr:`~QuantumCircuit.global_phase`
+        and will not consider :attr:`~QuantumCircuit.data`, :attr:`~QuantumCircuit.name`,
+        :attr:`~QuantumCircuit.metadata` when making determination.
+        The reason for this is due to being hard and computationally expensive to perform.
+        Please refer to :class:`.Operator` if you need to achieve that level of comparison.
+
+        Examples:
+
+            .. testcode::
+
+                from qiskit import QuantumCircuit
+
+                qc = qk.QuantumCircuit(2)
+                qc.x(0)
+                qc.x(1)
+
+                qc1 = qk.QuantumCircuit(2)
+                qc1.x(1)
+                qc1.x(0)
+
+                print(QuantumCircuit.__eq__(qc, qc1))
+
+            .. testoutput::
+
+                #Returns true even though :attr:`~QuantumCircuit.data` on the circuits are different
+                true
+        """
         if not isinstance(other, QuantumCircuit):
             return False
 

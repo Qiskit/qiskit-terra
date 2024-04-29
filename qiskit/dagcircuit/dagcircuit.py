@@ -61,13 +61,15 @@ class DAGCircuit:
     There are 3 types of nodes in the graph: inputs, outputs, and operations.
     The nodes are connected by directed edges that correspond to qubits and
     bits.
+
+    Create an empty circuit.
+
+    .. automethod:: __eq__
     """
 
     # pylint: disable=invalid-name
 
     def __init__(self):
-        """Create an empty circuit."""
-
         # Circuit name.  Generally, this corresponds to the name
         # of the QuantumCircuit from which the DAG was generated.
         self.name = None
@@ -1031,6 +1033,37 @@ class DAGCircuit:
         return rx.number_weakly_connected_components(self._multi_graph)
 
     def __eq__(self, other):
+        """Check if two circuits are equal.
+        This will check :attr:`~DAGCircuit.calibrations` and :attr:`~DAGCircuit.global_phase`
+        and will not consider :attr:`~DAGCircuit.data`, :attr:`~DAGCircuit.name`,
+        :attr:`~DAGCircuit.metadata` when making determination.
+        The reason for this is due to being hard and computationally expensive to perform.
+        Please refer to :class:`.Operator` if you need to achieve that level of comparison
+
+        Examples:
+
+            .. testcode::
+
+                from qiskit import QuantumCircuit
+                from qiskit.dagcircuit import DAGCircuit
+
+                qc = qk.QuantumCircuit(2)
+                qc.x(0)
+                qc.x(1)
+                dc = circuit_to_dag(qc)
+
+                qc1 = qk.QuantumCircuit(2)
+                qc1.x(1)
+                qc1.x(0)
+                dc1 = circuit_to_dag(qc1)
+
+                print(DAGCircuit.__eq__(dc, dc1))
+
+            .. testoutput::
+
+                #Returns true even though :attr:`~DAGCircuit.data` on the circuits are different.
+                true
+        """
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
