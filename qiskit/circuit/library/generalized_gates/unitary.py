@@ -30,13 +30,7 @@ from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-# pylint: disable=cyclic-import
-from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.synthesis.two_qubit.two_qubit_decompose import two_qubit_cnot_decompose
-
 from .isometry import Isometry
-
-_DECOMPOSER1Q = OneQubitEulerDecomposer("U")
 
 if typing.TYPE_CHECKING:
     from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -143,13 +137,21 @@ class UnitaryGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
+            from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
+
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
-            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
+            theta, phi, lam, global_phase = OneQubitEulerDecomposer("U").angles_and_phase(
+                self.to_matrix()
+            )
             qc._append(UGate(theta, phi, lam), [q[0]], [])
             qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
+            from qiskit.synthesis.two_qubit.two_qubit_decompose import (  # pylint: disable=cyclic-import
+                two_qubit_cnot_decompose,
+            )
+
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
             from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import

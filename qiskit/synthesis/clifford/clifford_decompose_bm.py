@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,11 +18,13 @@ Circuit synthesis for 2-qubit and 3-qubit Cliffords.
 # Synthesis based on Bravyi & Maslov decomposition
 # ---------------------------------------------------------------------
 
-
+from __future__ import annotations
 from itertools import product
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import SdgGate, HGate, CXGate, SGate, ZGate, XGate, YGate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -32,12 +34,14 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
+def synth_clifford_bm(clifford: Clifford, use_dag: bool = False) -> QuantumCircuit | DAGCircuit:
     """Optimal CX-cost decomposition of a :class:`.Clifford` operator on 2 qubits
     or 3 qubits into a :class:`.QuantumCircuit` based on the Bravyi-Maslov method [1].
 
     Args:
         clifford: A Clifford operator.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -56,12 +60,21 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
         raise QiskitError("Can only decompose up to 3-qubit Clifford circuits.")
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau)
+        if use_dag:
+            return _decompose_clifford_1q(clifford.tableau, use_dag)
+        else:
+            return _decompose_clifford_1q(clifford.tableau)
 
     clifford_name = str(clifford)
 
     # Inverse of final decomposed circuit
-    inv_circuit = QuantumCircuit(num_qubits, name="inv_circ")
+    qreg = QuantumRegister(num_qubits)
+    if use_dag:
+        inv_circuit = DAGCircuit()
+        inv_circuit.name = "inv_circ"
+        inv_circuit.add_qreg(qreg)
+    else:
+        inv_circuit = QuantumCircuit(qreg, name="inv_circ")
 
     # CNOT cost of clifford
     cost = _cx_cost(clifford)
@@ -70,19 +83,41 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
     while cost > 0:
         clifford, inv_circuit, cost = _reduce_cost(clifford, inv_circuit, cost)
 
-    # Decompose the remaining product of 1-qubit cliffords
-    ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
-    for qubit in range(num_qubits):
-        pos = [qubit, qubit + num_qubits]
-        circ = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]])
-        if len(circ) > 0:
-            ret_circ.append(circ, [qubit])
+    if use_dag:
+        # Decompose the remaining product of 1-qubit cliffords
+        ret_circ = inv_circuit.copy_empty_like()
+        for qubit in range(num_qubits):
+            pos = [qubit, qubit + num_qubits]
+            dag = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]], use_dag=True)
+            if dag.size() > 0:
+                ret_circ.compose(dag, qubits=(qreg[qubit],), inplace=True)
 
-    # Add the inverse of the 2-qubit reductions circuit
-    if len(inv_circuit) > 0:
-        ret_circ.append(inv_circuit.inverse(), range(num_qubits))
+        # Add the inverse of the 2-qubit reductions circuit
+        if inv_circuit.size() > 0:
+            new_dag = inv_circuit.copy_empty_like()
+            for node in inv_circuit.topological_op_nodes():
+                new_dag.apply_operation_front(
+                    node.op.inverse(), node.qargs, node.cargs, check=False
+                )
+            ret_circ.compose(new_dag, qubits=ret_circ.qubits, inplace=True)
 
-    return ret_circ.decompose()
+        # Working with a DAG directly saves the final .decompose() step
+        return ret_circ
+
+    else:
+        # Decompose the remaining product of 1-qubit cliffords
+        ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
+        for qubit in range(num_qubits):
+            pos = [qubit, qubit + num_qubits]
+            circ = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]])
+            if len(circ) > 0:
+                ret_circ.append(circ, [qubit], copy=False)
+
+        # Add the inverse of the 2-qubit reductions circuit
+        if len(inv_circuit) > 0:
+            ret_circ.append(inv_circuit.inverse(), range(num_qubits), copy=False)
+
+        return ret_circ.decompose()
 
 
 # ---------------------------------------------------------------------
@@ -90,18 +125,35 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
 # ---------------------------------------------------------------------
 
 
-def _decompose_clifford_1q(tableau):
+def _decompose_clifford_1q(tableau, use_dag=False):
     """Decompose a single-qubit clifford"""
-    circuit = QuantumCircuit(1, name="temp")
+
+    qreg = QuantumRegister(1)
+    if use_dag:
+        circuit = DAGCircuit()
+        circuit.name = "temp"
+        circuit.add_qreg(qreg)
+    else:
+        circuit = QuantumCircuit(qreg, name="temp")
 
     # Add phase correction
     destab_phase, stab_phase = tableau[:, 2]
     if destab_phase and not stab_phase:
-        circuit.z(0)
+        if isinstance(circuit, DAGCircuit):
+            circuit.apply_operation_back(ZGate(), (qreg[0],), check=False)
+        else:
+            circuit.z(0)
     elif not destab_phase and stab_phase:
-        circuit.x(0)
+        if isinstance(circuit, DAGCircuit):
+            circuit.apply_operation_back(XGate(), (qreg[0],), check=False)
+        else:
+            circuit.x(0)
     elif destab_phase and stab_phase:
-        circuit.y(0)
+        if isinstance(circuit, DAGCircuit):
+            circuit.apply_operation_back(YGate(), (qreg[0],), check=False)
+        else:
+            circuit.y(0)
+
     destab_phase_label = "-" if destab_phase else "+"
     stab_phase_label = "-" if stab_phase else "+"
 
@@ -113,7 +165,10 @@ def _decompose_clifford_1q(tableau):
         stab_label = "Z"
         if destab_z:
             destab_label = "Y"
-            circuit.s(0)
+            if isinstance(circuit, DAGCircuit):
+                circuit.apply_operation_back(SGate(), (qreg[0],), check=False)
+            else:
+                circuit.s(0)
         else:
             destab_label = "X"
 
@@ -122,10 +177,16 @@ def _decompose_clifford_1q(tableau):
         stab_label = "X"
         if destab_x:
             destab_label = "Y"
-            circuit.sdg(0)
+            if isinstance(circuit, DAGCircuit):
+                circuit.apply_operation_back(SdgGate(), (qreg[0],), check=False)
+            else:
+                circuit.sdg(0)
         else:
             destab_label = "Z"
-        circuit.h(0)
+        if isinstance(circuit, DAGCircuit):
+            circuit.apply_operation_back(HGate(), (qreg[0],), check=False)
+        else:
+            circuit.h(0)
 
     # Y-stabilizer
     else:
@@ -134,9 +195,16 @@ def _decompose_clifford_1q(tableau):
             destab_label = "Z"
         else:
             destab_label = "X"
+            if isinstance(circuit, DAGCircuit):
+                circuit.apply_operation_back(SGate(), (qreg[0],), check=False)
+            else:
+                circuit.s(0)
+        if isinstance(circuit, DAGCircuit):
+            circuit.apply_operation_back(HGate(), (qreg[0],), check=False)
+            circuit.apply_operation_back(SGate(), (qreg[0],), check=False)
+        else:
+            circuit.h(0)
             circuit.s(0)
-        circuit.h(0)
-        circuit.s(0)
 
     # Add circuit name
     name_destab = f"Destabilizer = ['{destab_phase_label}{destab_label}']"
@@ -173,12 +241,31 @@ def _reduce_cost(clifford, inv_circuit, cost):
                     # Add decomposition to inverse circuit
                     for qubit, n in [(qubit0, n0), (qubit1, n1)]:
                         if n == 1:
-                            inv_circuit.sdg(qubit)
-                            inv_circuit.h(qubit)
+                            if isinstance(inv_circuit, DAGCircuit):
+                                q = inv_circuit.qregs[list(inv_circuit.qregs.keys())[0]]
+                                inv_circuit.apply_operation_back(
+                                    SdgGate(), (q[qubit],), check=False
+                                )
+                                inv_circuit.apply_operation_back(HGate(), (q[qubit],), check=False)
+                            else:
+                                inv_circuit.sdg(qubit)
+                                inv_circuit.h(qubit)
                         elif n == 2:
-                            inv_circuit.h(qubit)
-                            inv_circuit.s(qubit)
-                    inv_circuit.cx(qubit0, qubit1)
+                            if isinstance(inv_circuit, DAGCircuit):
+                                q = inv_circuit.qregs[list(inv_circuit.qregs.keys())[0]]
+                                inv_circuit.apply_operation_back(HGate(), (q[qubit],), check=False)
+                                inv_circuit.apply_operation_back(SGate(), (q[qubit],), check=False)
+                            else:
+                                inv_circuit.h(qubit)
+                                inv_circuit.s(qubit)
+
+                    if isinstance(inv_circuit, DAGCircuit):
+                        q = inv_circuit.qregs[list(inv_circuit.qregs.keys())[0]]
+                        inv_circuit.apply_operation_back(
+                            CXGate(), (q[qubit0], q[qubit1]), check=False
+                        )
+                    else:
+                        inv_circuit.cx(qubit0, qubit1)
 
                     return reduced, inv_circuit, new_cost
 

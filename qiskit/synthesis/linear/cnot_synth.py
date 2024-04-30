@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,13 +19,15 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 from __future__ import annotations
 import copy
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
 
 def synth_cnot_count_full_pmh(
-    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
-) -> QuantumCircuit:
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2, use_dag: bool = False
+) -> QuantumCircuit | DAGCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
     using Patel, Markov and Hayes method.
@@ -37,7 +39,10 @@ def synth_cnot_count_full_pmh(
     Args:
         state: :math:`n \\times n` boolean invertible matrix, describing
             the state of the input circuit
-        section_size: The size of each section in the Patel–Markov–Hayes algorithm [1].
+        section_size: The size of each section, used in the
+            Patel–Markov–Hayes algorithm [1].
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         QuantumCircuit: a CX-only circuit implementing the linear transformation.
@@ -65,10 +70,19 @@ def synth_cnot_count_full_pmh(
     circuit_l.reverse()
     for i in circuit_u:
         i.reverse()
+
     # Convert the list into a circuit of C-NOT gates
-    circ = QuantumCircuit(state.shape[0])
-    for i in circuit_u + circuit_l:
-        circ.cx(i[0], i[1])
+    if use_dag:
+        qreg = QuantumRegister(state.shape[0])
+        circ = DAGCircuit()
+        circ.add_qreg(qreg)
+        for i in circuit_u + circuit_l:
+            circ.apply_operation_back(CXGate(), (qreg[i[0]], qreg[i[1]]), check=False)
+    else:
+        circ = QuantumCircuit(state.shape[0])
+        for i in circuit_u + circuit_l:
+            circ.cx(i[0], i[1])
+
     return circ
 
 

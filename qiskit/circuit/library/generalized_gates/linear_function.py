@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,6 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.synthesis.linear import check_invertible_binary_matrix
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 
 # pylint: disable=cyclic-import
@@ -115,6 +114,8 @@ class LinearFunction(Gate):
 
             # Optionally, check that the matrix is invertible
             if validate_input:
+                from qiskit.synthesis.linear import check_invertible_binary_matrix
+
                 if not check_invertible_binary_matrix(linear):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."

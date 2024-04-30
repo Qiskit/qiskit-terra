@@ -22,7 +22,6 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
-from qiskit.synthesis.evolution import LieTrotter
 
 from .n_local import NLocal
 
@@ -185,6 +184,8 @@ class EvolvedOperatorAnsatz(NLocal):
             gate = HamiltonianGate(operator, time)
         # otherwise, use the PauliEvolutionGate
         else:
+            from qiskit.synthesis.evolution import LieTrotter
+
             evolution = LieTrotter() if self._evolution is None else self._evolution
             gate = PauliEvolutionGate(operator, time, synthesis=evolution)
 

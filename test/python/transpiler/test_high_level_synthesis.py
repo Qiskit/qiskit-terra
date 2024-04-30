@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -113,7 +113,15 @@ class OpB(Operation):
 class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
     """The default synthesis for opA"""
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=True,
+        **options,
+    ):
         qc = QuantumCircuit(1)
         qc.id(0)
         return qc
@@ -122,7 +130,15 @@ class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
 class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
     """The repeat synthesis for opA"""
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=True,
+        **options,
+    ):
         if "n" not in options.keys():
             return None
 
@@ -135,7 +151,15 @@ class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
 class OpBSimpleSynthesisPlugin(HighLevelSynthesisPlugin):
     """The simple synthesis for OpB"""
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=True,
+        **options,
+    ):
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         return qc
@@ -151,7 +175,15 @@ class OpBAnotherSynthesisPlugin(HighLevelSynthesisPlugin):
     def __init__(self, num_swaps=1):
         self.num_swaps = num_swaps
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=True,
+        **options,
+    ):
         num_swaps = options.get("num_swaps", self.num_swaps)
 
         qc = QuantumCircuit(2)
@@ -163,7 +195,15 @@ class OpBAnotherSynthesisPlugin(HighLevelSynthesisPlugin):
 class OpAPluginNeedsCouplingMap(HighLevelSynthesisPlugin):
     """Synthesis plugins for OpA that needs a coupling map to be run."""
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=True,
+        **options,
+    ):
         if coupling_map is None:
             raise TranspilerError("Coupling map should be specified!")
         qc = QuantumCircuit(1)
@@ -174,7 +214,15 @@ class OpAPluginNeedsCouplingMap(HighLevelSynthesisPlugin):
 class OpAPluginNeedsQubits(HighLevelSynthesisPlugin):
     """Synthesis plugins for OpA that needs ``qubits`` to be specified."""
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=True,
+        **options,
+    ):
         if qubits is None:
             raise TranspilerError("Qubits should be specified!")
         qc = QuantumCircuit(1)

@@ -664,7 +664,15 @@ class HighLevelSynthesisPlugin(abc.ABC):
     """
 
     @abc.abstractmethod
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        use_dag=False,
+        **options,
+    ):
         """Run synthesis for the given Operation.
 
         Args:
@@ -675,6 +683,8 @@ class HighLevelSynthesisPlugin(abc.ABC):
             target (Target): A target representing the target backend.
             qubits (list): List of qubits over which the operation is defined
                 in case synthesis is done on a physical circuit.
+            use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                            :class:`QuantumCircuit` when this class is called.
             options: Additional method-specific optional kwargs.
 
         Returns:

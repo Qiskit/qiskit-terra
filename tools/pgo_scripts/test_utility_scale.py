@@ -16,6 +16,7 @@
 
 import os
 
+# pylint: disable=cyclic-import
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap

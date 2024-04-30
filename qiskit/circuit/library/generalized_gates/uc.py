@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,13 +34,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
-# pylint: disable=cyclic-import
-from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
-
 from .diagonal import Diagonal
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
-_DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
 class UCGate(Gate):

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,7 +15,9 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import SwapGate
+from qiskit.dagcircuit import DAGCircuit
 from .permutation_utils import (
     _get_ordered_swap,
     _inverse_pattern,
@@ -24,7 +26,9 @@ from .permutation_utils import (
 )
 
 
-def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
+def synth_permutation_basic(
+    pattern: list[int] | np.ndarray[int], use_dag: bool = False
+) -> QuantumCircuit | DAGCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using sorting.
 
@@ -40,6 +44,8 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -47,17 +53,28 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
     # This is the very original Qiskit algorithm for synthesizing permutations.
 
     num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
+    if use_dag:
+        qreg = QuantumRegister(num_qubits)
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+    else:
+        qc = QuantumCircuit(num_qubits)
 
     swaps = _get_ordered_swap(pattern)
 
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
+    if use_dag:
+        for swap in swaps:
+            qc.apply_operation_back(SwapGate(), (qreg[swap[0]], qreg[swap[1]]), check=False)
+    else:
+        for swap in swaps:
+            qc.swap(swap[0], swap[1])
 
     return qc
 
 
-def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
+def synth_permutation_acg(
+    pattern: list[int] | np.ndarray[int], use_dag: bool = False
+) -> QuantumCircuit | DAGCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using the Alon, Chung, Graham method.
 
@@ -73,6 +90,8 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -89,14 +108,23 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
     """
 
     num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
+    if use_dag:
+        qreg = QuantumRegister(num_qubits)
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+    else:
+        qc = QuantumCircuit(num_qubits)
 
     # invert pattern (Qiskit notation is opposite)
     cur_pattern = _inverse_pattern(pattern)
     cycles = _pattern_to_cycles(cur_pattern)
     swaps = _decompose_cycles(cycles)
 
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
+    if use_dag:
+        for swap in swaps:
+            qc.apply_operation_back(SwapGate(), (qreg[swap[0]], qreg[swap[1]]), check=False)
+    else:
+        for swap in swaps:
+            qc.swap(swap[0], swap[1])
 
     return qc

@@ -19,6 +19,8 @@ from collections.abc import Callable
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Clifford  # pylint: disable=cyclic-import
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -55,7 +57,6 @@ def _default_cz_synth_func(symmetric_mat):
     """
     nq = symmetric_mat.shape[0]
     qc = QuantumCircuit(nq, name="CZ")
-
     for j in range(nq):
         for i in range(0, j):
             if symmetric_mat[i][j]:
@@ -70,7 +71,8 @@ def synth_clifford_layers(
     cx_cz_synth_func: Callable[[np.ndarray], QuantumCircuit] | None = None,
     cz_func_reverse_qubits: bool = False,
     validate: bool = False,
-) -> QuantumCircuit:
+    use_dag: bool = False,
+) -> QuantumCircuit | DAGCircuit:
     """Synthesis of a :class:`.Clifford` into layers, it provides a similar
     decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov [1].
 
@@ -98,12 +100,13 @@ def synth_clifford_layers(
             It gets as input a boolean invertible matrix, and outputs a :class:`.QuantumCircuit`.
         cz_synth_func: A function to decompose the CZ sub-circuit.
             It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
-        cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
-        validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if ``cz_synth_func`` is
+        cx_cz_synth_func: optional, a function to decompose both sub-circuits CZ and CX.
+        cz_func_reverse_qubits: True only if ``cz_synth_func`` is
             :func:`.synth_cz_depth_line_mr`, since this function returns a circuit that reverts
             the order of qubits.
-
+        validate: if True, validates the synthesis process.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                 :class:`QuantumCircuit` when this class is called.
     Returns:
         A circuit implementation of the Clifford.
 
@@ -120,7 +123,6 @@ def synth_clifford_layers(
         cliff0 = cliff
 
     qubit_list = list(range(num_qubits))
-    layeredCircuit = QuantumCircuit(num_qubits)
 
     H1_circ, cliff1 = _create_graph_state(cliff0, validate=validate)
 
@@ -137,34 +139,36 @@ def synth_clifford_layers(
         cz_func_reverse_qubits=cz_func_reverse_qubits,
     )
 
-    layeredCircuit.append(S2_circ, qubit_list)
-
+    layered_circuit = QuantumCircuit(num_qubits)
+    layered_circuit.append(S2_circ, qubit_list, copy=False)
     if cx_cz_synth_func is None:
-        layeredCircuit.append(CZ2_circ, qubit_list)
-
+        layered_circuit.append(CZ2_circ, qubit_list, copy=False)
         CXinv = CX_circ.copy().inverse()
-        layeredCircuit.append(CXinv, qubit_list)
-
+        layered_circuit.append(CXinv, qubit_list, copy=False)
     else:
         # note that CZ2_circ is None and built into the CX_circ when
         # cx_cz_synth_func is not None
-        layeredCircuit.append(CX_circ, qubit_list)
-
-    layeredCircuit.append(H2_circ, qubit_list)
-    layeredCircuit.append(S1_circ, qubit_list)
-    layeredCircuit.append(CZ1_circ, qubit_list)
+        layered_circuit.append(CX_circ, qubit_list, copy=False)
+    layered_circuit.append(H2_circ, qubit_list, copy=False)
+    layered_circuit.append(S1_circ, qubit_list, copy=False)
+    layered_circuit.append(CZ1_circ, qubit_list, copy=False)
 
     if cz_func_reverse_qubits:
         H1_circ = H1_circ.reverse_bits()
-    layeredCircuit.append(H1_circ, qubit_list)
+    layered_circuit.append(H1_circ, qubit_list, copy=False)
 
     # Add Pauli layer to fix the Clifford phase signs
-
-    clifford_target = Clifford(layeredCircuit)
+    clifford_target = Clifford(layered_circuit)
     pauli_circ = _calc_pauli_diff(cliff, clifford_target)
-    layeredCircuit.append(pauli_circ, qubit_list)
+    layered_circuit.append(pauli_circ, qubit_list, copy=False)
 
-    return layeredCircuit
+    if use_dag:
+        # it is not worth working end-to-end with a dag because
+        # a. it makes it difficult to treat intermediate circuits as instruction blocks
+        # (i.e, no "to_instruction()" for full dags as used in QuantumCircuit.append())
+        # b. line 162 requires a conversion to circuit (no "Clifford.from_dag()")
+        return circuit_to_dag(layered_circuit)
+    return layered_circuit
 
 
 def _reverse_clifford(cliff):
@@ -348,8 +352,8 @@ def _decompose_hadamard_free(
                 "The multiplication of the inverse of destabx and"
                 "destabz is not a symmetric matrix."
             )
-
     S2_circ = QuantumCircuit(num_qubits, name="S2")
+
     for i in range(0, num_qubits):
         if destabz_update[i][i]:
             S2_circ.s(i)
@@ -411,14 +415,16 @@ def _calc_pauli_diff(cliff, cliff_target):
     return pauli_circ
 
 
-def synth_clifford_depth_lnn(cliff):
+def synth_clifford_depth_lnn(cliff: Clifford, use_dag: bool = False) -> QuantumCircuit | DAGCircuit:
     """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbour connectivity.
 
     The depth of the synthesized n-qubit circuit is bounded by :math:`7n+2`, which is not optimal.
     It should be replaced by a better algorithm that provides depth bounded by :math:`7n-4` [3].
 
     Args:
-        cliff (Clifford): a Clifford operator.
+        cliff: a Clifford operator.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         QuantumCircuit: a circuit implementation of the Clifford.
@@ -440,5 +446,6 @@ def synth_clifford_depth_lnn(cliff):
         cz_synth_func=synth_cz_depth_line_mr,
         cx_cz_synth_func=synth_cx_cz_depth_line_my,
         cz_func_reverse_qubits=True,
+        use_dag=use_dag,
     )
     return circ

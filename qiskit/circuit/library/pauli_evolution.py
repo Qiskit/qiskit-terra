@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,13 +14,15 @@
 
 from __future__ import annotations
 
-from typing import Union, Optional
+from typing import Union, Optional, TYPE_CHECKING
 import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.synthesis.evolution import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
+
+if TYPE_CHECKING:
+    from qiskit.synthesis.evolution import EvolutionSynthesis
 
 
 class PauliEvolutionGate(Gate):
@@ -107,6 +109,8 @@ class PauliEvolutionGate(Gate):
             operator = _to_sparse_pauli_op(operator)
 
         if synthesis is None:
+            from qiskit.synthesis.evolution import LieTrotter
+
             synthesis = LieTrotter()
 
         if label is None:
