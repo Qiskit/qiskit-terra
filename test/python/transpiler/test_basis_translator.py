@@ -1103,27 +1103,34 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         }
         self.target.add_instruction(CXGate(), cx_props)
 
-    def test_2q_with_non_global_1q(self):
-        """Test translation works with a 2q gate on an non-global 1q basis."""
+    def test_gate_inside_qubits_local_basis_gates(self):
+        """
+        Test gates placed on qubits which has that particular gate
+        available in it's local basis gates set.
+        Refer to issue #11339 for more information.
+        Link: https://github.com/Qiskit/qiskit/issues/11339
+        """
         qc = QuantumCircuit(2)
-        qc.cz(0, 1)
+        qc.iswap(0, 1)
+
+        target_qarg_gate_map = self.target._qarg_gate_map
 
         bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
-        output = bt_pass(qc)
-        # We need a second run of BasisTranslator to correct gates outside of
-        # the target basis. This is a known isssue, see:
-        #  https://docs.quantum.ibm.com/api/qiskit/release-notes/0.33#known-issues
-        output = bt_pass(output)
-        expected = QuantumCircuit(2)
-        expected.rz(pi, 1)
-        expected.sx(1)
-        expected.rz(3 * pi / 2, 1)
-        expected.sx(1)
-        expected.rz(3 * pi, 1)
-        expected.cx(0, 1)
-        expected.rz(pi, 1)
-        expected.sx(1)
-        expected.rz(3 * pi / 2, 1)
-        expected.sx(1)
-        expected.rz(3 * pi, 1)
-        self.assertEqual(output, expected)
+        qc_new = bt_pass(qc)
+        qc_new_dag = circuit_to_dag(qc_new)
+
+        for node in qc_new_dag.op_nodes():
+            # Just check for 1Q gates.
+            if node.op.num_qubits == 1:
+                self.assertTrue(node.op.name in target_qarg_gate_map[(node.qargs[0]._index,)])
+
+    def test_raises_num_qubits_in_ckt_more_than_in_target(self):
+        """
+        Test if TranspilerError is raised when number of qubits in
+        the circuit exceeds the number of qubits available in the target.
+        """
+        qc = QuantumCircuit(3)
+        qc.h(qc.qregs[0])
+        bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
+        with self.assertRaisesRegex(TranspilerError, "circuit is more than the number of qubits"):
+            bt_pass(qc)

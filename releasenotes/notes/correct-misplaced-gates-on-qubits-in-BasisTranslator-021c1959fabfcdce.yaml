@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the issue with :class:`.BasisTranslator` where the output circuit had gates 
+    placed on those qubits which didn't have that particular gate available as
+    basis_gates.
+    Refer to `#11339 <https://github.com/Qiskit/qiskit/issues/11339>` for more details.
+

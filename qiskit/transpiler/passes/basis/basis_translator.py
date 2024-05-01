@@ -144,16 +144,30 @@ class BasisTranslator(TransformationPass):
         if self._target_basis is None and self._target is None:
             return dag
 
+        if dag is not None and self._target is not None:
+            # Sometimes target.num_qubits is set to None, to prevent transpiler to resize the cirucit.
+            if (target_num_qubits := self._target.num_qubits) is not None:
+                if dag.num_qubits() > target_num_qubits:
+                    raise TranspilerError(
+                        f"Number of qubits: {dag.num_qubits()} in the circuit "
+                        f"is more than the number of qubits: {self._target.num_qubits} "
+                        "in the target"
+                    )
+
         qarg_indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
 
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
-            basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
+            basic_instrs = {"measure", "reset", "barrier", "snapshot", "delay"}
             target_basis = set(self._target_basis)
             source_basis = set(self._extract_basis(dag))
             qargs_local_source_basis = {}
         else:
-            basic_instrs = ["barrier", "snapshot"]
+            basic_instrs = {"barrier", "snapshot"}
+            # loop block used for _modify_gate_misplacement
+            for oper in ["measure", "reset", "barrier", "snapshot", "delay"]:
+                if oper in self._target:
+                    basic_instrs.add(oper)
             target_basis = self._target.keys() - set(self._non_global_operations)
             source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
@@ -233,10 +247,30 @@ class BasisTranslator(TransformationPass):
 
         compose_start_time = time.time()
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
-        extra_instr_map = {
-            qarg: _compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
-            for qarg, transforms in qarg_local_basis_transforms.items()
-        }
+
+        extra_instr_map = {}
+        for qarg, transforms in qarg_local_basis_transforms.items():
+            equiv_dag_data = _compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
+
+            if not self._qargs_with_non_global_operation == defaultdict(set):
+                for (
+                    missing_ops_qarg,
+                    qubit_target_basis,
+                ) in self._qargs_with_non_global_operation.items():
+                    for gate_name_num_qubits, param_vec_dag_ckt in equiv_dag_data.items():
+                        gate_name, _ = gate_name_num_qubits
+                        if gate_name not in basic_instrs:
+                            focus_on_qubit = missing_ops_qarg[0]
+                            _, dag_ckt = param_vec_dag_ckt
+                            if any(focus_on_qubit == qubit._index for qubit in dag_ckt.qubits):
+                                _modify_gate_misplacement(
+                                    self._equiv_lib,
+                                    dag_ckt,
+                                    focus_on_qubit,
+                                    qubit_target_basis,
+                                )
+
+            extra_instr_map.update({qarg: equiv_dag_data})
 
         compose_end_time = time.time()
         logger.info(
@@ -675,3 +709,60 @@ def _get_example_gates(source_dag):
         return example_gates
 
     return recurse(source_dag)
+
+
+def _modify_gate_misplacement(
+    equiv_lib,
+    dag_ckt: DAGCircuit,
+    qubit_idx,
+    qubit_target_basis,
+) -> None:
+
+    qubit = dag_ckt.qubits[qubit_idx]
+
+    for node in dag_ckt.nodes_on_wire(wire=qubit, only_ops=True):
+
+        if node.op.name not in qubit_target_basis and node.op.num_qubits == 1:
+            source_basis_on_quibt = {(node.op.name, node.op.num_qubits)}
+            bs_tr = _basis_search(equiv_lib, source_basis_on_quibt, qubit_target_basis)
+            if bs_tr is None:
+                raise TranspilerError(
+                    "Unable to translate the operations in the circuit: "
+                    f"{[x[0] for x in source_basis_on_quibt]} to the backend's "
+                    "(or manually specified) target "
+                    f"basis: {list(qubit_target_basis)}. This likely means the "
+                    "target basis is not universal "
+                    "or there are additional equivalence rules needed in the EquivalenceLibrary being "
+                    "used. For more details on this error see: "
+                    "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                    "BasisTranslator#translation-errors"
+                )
+
+            doomed_nodes_data = [(node, node.op.name, node.op.params)]
+
+            while doomed_nodes_data != []:
+                current_node, current_gate, current_params = doomed_nodes_data[0]
+
+                for node in dag_ckt.nodes_on_wire(wire=qubit, only_ops=True):
+                    if (
+                        current_node.op.name == node.op.name
+                        and current_node.op.num_qubits == node.op.num_qubits
+                    ):
+                        current_node = node
+                        break
+
+                doomed_nodes_data.pop(0)
+
+                for gate_name, _, equiv_params, equiv_ckt in bs_tr:
+
+                    if gate_name == current_gate:
+                        param_map = dict(zip_longest(equiv_params, current_params))
+                        replacement = equiv_ckt.assign_parameters(param_map)
+                        replacement_dag = circuit_to_dag(replacement)
+                        dag_ckt.substitute_node_with_dag(current_node, replacement_dag)
+
+                        doomed_nodes_data = [
+                            (replaced_node, replaced_node.op.name, replaced_node.op.params)
+                            for replaced_node in replacement_dag.op_nodes()
+                            if replaced_node.op.name not in qubit_target_basis
+                        ]
