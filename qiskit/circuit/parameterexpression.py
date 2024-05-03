@@ -458,11 +458,12 @@ class ParameterExpression:
     def __eq__(self, other):
         """Check if this parameter expression is equal to another parameter expression
            or a fixed value (only if this is a bound expression).
+
         Args:
-            other (ParameterExpression or a number):
-                Parameter expression or numeric constant used for comparison
+            other: Parameter expression or numeric constant used for comparison
+
         Returns:
-            bool: result of the comparison
+            The result of the comparison.
         """
         if isinstance(other, ParameterExpression):
             if self.parameters != other.parameters:
@@ -472,7 +473,78 @@ class ParameterExpression:
             return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
-        return False
+        return NotImplemented
+
+    def __lt__(self, other: ParameterValueType) -> bool:
+        """Check if this parameter expression is less than another parameter expression
+           or a fixed value (only if this is a bound expression).
+
+        Args:
+            other: Parameter expression or numeric constant used for comparison
+
+        Raises:
+            TypeError:
+                - If comparison to number with unbound parameters.
+                - If comparison to type of other object unsupported.
+
+        Returns:
+            The result of the comparison.
+        """
+        if isinstance(other, ParameterExpression):
+            if HAS_SYMENGINE:
+                from sympy import sympify
+
+                return sympify(self._symbol_expr).__lt__(sympify(other._symbol_expr))
+            else:
+                return self._symbol_expr.__lt__(other._symbol_expr)
+        elif isinstance(other, numbers.Number):
+            if len(self.parameters) == 0:
+                return float(self._symbol_expr) < other
+            raise TypeError(
+                "'<' not supported between instances of {type(self)} "
+                "with unbound parameters {self.parameters} and {type(other)}."
+            )
+        else:
+            return NotImplemented
+
+    def __gt__(self, other: ParameterValueType) -> bool:
+        """Check if this parameter expression is greater than another parameter expression
+           or a fixed value (only if this is a bound expression).
+
+        Args:
+            other: Parameter expression or numeric constant used for comparison
+
+        Raises:
+            TypeError:
+                - If comparison to number with unbound parameters.
+                - If comparison to type of other object unsupported.
+
+        Returns:
+            The result of the comparison.
+        """
+        if isinstance(other, ParameterExpression):
+            if HAS_SYMENGINE:
+                from sympy import sympify
+
+                return sympify(self._symbol_expr).__gt__(sympify(other._symbol_expr))
+            else:
+                return self._symbol_expr.__gt__(other._symbol_expr)
+        elif isinstance(other, numbers.Number):
+            if len(self.parameters) == 0:
+                return float(self._symbol_expr) > other
+            else:
+                raise TypeError(
+                    "'>' not supported between instances of {type(self)} "
+                    "with unbound parameters {self.parameters} and {type(other)}."
+                )
+        else:
+            return NotImplemented
+
+    def __ge__(self, other: ParameterValueType) -> bool:
+        return not (self < other)
+
+    def __le__(self, other: ParameterValueType) -> bool:
+        return not (self > other)
 
     def is_real(self):
         """Return whether the expression is real"""
