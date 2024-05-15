@@ -493,7 +493,10 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             file_path = pathlib.Path(dir_path) / "qiskit.conf"
             with open(file_path, "w") as fptr:
                 fptr.write(config_content)
-            with unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": str(file_path)}):
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"QISKIT_SETTINGS": str(file_path), "QISKIT_IGNORE_USER_SETTINGS": "false"},
+            ):
                 test_reverse = str(circuit_drawer(circuit, output="text"))
         self.assertEqual(test_reverse, expected_reverse)
 
@@ -545,7 +548,10 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             file_path = pathlib.Path(dir_path) / "qiskit.conf"
             with open(file_path, "w") as fptr:
                 fptr.write(config_content)
-            with unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": str(file_path)}):
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"QISKIT_SETTINGS": str(file_path), "QISKIT_IGNORE_USER_SETTINGS": "false"},
+            ):
                 test_without = str(circuit_drawer(circuit, output="text"))
         self.assertEqual(test_without, expected_without)
 

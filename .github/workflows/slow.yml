@@ -26,6 +26,7 @@ jobs:
         env:
           RUST_BACKTRACE: 1
           QISKIT_TESTS: "run_slow"
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
       - name: Create comment on failed test run
         if: ${{ failure() }}
         uses: peter-evans/create-or-update-comment@v4

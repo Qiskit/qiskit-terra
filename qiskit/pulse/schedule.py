@@ -52,7 +52,6 @@ from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
-from qiskit.utils.multiprocessing import is_main_process
 from qiskit.utils import deprecate_arg
 from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
@@ -146,7 +145,7 @@ class Schedule:
 
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
-            if sys.platform != "win32" and not is_main_process():
+            if sys.platform != "win32" and mp.parent_process() is not None:
                 name += f"-{mp.current_process().pid}"
 
         self._name = name
@@ -1007,7 +1006,7 @@ class ScheduleBlock:
 
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
-            if sys.platform != "win32" and not is_main_process():
+            if sys.platform != "win32" and mp.parent_process() is not None:
                 name += f"-{mp.current_process().pid}"
 
         # This points to the parent schedule object in the current scope.

@@ -17,6 +17,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.fake_provider import FakeOpenPulse3Q, GenericBackendV2
 from qiskit.compiler.scheduler import schedule
+from qiskit.utils import should_run_in_parallel
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -81,10 +82,9 @@ class TestCircuitScheduler(QiskitTestCase):
 
     def test_schedules_multiple_circuits(self):
         """Test scheduling of multiple circuits."""
-        self.enable_parallel_processing()
 
         circuits = [self.circ, self.circ2]
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning), should_run_in_parallel.ignore_user_settings():
             circuit_schedules = schedule(circuits, self.backend, method="asap")
         self.assertEqual(len(circuit_schedules), len(circuits))
 

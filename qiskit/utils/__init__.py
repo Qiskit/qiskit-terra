@@ -41,8 +41,10 @@ Class tools
 Multiprocessing
 ===============
 
-.. autofunction:: local_hardware_info
+.. autofunction:: default_num_processes
 .. autofunction:: is_main_process
+.. autofunction:: local_hardware_info
+.. autofunction:: should_run_in_parallel
 
 A helper function for calling a custom function with Python
 :class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
@@ -62,28 +64,33 @@ from .deprecation import (
     deprecate_func,
     deprecate_function,
 )
-from .multiprocessing import local_hardware_info
-from .multiprocessing import is_main_process
 from .units import apply_prefix, detach_prefix
 from .classtools import wrap_method
 from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocessTester
 
 from . import optionals
 
-from .parallel import parallel_map, should_run_in_parallel
+from .parallel import (
+    parallel_map,
+    should_run_in_parallel,
+    local_hardware_info,
+    is_main_process,
+    default_num_processes,
+)
 
 __all__ = [
     "LazyDependencyManager",
     "LazyImportTester",
     "LazySubprocessTester",
     "add_deprecation_to_docstring",
+    "apply_prefix",
+    "default_num_processes",
     "deprecate_arg",
     "deprecate_arguments",
     "deprecate_func",
     "deprecate_function",
-    "local_hardware_info",
     "is_main_process",
-    "apply_prefix",
+    "local_hardware_info",
     "parallel_map",
     "should_run_in_parallel",
 ]
