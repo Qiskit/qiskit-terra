@@ -12,6 +12,7 @@
 
 """Utility functions for generating random circuits."""
 
+from math import isclose
 import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, CircuitInstruction
@@ -21,7 +22,14 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 def random_circuit(
-    num_qubits, depth, max_operands=4, measure=False, conditional=False, reset=False, seed=None
+    num_qubits,
+    depth,
+    max_operands=None,
+    measure=False,
+    conditional=False,
+    reset=False,
+    seed=None,
+    num_operand_distribution=None,
 ):
     """Generate random circuit of arbitrary size and form.
 
@@ -44,6 +52,7 @@ def random_circuit(
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
+        num_operand_distribution (dict): A dictionary of the ratio of n-qubit gates
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -51,11 +60,24 @@ def random_circuit(
     Raises:
         CircuitError: when invalid options given
     """
+    if num_operand_distribution is not None:
+        if not isclose(sum(num_operand_distribution.values()), 1.0, rel_tol=1e-7):
+            raise CircuitError("The sum of num_operand_distribution values must be 1.0.")
+        if max_operands is not None:
+            raise CircuitError(
+                "max_operands and num_operand_distribution cannot be set at the same time."
+            )
+        if any(k > 4 for k in num_operand_distribution.keys()):
+            raise CircuitError("Keys in num_operand_distribution cannot be larger than 4.")
+    else:
+        if max_operands is not None:
+            if max_operands < 1 or max_operands > 4:
+                raise CircuitError("max_operands must be between 1 and 4")
+        else:
+            max_operands = 4
+        max_operands = max_operands if num_qubits > max_operands else num_qubits
     if num_qubits == 0:
         return QuantumCircuit()
-    if max_operands < 1 or max_operands > 4:
-        raise CircuitError("max_operands must be between 1 and 4")
-    max_operands = max_operands if num_qubits > max_operands else num_qubits
 
     gates_1q = [
         # (Gate class, number of qubits, number of parameters)
@@ -119,13 +141,30 @@ def random_circuit(
         (standard_gates.RC3XGate, 4, 0),
     ]
 
-    gates = gates_1q.copy()
-    if max_operands >= 2:
-        gates.extend(gates_2q)
-    if max_operands >= 3:
-        gates.extend(gates_3q)
-    if max_operands >= 4:
-        gates.extend(gates_4q)
+    if num_operand_distribution is not None:
+        gates = []
+        probabilities = []
+        for n_qubits, probability in num_operand_distribution.items():
+            if n_qubits == 1:
+                gates.extend(gates_1q)
+                probabilities.extend([probability / len(gates_1q)] * len(gates_1q))
+            elif n_qubits == 2:
+                gates.extend(gates_2q)
+                probabilities.extend([probability / len(gates_2q)] * len(gates_2q))
+            elif n_qubits == 3:
+                gates.extend(gates_3q)
+                probabilities.extend([probability / len(gates_3q)] * len(gates_3q))
+            elif n_qubits == 4:
+                gates.extend(gates_4q)
+                probabilities.extend([probability / len(gates_4q)] * len(gates_4q))
+    else:
+        gates = gates_1q.copy()
+        if max_operands >= 2:
+            gates.extend(gates_2q)
+        if max_operands >= 3:
+            gates.extend(gates_3q)
+        if max_operands >= 4:
+            gates.extend(gates_4q)
     gates = np.array(
         gates, dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)]
     )
@@ -150,8 +189,12 @@ def random_circuit(
 
         # This reliably draws too much randomness, but it's less expensive than looping over more
         # calls to the rng. After, trim it down by finding the point when we've used all the qubits.
-        gate_specs = rng.choice(gates, size=len(qubits))
-        cumulative_qubits = np.cumsum(gate_specs["num_qubits"], dtype=np.int64)
+        if num_operand_distribution is not None:
+            gate_specs = rng.choice(gates, size=len(qubits), p=probabilities)
+            cumulative_qubits = np.cumsum(gate_specs["num_qubits"], dtype=np.int64)
+        else:
+            gate_specs = rng.choice(gates, size=len(qubits))
+            cumulative_qubits = np.cumsum(gate_specs["num_qubits"], dtype=np.int64)
         # Efficiently find the point in the list where the total gates would use as many as
         # possible of, but not more than, the number of qubits in the layer.  If there's slack, fill
         # it with 1q gates.

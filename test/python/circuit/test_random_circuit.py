@@ -17,6 +17,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
 from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestCircuitRandom(QiskitTestCase):
@@ -81,3 +82,26 @@ class TestCircuitRandom(QiskitTestCase):
             bool(getattr(instruction.operation, "condition", None)) for instruction in circ
         ]
         self.assertEqual([False, False, False, True], conditions)
+
+    def test_num_operand_distribution(self):
+        """Test random circuit generation with num_operand_distribution parameter."""
+        num_qubits = 5
+        depth = 10
+        distribution = {1: 0.4, 2: 0.3, 3: 0.2, 4: 0.1}
+        circ = random_circuit(num_qubits, depth, num_operand_distribution=distribution, seed=5)
+        one_qubit = sum(1 for instr in circ.data if instr[0].num_qubits == 1)
+        two_qubit = sum(1 for instr in circ.data if instr[0].num_qubits == 2)
+        three_qubit = sum(1 for instr in circ.data if instr[0].num_qubits == 3)
+        four_qubit = sum(1 for instr in circ.data if instr[0].num_qubits == 4)
+        total_gates = one_qubit + two_qubit + three_qubit + four_qubit
+        self.assertAlmostEqual(one_qubit / total_gates, 0.4, delta=0.1)
+        self.assertAlmostEqual(two_qubit / total_gates, 0.3, delta=0.1)
+        self.assertAlmostEqual(three_qubit / total_gates, 0.2, delta=0.1)
+        self.assertAlmostEqual(four_qubit / total_gates, 0.1, delta=0.1)
+
+    def test_invalid_num_operand_distribution(self):
+        """Test random circuit generation with invalid num_operand_distribution."""
+        # Sum is not 1.0
+        distribution = {1: 0.5, 2: 0.6}
+        with self.assertRaises(CircuitError):
+            random_circuit(num_qubits=5, depth=4, num_operand_distribution=distribution)

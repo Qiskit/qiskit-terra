@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    Add the `num_qubits_distribution` parameter. This parameter allows users
+    to specify the ratio of 1-qubit, 2-qubit, ..., n-qubit gates in the 
+    generated random circuit. For example, `random_circuit` with 
+    `num_operand_distribution={1: 0.4, 2: 0.6}` will yield random circuits with
+    approximately 40% 1-qubit gates and 60% 2-qubit gates, while disallowing
+    gates with more than 2 qubits.
