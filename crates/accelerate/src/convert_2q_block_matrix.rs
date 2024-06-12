@@ -15,15 +15,13 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use num_complex::Complex64;
-use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{aview2, Array2, ArrayView2};
+use numpy::ndarray::Array2;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use smallvec::SmallVec;
 
-static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-];
+use crate::common::{
+    change_basis, kron_identity_x_matrix, kron_matrix_x_identity, matrix_multiply_4x4,
+};
 
 /// Return the matrix Operator resulting from a block of Instructions.
 #[pyfunction]
@@ -32,11 +30,10 @@ pub fn blocks_to_matrix(
     py: Python,
     op_list: Vec<(PyReadonlyArray2<Complex64>, SmallVec<[u8; 2]>)>,
 ) -> PyResult<Py<PyArray2<Complex64>>> {
-    let identity = aview2(&ONE_QUBIT_IDENTITY);
     let input_matrix = op_list[0].0.as_array();
     let mut matrix: Array2<Complex64> = match op_list[0].1.as_slice() {
-        [0] => kron(&identity, &input_matrix),
-        [1] => kron(&input_matrix, &identity),
+        [0] => kron_identity_x_matrix(input_matrix),
+        [1] => kron_matrix_x_identity(input_matrix),
         [0, 1] => input_matrix.to_owned(),
         [1, 0] => change_basis(input_matrix),
         [] => Array2::eye(4),
@@ -46,32 +43,18 @@ pub fn blocks_to_matrix(
         let op_matrix = op_matrix.as_array();
 
         let result = match q_list.as_slice() {
-            [0] => Some(kron(&identity, &op_matrix)),
-            [1] => Some(kron(&op_matrix, &identity)),
+            [0] => Some(kron_identity_x_matrix(op_matrix.view())),
+            [1] => Some(kron_matrix_x_identity(op_matrix.view())),
             [1, 0] => Some(change_basis(op_matrix)),
             [] => Some(Array2::eye(4)),
             _ => None,
         };
         matrix = match result {
-            Some(result) => result.dot(&matrix),
-            None => op_matrix.dot(&matrix),
+            Some(result) => matrix_multiply_4x4(result.view(), matrix.view()),
+            None => matrix_multiply_4x4(op_matrix.view(), matrix.view()),
         };
     }
     Ok(matrix.into_pyarray_bound(py).unbind())
-}
-
-/// Switches the order of qubits in a two qubit operation.
-#[inline]
-pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
-    let mut trans_matrix: Array2<Complex64> = matrix.reversed_axes().to_owned();
-    for index in 0..trans_matrix.ncols() {
-        trans_matrix.swap([1, index], [2, index]);
-    }
-    trans_matrix = trans_matrix.reversed_axes();
-    for index in 0..trans_matrix.ncols() {
-        trans_matrix.swap([1, index], [2, index]);
-    }
-    trans_matrix
 }
 
 #[pymodule]
