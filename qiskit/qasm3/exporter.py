@@ -502,33 +502,30 @@ class QASM3Builder:
 
         Mutates ``opaques`` and ``gates`` in-place if given, and returns them."""
         for instruction in instructions:
-            if isinstance(instruction.operation, ControlFlowOp):
-                for block in instruction.operation.blocks:
+            operation = instruction.operation
+            if isinstance(operation, ControlFlowOp):
+                for block in operation.blocks:
                     self.hoist_declarations(block.data, opaques=opaques, gates=gates)
                 continue
-            if instruction.operation in self.global_namespace or isinstance(
-                instruction.operation, self.builtins
-            ):
+            if operation in self.global_namespace or isinstance(operation, self.builtins):
                 continue
 
-            if isinstance(instruction.operation, standard_gates.CXGate):
+            if isinstance(operation, standard_gates.CXGate):
                 # CX gets super duper special treatment because it's the base of Terra's definition
                 # tree, but isn't an OQ3 built-in.  We use `isinstance` because we haven't fully
                 # fixed what the name/class distinction is (there's a test from the original OQ3
                 # exporter that tries a naming collision with 'cx').
-                self._register_gate(instruction.operation)
-                gates.append(instruction.operation)
-            elif instruction.operation.definition is None:
-                self._register_opaque(instruction.operation)
-                opaques.append(instruction.operation)
-            elif not isinstance(instruction.operation, Gate):
+                self._register_gate(operation)
+                gates.append(operation)
+            elif operation.definition is None:
+                self._register_opaque(operation)
+                opaques.append(operation)
+            elif not isinstance(operation, Gate):
                 raise QASM3ExporterError("Exporting non-unitary instructions is not yet supported.")
             else:
-                self.hoist_declarations(
-                    instruction.operation.definition.data, opaques=opaques, gates=gates
-                )
-                self._register_gate(instruction.operation)
-                gates.append(instruction.operation)
+                self.hoist_declarations(operation.definition.data, opaques=opaques, gates=gates)
+                self._register_gate(operation)
+                gates.append(operation)
         return opaques, gates
 
     def global_scope(self, assert_=False):
@@ -828,58 +825,59 @@ class QASM3Builder:
             for var in scope.circuit.iter_declared_vars()
         ]
         for instruction in scope.circuit.data:
-            if isinstance(instruction.operation, ControlFlowOp):
-                if isinstance(instruction.operation, ForLoopOp):
+            operation = instruction.operation
+            if isinstance(operation, ControlFlowOp):
+                if isinstance(operation, ForLoopOp):
                     statements.append(self.build_for_loop(instruction))
-                elif isinstance(instruction.operation, WhileLoopOp):
+                elif isinstance(operation, WhileLoopOp):
                     statements.append(self.build_while_loop(instruction))
-                elif isinstance(instruction.operation, IfElseOp):
+                elif isinstance(operation, IfElseOp):
                     statements.append(self.build_if_statement(instruction))
-                elif isinstance(instruction.operation, SwitchCaseOp):
+                elif isinstance(operation, SwitchCaseOp):
                     statements.extend(self.build_switch_statement(instruction))
                 else:  # pragma: no cover
-                    raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
+                    raise RuntimeError(f"unhandled control-flow construct: {operation}")
                 continue
             # Build the node, ignoring any condition.
-            if isinstance(instruction.operation, Gate):
+            if isinstance(operation, Gate):
                 nodes = [self.build_gate_call(instruction)]
-            elif isinstance(instruction.operation, Barrier):
+            elif isinstance(operation, Barrier):
                 operands = [self._lookup_variable(operand) for operand in instruction.qubits]
                 nodes = [ast.QuantumBarrier(operands)]
-            elif isinstance(instruction.operation, Measure):
+            elif isinstance(operation, Measure):
                 measurement = ast.QuantumMeasurement(
                     [self._lookup_variable(operand) for operand in instruction.qubits]
                 )
                 qubit = self._lookup_variable(instruction.clbits[0])
                 nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
-            elif isinstance(instruction.operation, Reset):
+            elif isinstance(operation, Reset):
                 nodes = [
                     ast.QuantumReset(self._lookup_variable(operand))
                     for operand in instruction.qubits
                 ]
-            elif isinstance(instruction.operation, Delay):
+            elif isinstance(operation, Delay):
                 nodes = [self.build_delay(instruction)]
-            elif isinstance(instruction.operation, Store):
+            elif isinstance(operation, Store):
                 nodes = [
                     ast.AssignmentStatement(
-                        self.build_expression(instruction.operation.lvalue),
-                        self.build_expression(instruction.operation.rvalue),
+                        self.build_expression(operation.lvalue),
+                        self.build_expression(operation.rvalue),
                     )
                 ]
-            elif isinstance(instruction.operation, BreakLoopOp):
+            elif isinstance(operation, BreakLoopOp):
                 nodes = [ast.BreakStatement()]
-            elif isinstance(instruction.operation, ContinueLoopOp):
+            elif isinstance(operation, ContinueLoopOp):
                 nodes = [ast.ContinueStatement()]
             else:
                 nodes = [self.build_subroutine_call(instruction)]
 
-            if instruction.operation.condition is None:
+            if operation.condition is None:
                 statements.extend(nodes)
             else:
                 body = ast.ProgramBlock(nodes)
                 statements.append(
                     ast.BranchingStatement(
-                        self.build_expression(_lift_condition(instruction.operation.condition)),
+                        self.build_expression(_lift_condition(operation.condition)),
                         body,
                     )
                 )
@@ -887,16 +885,17 @@ class QASM3Builder:
 
     def build_if_statement(self, instruction: CircuitInstruction) -> ast.BranchingStatement:
         """Build an :obj:`.IfElseOp` into a :obj:`.ast.BranchingStatement`."""
-        condition = self.build_expression(_lift_condition(instruction.operation.condition))
+        operation = instruction.operation
+        condition = self.build_expression(_lift_condition(operation.condition))
 
-        true_circuit = instruction.operation.blocks[0]
+        true_circuit = operation.blocks[0]
         self.push_scope(true_circuit, instruction.qubits, instruction.clbits)
         true_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
-        if len(instruction.operation.blocks) == 1:
+        if len(operation.blocks) == 1:
             return ast.BranchingStatement(condition, true_body, None)
 
-        false_circuit = instruction.operation.blocks[1]
+        false_circuit = operation.blocks[1]
         self.push_scope(false_circuit, instruction.qubits, instruction.clbits)
         false_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
@@ -904,7 +903,8 @@ class QASM3Builder:
 
     def build_switch_statement(self, instruction: CircuitInstruction) -> Iterable[ast.Statement]:
         """Build a :obj:`.SwitchCaseOp` into a :class:`.ast.SwitchStatement`."""
-        real_target = self.build_expression(expr.lift(instruction.operation.target))
+        operation = instruction.operation
+        real_target = self.build_expression(expr.lift(operation.target))
         global_scope = self.global_scope()
         target = self._reserve_variable_name(
             ast.Identifier(self._unique_name("switch_dummy", global_scope)), global_scope
@@ -930,17 +930,14 @@ class QASM3Builder:
                 ast.AssignmentStatement(target, real_target),
                 ast.SwitchStatementPreview(
                     target,
-                    (
-                        case(values, block)
-                        for values, block in instruction.operation.cases_specifier()
-                    ),
+                    (case(values, block) for values, block in operation.cases_specifier()),
                 ),
             ]
 
         # Handle the stabilised syntax.
         cases = []
         default = None
-        for values, block in instruction.operation.cases_specifier():
+        for values, block in operation.cases_specifier():
             self.push_scope(block, instruction.qubits, instruction.clbits)
             case_body = ast.ProgramBlock(self.build_current_scope())
             self.pop_scope()
@@ -959,8 +956,9 @@ class QASM3Builder:
 
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
         """Build a :obj:`.WhileLoopOp` into a :obj:`.ast.WhileLoopStatement`."""
-        condition = self.build_expression(_lift_condition(instruction.operation.condition))
-        loop_circuit = instruction.operation.blocks[0]
+        operation = instruction.operation
+        condition = self.build_expression(_lift_condition(operation.condition))
+        loop_circuit = operation.blocks[0]
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
         loop_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
@@ -968,7 +966,8 @@ class QASM3Builder:
 
     def build_for_loop(self, instruction: CircuitInstruction) -> ast.ForLoopStatement:
         """Build a :obj:`.ForLoopOp` into a :obj:`.ast.ForLoopStatement`."""
-        indexset, loop_parameter, loop_circuit = instruction.operation.params
+        operation = instruction.operation
+        indexset, loop_parameter, loop_circuit = operation.params
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
         scope = self.current_scope()
         if loop_parameter is None:
@@ -1049,20 +1048,21 @@ class QASM3Builder:
 
     def build_gate_call(self, instruction: CircuitInstruction):
         """Builds a QuantumGateCall"""
-        if isinstance(instruction.operation, standard_gates.UGate):
+        operation = instruction.operation
+        if isinstance(operation, standard_gates.UGate):
             gate_name = ast.Identifier("U")
         else:
-            gate_name = ast.Identifier(self.global_namespace[instruction.operation])
+            gate_name = ast.Identifier(self.global_namespace[operation])
         qubits = [self._lookup_variable(qubit) for qubit in instruction.qubits]
         if self.disable_constants:
             parameters = [
                 ast.StringifyAndPray(self._rebind_scoped_parameters(param))
-                for param in instruction.operation.params
+                for param in operation.params
             ]
         else:
             parameters = [
                 ast.StringifyAndPray(pi_check(self._rebind_scoped_parameters(param), output="qasm"))
-                for param in instruction.operation.params
+                for param in operation.params
             ]
 
         return ast.QuantumGateCall(gate_name, qubits, parameters=parameters)
