@@ -3372,6 +3372,50 @@ class QuantumCircuit:
                 obj_depths[obj] = new_depth
         return max(obj_depths.values(), default=0)
 
+    def depth_nq(self, n: int = 2) -> int:
+        """Returns the depth in terms of quantum gates with at least n qubits (default n=2),
+        excluding directives.
+
+        Args:
+            n (int): The minimum number of qubits in an instruction that counts towards the depth.
+        Returns:
+            int: Quantum circuit depth in terms of gates with at least n qubits (default n=2).
+        """
+        return self.depth(
+            lambda x: not getattr(x.operation, "_directive", False) and len(x.qubits) >= n
+        )
+
+    def num_nq_gates(self, n: int = 2) -> int:
+        """Returns the number of gates with exactly n qubits (default: n=2), excluding directives.
+        See :meth:`.num_nonlocal_gates` to retrieve the number of gates with at least two-qubits
+        (excluding directives).
+
+        Args:
+            n (int): The exact number of qubits in an instruction.
+
+        Returns:
+            int: The number of gates in the quantum circuit with exactly n qubits (default n=2).
+        """
+        return self.size(
+            lambda x: not getattr(x.operation, "_directive", False) and len(x.qubits) == n
+        )
+
+    def num_nonidle_qubits(self) -> int:
+        """Returns the number of qubits in the quantum circuit that are non-idle,
+        i.e. are part of at least one gate.
+
+        Returns:
+            int: The number of non-idle qubits in the quantum circuit.
+        """
+        return len(
+            {
+                qubit
+                for inst in self.data
+                for qubit in inst.qubits
+                if not getattr(inst.operation, "_directive", False)
+            }
+        )
+
     def width(self) -> int:
         """Return number of qubits plus clbits in circuit.
 
@@ -3410,14 +3454,19 @@ class QuantumCircuit:
             count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
-    def num_nonlocal_gates(self) -> int:
-        """Return number of non-local gates (i.e. involving 2+ qubits).
+    def num_nonlocal_gates(self, n: int = 2) -> int:
+        """Returns the number of non-local gates (gates with at least n qubits), excluding directives and
+        including conditional gates. By default, returns the number of non-local gates with at least two
+        qubits.
 
-        Conditional nonlocal gates are also included.
+        Args:
+            n (int): The minimum number of qubits in a gate to count towards the returned quantity.
+        Returns:
+            int: Number of gates in the quantum circuit with at least n qubits (default n=2).
         """
         multi_qubit_gates = 0
         for instruction in self._data:
-            if instruction.operation.num_qubits > 1 and not getattr(
+            if instruction.operation.num_qubits >= n and not getattr(
                 instruction.operation, "_directive", False
             ):
                 multi_qubit_gates += 1

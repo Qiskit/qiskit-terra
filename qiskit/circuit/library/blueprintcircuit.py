@@ -190,10 +190,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().count_ops()
 
-    def num_nonlocal_gates(self):
+    def num_nonlocal_gates(self, n=2):
         if not self._is_built:
             self._build()
-        return super().num_nonlocal_gates()
+        return super().num_nonlocal_gates(n)
 
     def num_connected_components(self, unitary_only=False):
         if not self._is_built:

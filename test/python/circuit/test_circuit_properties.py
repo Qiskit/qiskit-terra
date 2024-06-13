@@ -15,11 +15,12 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse, transpile
 from qiskit.circuit import Clbit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import RXGate, RYGate, GlobalPhaseGate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -723,6 +724,107 @@ class TestCircuitProperties(QiskitTestCase):
         qc.rz(0.1, q[1])
         qc.rzz(0.1, q[1], q[2])
         self.assertEqual(qc.size(lambda x: x.operation.num_qubits == 2), 2)
+
+    def test_circuit_depth_nq(self):
+        """Test depth_nq where the depth of a circuit is incremented for every n-qubit gate in
+        the critical path."""
+        qasmstr = """OPENQASM 2.0;
+        include "qelib1.inc";
+        gate iswap q0,q1 { s q0; s q1; h q0; cx q0,q1; cx q1,q0; h q1; }
+        gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+        gate ryy(param0) q0,q1 { rx(pi/2) q0; rx(pi/2) q1; cx q0,q1; rz(param0) q1; cx q0,q1; rx(-pi/2) q0; rx(-pi/2) q1; }
+        gate ccz q0,q1,q2 { h q2; ccx q0,q1,q2; h q2; }
+        gate r(param0,param1) q0 { u3(param0,param1 - pi/2,pi/2 - 1.0*param1) q0; }
+        qreg q[10];
+        ccx q[3],q[6],q[4];
+        iswap q[9],q[5];
+        cs q[1],q[2];
+        swap q[0],q[8];
+        rz(5.946819885446965) q[7];
+        cs q[5],q[6];
+        ryy(1.5599841893903141) q[8],q[7];
+        cx q[9],q[4];
+        ccx q[3],q[2],q[1];
+        s q[0];
+        ryy(3.473045854916819) q[2],q[9];
+        c3sqrtx q[6],q[5],q[7],q[1];
+        u(3.441311875095991,0.3238280161025424,4.644717266292606) q[3];
+        h q[0];
+        ryy(2.0150270151373633) q[4],q[8];
+        cp(5.8338842752808135) q[2],q[9];
+        rxx(5.9420872737457495) q[1],q[6];
+        p(5.496968207669997) q[3];
+        ccz q[4],q[5],q[0];
+        cu3(2.335105827938611,1.6824489962853504,3.328906865580425) q[7],q[8];
+        ryy(1.1763948000447193) q[1],q[3];
+        cx q[6],q[8];
+        r(4.971911764092657,1.0148707128418426) q[7];
+        z q[5];
+        x q[4];
+        h q[2];
+        y q[9];
+        r(2.0146429536861477,4.187259749115217) q[0];"""
+
+        qc = QuantumCircuit.from_qasm_str(qasmstr)
+        expected_depth_nq = {0: qc.depth(), 1: qc.depth(), 2: 5, 3: 4, 4: 1, 5: 0}
+        depth_nq = {i: qc.depth_nq(n=i) for i in range(0, 6)}
+        self.assertEqual(depth_nq, expected_depth_nq)
+
+    def test_circuit_num_nq_gates(self):
+        """Test num_nq_gates which returns the number of n-qubit gates."""
+        qasmstr = """OPENQASM 2.0;
+        include "qelib1.inc";
+        gate iswap q0,q1 { s q0; s q1; h q0; cx q0,q1; cx q1,q0; h q1; }
+        gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+        gate ryy(param0) q0,q1 { rx(pi/2) q0; rx(pi/2) q1; cx q0,q1; rz(param0) q1; cx q0,q1; rx(-pi/2) q0; rx(-pi/2) q1; }
+        gate ccz q0,q1,q2 { h q2; ccx q0,q1,q2; h q2; }
+        gate r(param0,param1) q0 { u3(param0,param1 - pi/2,pi/2 - 1.0*param1) q0; }
+        qreg q[10];
+        ccx q[3],q[6],q[4];
+        iswap q[9],q[5];
+        cs q[1],q[2];
+        swap q[0],q[8];
+        rz(5.946819885446965) q[7];
+        cs q[5],q[6];
+        ryy(1.5599841893903141) q[8],q[7];
+        cx q[9],q[4];
+        ccx q[3],q[2],q[1];
+        s q[0];
+        ryy(3.473045854916819) q[2],q[9];
+        c3sqrtx q[6],q[5],q[7],q[1];
+        u(3.441311875095991,0.3238280161025424,4.644717266292606) q[3];
+        h q[0];
+        ryy(2.0150270151373633) q[4],q[8];
+        cp(5.8338842752808135) q[2],q[9];
+        rxx(5.9420872737457495) q[1],q[6];
+        p(5.496968207669997) q[3];
+        ccz q[4],q[5],q[0];
+        cu3(2.335105827938611,1.6824489962853504,3.328906865580425) q[7],q[8];
+        ryy(1.1763948000447193) q[1],q[3];
+        cx q[6],q[8];
+        r(4.971911764092657,1.0148707128418426) q[7];
+        z q[5];
+        x q[4];
+        h q[2];
+        y q[9];
+        r(2.0146429536861477,4.187259749115217) q[0];"""
+        expected_n_nq_gates = {0: 0, 1: 11, 2: 13, 3: 3, 4: 1, 5: 0}
+        qc = QuantumCircuit.from_qasm_str(qasmstr)
+        n_nq_gates = {i: qc.num_nq_gates(n=i) for i in range(0, 6)}
+        self.assertEqual(n_nq_gates, expected_n_nq_gates)
+
+    def test_circuit_nonidle_qubits(self):
+        """Test that the number of nonidle qubits is correctly returned."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.barrier()
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+
+        qc_t = transpile(qc, backend=GenericBackendV2(13))
+        self.assertEqual(qc_t.num_nonidle_qubits(), 5)
 
     def test_circuit_count_ops(self):
         """Test circuit count ops."""
