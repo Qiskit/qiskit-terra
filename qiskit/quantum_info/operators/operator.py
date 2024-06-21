@@ -360,6 +360,7 @@ class Operator(LinearOp):
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
         final_layout: Layout | None = None,
+        original_qubit_indices: dict | None = None,
     ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
@@ -369,7 +370,7 @@ class Operator(LinearOp):
         you control how the :class:`.Operator` is created so it can be adjusted
         for a particular use case.
 
-        By default this constructor method will permute the qubits based on a
+        By default, this constructor method will permute the qubits based on a
         configured initial layout (i.e. after it was transpiled). It also
         provides an option to manually provide a :class:`.Layout` object
         directly.
@@ -388,6 +389,8 @@ class Operator(LinearOp):
             final_layout (Layout): If specified this kwarg can be used to represent the
                 output permutation caused by swap insertions during the routing stage
                 of the transpiler.
+            original_qubit_indices (dict): The mapping from qubits to positional indices
+                for the ``layout`` argument.
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -398,9 +401,13 @@ class Operator(LinearOp):
         else:
             from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
+            if original_qubit_indices is not None:
+                input_qubit_mapping = original_qubit_indices
+            else:
+                input_qubit_mapping = {qubit: index for index, qubit in enumerate(circuit.qubits)}
             layout = TranspileLayout(
                 initial_layout=layout,
-                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+                input_qubit_mapping=input_qubit_mapping,
             )
 
         initial_layout = layout.initial_layout if layout is not None else None
@@ -431,6 +438,61 @@ class Operator(LinearOp):
             final_permutation = final_layout.to_permutation(circuit.qubits)
             final_permutation_inverse = _inverse_pattern(final_permutation)
             op = op.apply_permutation(final_permutation_inverse, False)
+
+        return op
+
+    @classmethod
+    def _from_circuit_new(
+        cls,
+        circuit: QuantumCircuit,
+        ignore_set_layout: bool = False,
+        layout: Layout | None = None,
+        original_qubit_indices: dict | None = None,
+    ) -> Operator:
+        """
+        Implements the same functionality as ``from_circuit`` but obtains the final
+        permutation from the circuit's attribute ``_final_permutation`` rather than
+        from the property set.
+        """
+        if layout is None:
+            if not ignore_set_layout:
+                layout = getattr(circuit, "_layout", None)
+        else:
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+
+            if original_qubit_indices is not None:
+                input_qubit_mapping = original_qubit_indices
+            else:
+                input_qubit_mapping = {qubit: index for index, qubit in enumerate(circuit.qubits)}
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping=input_qubit_mapping,
+            )
+
+        initial_layout = layout.initial_layout if layout is not None else None
+
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        if initial_layout is not None:
+            input_qubits = [None] * len(layout.input_qubit_mapping)
+            for q, p in layout.input_qubit_mapping.items():
+                input_qubits[p] = q
+
+            initial_permutation = initial_layout.to_permutation(input_qubits)
+            initial_permutation_inverse = _inverse_pattern(initial_permutation)
+
+        final_permutation = circuit._final_permutation.permutation
+
+        op = Operator(circuit)
+
+        if initial_layout:
+            op = op.apply_permutation(initial_permutation, True)
+
+        op = op.apply_permutation(final_permutation, False)
+
+        if initial_layout:
+            op = op.apply_permutation(initial_permutation_inverse, False)
 
         return op
 

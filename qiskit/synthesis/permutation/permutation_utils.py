@@ -47,3 +47,13 @@ def _decompose_cycles(cycles):
         for i in range(m // 2):
             swap_list.append((cycle[i - 1], cycle[m - 2 - i]))
     return swap_list
+
+
+def _compose_permutations(*perms):
+    """Compose multiple permutations, with the permutations applied in the
+    order they appear in the list.
+    """
+    out = range(len(perms[0]))
+    for perm in perms:
+        out = [perm[i] for i in out]
+    return out

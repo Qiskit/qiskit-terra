@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates."""
-
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
@@ -120,6 +120,10 @@ class BasicSwap(TransformationPass):
             self.property_set["final_layout"] = current_layout.compose(
                 self.property_set["final_layout"], dag.qubits
             )
+        layout_permutation = _inverse_pattern(current_layout.to_permutation(new_dag.qubits))
+        new_dag._final_permutation = dag._final_permutation.compose_with_permutation(
+            layout_permutation, front=True
+        )
 
         return new_dag
 

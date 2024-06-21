@@ -548,6 +548,7 @@ class UnitarySynthesis(TransformationPass):
                     out_dag.global_phase += global_phase
             else:
                 out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+        out_dag._final_permutation = dag._final_permutation.copy()
         return out_dag
 
 

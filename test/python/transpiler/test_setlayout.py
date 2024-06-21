@@ -16,7 +16,12 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap, Layout
-from qiskit.transpiler.passes import SetLayout, ApplyLayout, FullAncillaAllocation
+from qiskit.transpiler.passes import (
+    SetLayout,
+    ApplyLayout,
+    FullAncillaAllocation,
+    EnlargeWithAncilla,
+)
 from qiskit.transpiler import PassManager, TranspilerError, InvalidLayoutError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -74,6 +79,7 @@ class TestSetLayout(QiskitTestCase):
             SetLayout(Layout.from_intlist([0, 1, 3, 5, 2, 6], QuantumRegister(6, "q")))
         )
         pass_manager.append(FullAncillaAllocation(CouplingMap.from_line(7)))
+        pass_manager.append(EnlargeWithAncilla())
         pass_manager.append(ApplyLayout())
         result = pass_manager.run(circuit)
 
@@ -90,6 +96,7 @@ class TestSetLayout(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(SetLayout([0, 1, 3, 5, 2, 6]))
         pass_manager.append(FullAncillaAllocation(CouplingMap.from_line(7)))
+        pass_manager.append(EnlargeWithAncilla())
         pass_manager.append(ApplyLayout())
         result = pass_manager.run(circuit)
 

@@ -69,6 +69,7 @@ def dag_to_circuit(dag, copy_operations=True):
         circuit.add_uninitialized_var(var)
     circuit.metadata = dag.metadata
     circuit.calibrations = dag.calibrations
+    circuit._final_permutation = dag._final_permutation.copy()
 
     for node in dag.topological_op_nodes():
         op = node.op

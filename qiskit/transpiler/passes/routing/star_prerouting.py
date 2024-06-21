@@ -274,6 +274,10 @@ class StarPreRouting(TransformationPass):
         else:
             self.property_set["virtual_permutation_layout"] = new_layout
 
+        new_dag._final_permutation = dag._final_permutation.compose_with_permutation(
+            qubit_mapping, front=True
+        )
+
         return new_dag
 
     def determine_star_blocks_processing(

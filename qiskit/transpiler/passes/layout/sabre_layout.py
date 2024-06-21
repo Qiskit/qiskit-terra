@@ -361,6 +361,26 @@ class SabreLayout(TransformationPass):
                 component.circuit_to_dag_dict,
             )
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
+
+        # the permutation of the output qubits created by the SabreLayout pass
+        # we extend the permutation to be identity on the missing qubits
+        sabre_final_permutation = {i: i for i in range(len(mapped_dag.qubits))}
+        for component in components:
+            for initial, final in enumerate(component.final_permutation):
+                sabre_final_permutation[component.coupling_map.graph[initial]] = (
+                    component.coupling_map.graph[final]
+                )
+
+        # a possibly partial map from the logical qubits to the physical qubits.
+        forward_map = {
+            logic: component.coupling_map.graph[phys]
+            for component in components
+            for logic, phys in component.initial_layout.layout_mapping()
+            if logic < len(component.dag.qubits)
+        }
+        mapped_dag._final_permutation = dag._final_permutation.push_using_mapping(
+            forward_map, num_target_qubits=len(mapped_dag.qubits)
+        ).compose_with_permutation(sabre_final_permutation, front=False)
         return mapped_dag
 
     def _inner_run(self, dag, coupling_map, starting_layouts=None):

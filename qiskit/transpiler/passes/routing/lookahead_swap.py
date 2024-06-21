@@ -18,6 +18,7 @@ import logging
 import math
 
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -183,6 +184,13 @@ class LookaheadSwap(TransformationPass):
         mapped_dag = dag.copy_empty_like()
         for node in mapped_gates:
             mapped_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+
+        layout_permutation = _inverse_pattern(
+            current_state.layout.to_permutation(mapped_dag.qubits)
+        )
+        mapped_dag._final_permutation = dag._final_permutation.compose_with_permutation(
+            layout_permutation, front=True
+        )
 
         return mapped_dag
 

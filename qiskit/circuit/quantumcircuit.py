@@ -44,6 +44,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.final_permutation import FinalPermutation
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .controlflow import ControlFlowOp, _builder_utils
@@ -1117,6 +1118,7 @@ class QuantumCircuit:
         # within that register.
         self._qubit_indices: dict[Qubit, BitLocations] = {}
         self._clbit_indices: dict[Clbit, BitLocations] = {}
+        self._final_permutation = FinalPermutation()
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
@@ -2983,6 +2985,7 @@ class QuantumCircuit:
                         self._qubit_indices[bit] = BitLocations(
                             self._data.num_qubits - 1, [(register, idx)]
                         )
+                        self._final_permutation.add_qubit()
 
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
@@ -3015,6 +3018,7 @@ class QuantumCircuit:
             if isinstance(bit, Qubit):
                 self._data.add_qubit(bit)
                 self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [])
+                self._final_permutation.add_qubit()
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
                 self._clbit_indices[bit] = BitLocations(self._data.num_clbits - 1, [])

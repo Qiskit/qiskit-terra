@@ -14,6 +14,7 @@
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -80,6 +81,12 @@ class ApplyLayout(TransformationPass):
             for node in dag.topological_op_nodes():
                 qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
+
+            forward_map_inverse = layout.to_permutation(dag.qubits)
+            forward_map = _inverse_pattern(forward_map_inverse)
+            new_dag._final_permutation = dag._final_permutation.push_using_mapping(
+                forward_map, len(new_dag.qubits)
+            )
         else:
             # First build a new layout object going from:
             # old virtual -> old physical -> new virtual -> new physical
@@ -108,6 +115,10 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
+            new_dag._final_permutation = dag._final_permutation.push_using_mapping(
+                phys_map, len(new_dag.qubits)
+            )
+
         new_dag._global_phase = dag._global_phase
 
         return new_dag
