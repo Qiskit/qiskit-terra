@@ -14,6 +14,7 @@ use std::env;
 
 use pyo3::import_exception;
 
+pub mod common;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;
 pub mod edge_collections;
