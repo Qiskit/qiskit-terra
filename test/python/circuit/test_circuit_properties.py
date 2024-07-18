@@ -739,6 +739,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertIsInstance(result, dict)
         self.assertEqual(expected, result)
 
+    def test_circuit_count_ops_on_qubits(self):
+        """Test circuit count ops on specified qubits."""
+        q = QuantumRegister(5, "q")
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.x(q[1])
+        qc.y(q[2:4])
+        qc.z(q[3:])
+        qc.cx(q[0], q[1])
+        qc.ccx(q[2], q[3], q[4])
+        result = qc.count_ops(qubits=[1, 2])
+        expected = {"x": 1, 'cx': 1, 'h': 2, 'y': 1, 'ccx': 1}
+        self.assertIsInstance(result, dict)
+        self.assertEqual(expected, result)
+
     def test_circuit_nonlocal_gates(self):
         """Test num_nonlocal_gates."""
 

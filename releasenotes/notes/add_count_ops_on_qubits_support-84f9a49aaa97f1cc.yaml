@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added support for couting operations on specified qubit(s) in :meth:`~qiskit.circuit.quantumcircuit.count_ops`.
+    For example, the following counts all operations involving qubit 0:: QuantumCircuit.count_ops(qubits=[0])
+
