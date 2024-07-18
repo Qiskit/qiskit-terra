@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
+from __future__ import annotations
+
 import copy
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler.assemble_schedules import _assemble_instructions as _assemble_schedule
@@ -42,7 +44,7 @@ PulseLibrary = Dict[str, List[complex]]
 
 def _assemble_circuit(
     circuit: QuantumCircuit, run_config: RunConfig
-) -> Tuple[QasmQobjExperiment, Optional[PulseLibrary]]:
+) -> tuple[QasmQobjExperiment, PulseLibrary | None]:
     """Assemble one circuit.
 
     Args:
@@ -174,7 +176,7 @@ def _assemble_circuit(
 
 def _assemble_pulse_gates(
     circuit: QuantumCircuit, run_config: RunConfig
-) -> Tuple[Optional[QasmExperimentCalibrations], Optional[PulseLibrary]]:
+) -> tuple[QasmExperimentCalibrations | None, PulseLibrary | None]:
     """Assemble and return the circuit calibrations and associated pulse library, if there are any.
     The calibrations themselves may reference the pulse library which is returned as a dict.
 
@@ -190,7 +192,7 @@ def _assemble_pulse_gates(
     if not hasattr(run_config, "parametric_pulses"):
         run_config.parametric_pulses = []
     calibrations = []
-    pulse_library = {}
+    pulse_library: dict[str, list[complex]] = {}
     for gate, cals in circuit.calibrations.items():
         for (qubits, params), schedule in cals.items():
             qobj_instructions, _ = _assemble_schedule(
@@ -206,8 +208,8 @@ def _assemble_pulse_gates(
 
 
 def _extract_common_calibrations(
-    experiments: List[QasmQobjExperiment],
-) -> Tuple[List[QasmQobjExperiment], Optional[QasmExperimentCalibrations]]:
+    experiments: list[QasmQobjExperiment],
+) -> tuple[list[QasmQobjExperiment], QasmExperimentCalibrations | None]:
     """Given a list of ``QasmQobjExperiment``s, each of which may have calibrations in their
     ``config``, collect common calibrations into a global ``QasmExperimentCalibrations``
     and delete them from their local experiments.
@@ -220,7 +222,7 @@ def _extract_common_calibrations(
         are any
     """
 
-    def index_calibrations() -> Dict[int, List[Tuple[int, GateCalibration]]]:
+    def index_calibrations() -> dict[int, list[tuple[int, GateCalibration]]]:
         """Map each calibration to all experiments that contain it."""
         exp_indices = defaultdict(list)
         for exp_idx, exp in enumerate(experiments):
@@ -229,7 +231,7 @@ def _extract_common_calibrations(
                 exp_indices[hash(gate_cal)].append((exp_idx, gate_cal))
         return exp_indices
 
-    def collect_common_calibrations() -> List[GateCalibration]:
+    def collect_common_calibrations() -> list[GateCalibration]:
         """If a gate calibration appears in all experiments, collect it."""
         common_calibrations = []
         for _, exps_w_cal in exp_indices.items():
@@ -238,7 +240,7 @@ def _extract_common_calibrations(
                 common_calibrations.append(gate_cal)
         return common_calibrations
 
-    def remove_common_gate_calibrations(exps: List[QasmQobjExperiment]) -> None:
+    def remove_common_gate_calibrations(exps: list[QasmQobjExperiment]) -> None:
         """For calibrations that appear in all experiments, remove them from the individual
         experiment's ``config.calibrations``."""
         for _, exps_w_cal in exp_indices.items():
@@ -263,7 +265,7 @@ def _extract_common_calibrations(
 
 
 def _configure_experiment_los(
-    experiments: List[QasmQobjExperiment],
+    experiments: list[QasmQobjExperiment],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
 ):
@@ -300,7 +302,7 @@ def _configure_experiment_los(
 
 
 def assemble_circuits(
-    circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
+    circuits: list[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
 ) -> QasmQobj:
     """Assembles a list of circuits into a qobj that can be run on the backend.
 

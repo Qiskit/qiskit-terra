@@ -12,9 +12,10 @@
 
 
 """Assemble function for converting a list of circuits into a qobj."""
+from __future__ import annotations
 import hashlib
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
@@ -25,12 +26,8 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
 def assemble_schedules(
-    schedules: List[
-        Union[
-            schedule.ScheduleBlock,
-            schedule.ScheduleComponent,
-            Tuple[int, schedule.ScheduleComponent],
-        ]
+    schedules: list[
+        schedule.ScheduleBlock | schedule.ScheduleComponent | tuple[int, schedule.ScheduleComponent]
     ],
     qobj_id: int,
     qobj_header: qobj.QobjHeader,
@@ -104,10 +101,10 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-    schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
+    schedules: list[schedule.ScheduleComponent | tuple[int, schedule.ScheduleComponent]],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
-) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
+) -> tuple[list[qobj.PulseQobjExperiment], dict[str, Any]]:
     """Assembles a list of schedules into PulseQobjExperiments, and returns related metadata that
     will be assembled into the Qobj configuration.
 
@@ -139,7 +136,7 @@ def _assemble_experiments(
     formatted_schedules = [transforms.target_qobj_transform(sched) for sched in schedules]
     compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
-    user_pulselib = {}
+    user_pulselib: dict[str, list[complex]] = {}
     experiments = []
     for idx, sched in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
@@ -193,11 +190,11 @@ def _assemble_experiments(
 
 
 def _assemble_instructions(
-    sched: Union[pulse.Schedule, pulse.ScheduleBlock],
+    sched: pulse.Schedule | pulse.ScheduleBlock,
     instruction_converter: converters.InstructionToQobjConverter,
     run_config: RunConfig,
-    user_pulselib: Dict[str, List[complex]],
-) -> Tuple[List[qobj.PulseQobjInstruction], int]:
+    user_pulselib: dict[str, list[complex]],
+) -> tuple[list[qobj.PulseQobjInstruction], int]:
     """Assembles the instructions in a schedule into a list of PulseQobjInstructions and returns
     related metadata that will be assembled into the Qobj configuration. Lookup table for
     pulses defined in all experiments are registered in ``user_pulselib``. This object should be
@@ -220,7 +217,7 @@ def _assemble_instructions(
     max_memory_slot = 0
     qobj_instructions = []
 
-    acquire_instruction_map = defaultdict(list)
+    acquire_instruction_map: dict[tuple[int, int], list[instructions.Acquire]] = defaultdict(list)
     for time, instruction in sched.instructions:
 
         if isinstance(instruction, instructions.Play):
@@ -277,8 +274,8 @@ def _assemble_instructions(
 
 
 def _validate_meas_map(
-    instruction_map: Dict[Tuple[int, instructions.Acquire], List[instructions.Acquire]],
-    meas_map: List[List[int]],
+    instruction_map: dict[tuple[int, int], list[instructions.Acquire]],
+    meas_map: list[list[int]],
 ) -> None:
     """Validate all qubits tied in ``meas_map`` are to be acquired.
 
@@ -316,7 +313,7 @@ def _validate_meas_map(
 
 def _assemble_config(
     lo_converter: converters.LoConfigConverter,
-    experiment_config: Dict[str, Any],
+    experiment_config: dict[str, Any],
     run_config: RunConfig,
 ) -> qobj.PulseQobjConfig:
     """Assembles the QobjConfiguration from experimental config and runtime config.

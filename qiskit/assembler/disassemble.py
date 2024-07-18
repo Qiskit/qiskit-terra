@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 """Disassemble function for a qobj into a list of circuits and its config"""
-from typing import Any, Dict, List, NewType, Tuple, Union
+from __future__ import annotations
+
+from typing import Any, NewType, Tuple, List, Dict
 import collections
 import math
 
@@ -37,7 +39,7 @@ CircuitModule = NewType(
 PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
 
 
-def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
+def disassemble(qobj) -> CircuitModule | PulseModule:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
 
     .. note::
@@ -104,7 +106,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib):
     qobj_cals = qobj.config.calibrations.to_dict()["gates"]
     converter = QobjToInstructionConverter(pulse_lib)
 
-    qc_cals = {}
+    qc_cals: dict[str, dict[tuple, pulse.Schedule]] = {}
     for gate in qobj_cals:
         config = (tuple(gate["qubits"]), tuple(gate["params"]))
         cal = {
@@ -178,7 +180,7 @@ def _experiments_to_circuits(qobj):
                 full_bit_size = sum(creg_dict[x].size for x in creg_dict)
                 mask_map = {}
                 raw_map = {}
-                raw = []
+                raw: list[int] = []
 
                 for creg in creg_dict:
                     size = creg_dict[creg].size
@@ -258,7 +260,7 @@ def _disassemble_pulse_schedule(qobj) -> PulseModule:
     # extract schedule lo settings
     schedule_los = []
     for program in qobj.experiments:
-        program_los = {}
+        program_los: dict[pulse.DriveChannel | pulse.MeasureChannel, float] = {}
         if hasattr(program, "config"):
             if hasattr(program.config, "qubit_lo_freq"):
                 for i, lo in enumerate(program.config.qubit_lo_freq):
@@ -276,7 +278,7 @@ def _disassemble_pulse_schedule(qobj) -> PulseModule:
     return PulseModule((_experiments_to_schedules(qobj), run_config, user_qobj_header))
 
 
-def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
+def _experiments_to_schedules(qobj) -> list[pulse.Schedule]:
     """Return a list of :class:`qiskit.pulse.Schedule` object(s) from a qobj.
 
     Args:
