@@ -36,7 +36,7 @@ class CommutativeInverseCancellation(TransformationPass):
         self._max_qubits = max_qubits
         super().__init__()
 
-    def _skip_node(self, node):
+    def _skip_node(self, node) -> bool:
         """Returns True if we should skip this node for the analysis."""
         if not isinstance(node, DAGOpNode):
             return True

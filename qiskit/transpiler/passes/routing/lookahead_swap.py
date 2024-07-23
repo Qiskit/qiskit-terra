@@ -11,11 +11,14 @@
 # that they have been altered from the originals.
 
 """Map input circuit onto a backend topology via insertion of SWAPs."""
+from __future__ import annotations
 
 import collections
 import copy
 import logging
 import math
+
+from qiskit.circuit import Qubit
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -284,7 +287,7 @@ def _map_free_gates(state, gates):
             mapped_gates (list): ops for gates that can be executed, mapped onto layout.
             remaining_gates (list): gates that cannot be executed on the layout.
     """
-    blocked_qubits = set()
+    blocked_qubits: set[Qubit] = set()
 
     mapped_gates = []
     remaining_gates = []

@@ -438,7 +438,7 @@ class Target(Mapping):
         self._non_global_basis = None
         self._non_global_strict_basis = None
 
-    def update_instruction_properties(self, instruction, qargs, properties):
+    def update_instruction_properties(self, instruction, qargs: tuple, properties):
         """Update the property object for an instruction qarg pair already in the Target
 
         Args:
@@ -1095,7 +1095,7 @@ class Target(Mapping):
         """Returns a sorted list of physical_qubits"""
         return list(range(self.num_qubits))
 
-    def get_non_global_operation_names(self, strict_direction=False):
+    def get_non_global_operation_names(self, strict_direction: bool = False) -> list[str]:
         """Return the non-global operation names for the target
 
         The non-global operations are those in the target which don't apply

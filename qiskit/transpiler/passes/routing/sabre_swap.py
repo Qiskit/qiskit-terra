@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Routing via SWAP insertion using the SABRE method from Li et al."""
+from __future__ import annotations
 
 import logging
 from copy import deepcopy
@@ -273,7 +274,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
     from qiskit.converters import circuit_to_dag
 
     # Maps id(block): circuit_to_dag(block) for all descendant blocks
-    circuit_to_dag_dict = {}
+    circuit_to_dag_dict: dict[int, DAGCircuit] = {}
 
     def recurse(block, block_qubit_indices):
         block_id = id(block)

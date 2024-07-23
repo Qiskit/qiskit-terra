@@ -383,9 +383,9 @@ a circuit adhering to the linear nearest-neighbor connectivity.
    :no-inherited-members:
    :no-special-members:
 """
+from __future__ import annotations
 
 import abc
-from typing import List
 
 import stevedore
 
@@ -695,27 +695,27 @@ class HighLevelSynthesisPluginManager:
         # The registered plugin names should be of the form <OperationName.SynthesisMethodName>.
 
         # Create a dict, mapping <OperationName> to the list of its <SynthesisMethodName>s.
-        self.plugins_by_op = {}
+        self.plugins_by_op: dict[str, list[str]] = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
             if op_name not in self.plugins_by_op:
                 self.plugins_by_op[op_name] = []
             self.plugins_by_op[op_name].append(method_name)
 
-    def method_names(self, op_name):
+    def method_names(self, op_name: str) -> list[str]:
         """Returns plugin methods for op_name."""
         if op_name in self.plugins_by_op:
             return self.plugins_by_op[op_name]
         else:
             return []
 
-    def method(self, op_name, method_name):
+    def method(self, op_name: str, method_name: str):
         """Returns the plugin for ``op_name`` and ``method_name``."""
         plugin_name = op_name + "." + method_name
         return self.plugins[plugin_name].obj
 
 
-def high_level_synthesis_plugin_names(op_name: str) -> List[str]:
+def high_level_synthesis_plugin_names(op_name: str) -> list[str]:
     """Return a list of plugin names installed for a given high level object name
 
     Args:

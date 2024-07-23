@@ -221,7 +221,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     # we cache an instance of the Solovay-Kitaev class to generate the
     # computationally expensive basis approximation of single qubit gates only once
-    _sk = None
+    _sk: SolovayKitaevDecomposition | None = None
 
     @property
     def max_qubits(self):

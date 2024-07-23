@@ -18,10 +18,12 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+from __future__ import annotations
 
 import math
-from typing import List
+from collections.abc import Sequence
 
+import numpy as np
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
@@ -46,7 +48,9 @@ class CouplingMap:
         "_is_symmetric",
     )
 
-    def __init__(self, couplinglist=None, description=None):
+    def __init__(
+        self, couplinglist: Sequence[Sequence[int]] | None = None, description: str | None = None
+    ):
         """
         Create coupling graph. By default, the generated coupling has no nodes.
 
@@ -61,23 +65,23 @@ class CouplingMap:
         # the coupling map graph
         self.graph = rx.PyDiGraph()
         # a dict of dicts from node pairs to distances
-        self._dist_matrix = None
+        self._dist_matrix: np.ndarray | None = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
         # number of qubits in the graph
-        self._size = None
+        self._size: int | None = None
         self._is_symmetric = None
 
         if couplinglist is not None:
             self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
 
-    def size(self):
+    def size(self) -> int:
         """Return the number of physical qubits in this graph."""
         if self._size is None:
             self._size = len(self.graph)
         return self._size
 
-    def get_edges(self):
+    def get_edges(self) -> list[tuple[int, int]]:
         """
         Gets the list of edges in the coupling graph.
 
@@ -108,7 +112,7 @@ class CouplingMap:
         self._qubit_list = None  # invalidate
         self._size = None  # invalidate
 
-    def add_edge(self, src, dst):
+    def add_edge(self, src: int, dst: int):
         """
         Add directed edge to coupling graph.
 
@@ -130,7 +134,7 @@ class CouplingMap:
             self._qubit_list = self.graph.node_indexes()
         return self._qubit_list
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
         """
         Test if the graph is connected.
 
@@ -150,7 +154,7 @@ class CouplingMap:
         return self.graph.neighbors(physical_qubit)
 
     @property
-    def distance_matrix(self):
+    def distance_matrix(self) -> np.ndarray:
         """Return the distance matrix for the coupling map.
 
         For any qubits where there isn't a path available between them the value
@@ -174,7 +178,7 @@ class CouplingMap:
                 self.graph, as_undirected=True, null_value=math.inf
             )
 
-    def distance(self, physical_qubit1, physical_qubit2):
+    def distance(self, physical_qubit1: int, physical_qubit2: int) -> int:
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
 
         Args:
@@ -251,7 +255,7 @@ class CouplingMap:
         """
         return self.graph.is_symmetric()
 
-    def reduce(self, mapping, check_if_connected=True):
+    def reduce(self, mapping: list[int], check_if_connected=True):
         """Returns a reduced coupling map that
         corresponds to the subgraph of qubits
         selected in the mapping.
@@ -269,7 +273,7 @@ class CouplingMap:
             CouplingError: Reduced coupling map must be connected.
         """
 
-        inv_map = [None] * (max(mapping) + 1)
+        inv_map: list[int] = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
 
@@ -401,7 +405,7 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
-    def connected_components(self) -> List["CouplingMap"]:
+    def connected_components(self) -> list["CouplingMap"]:
         """Separate a :Class:`~.CouplingMap` into subgraph :class:`~.CouplingMap`
         for each connected component.
 

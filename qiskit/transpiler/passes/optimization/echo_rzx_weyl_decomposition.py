@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Weyl decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
-
-from typing import Tuple
+from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
@@ -49,7 +48,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         if target is not None:
             self._inst_map = target.instruction_schedule_map()
 
-    def _is_native(self, qubit_pair: Tuple) -> bool:
+    def _is_native(self, qubit_pair: tuple) -> bool:
         """Return the direction of the qubit pair that is native."""
         cal_type, _, _ = _check_calibration_type(self._inst_map, qubit_pair)
         return cal_type in [

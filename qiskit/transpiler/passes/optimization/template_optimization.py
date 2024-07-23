@@ -20,10 +20,12 @@ all compatible maximal matches that reduces the size of the circuit.
 Exact and practical pattern matching for quantum circuit optimization.
 `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 """
+from __future__ import annotations
+
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.dagcircuit import DAGDependency
+from qiskit.dagcircuit import DAGDependency, DAGCircuit
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
@@ -86,7 +88,7 @@ class TemplateOptimization(TransformationPass):
 
         self.user_cost_dict = user_cost_dict
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """
         Args:
             dag(DAGCircuit): DAG circuit.

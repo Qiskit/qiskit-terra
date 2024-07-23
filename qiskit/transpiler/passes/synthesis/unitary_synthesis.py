@@ -313,17 +313,17 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: list[str] = None,
+        basis_gates: list[str] | None = None,
         approximation_degree: float | None = 1.0,
-        coupling_map: CouplingMap = None,
-        backend_props: BackendProperties = None,
+        coupling_map: CouplingMap | None = None,
+        backend_props: BackendProperties | None = None,
         pulse_optimize: bool | None = None,
         natural_direction: bool | None = None,
         synth_gates: list[str] | None = None,
         method: str = "default",
         min_qubits: int = 0,
-        plugin_config: dict = None,
-        target: Target = None,
+        plugin_config: dict | None = None,
+        target: Target | None = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -586,14 +586,14 @@ class UnitarySynthesis(TransformationPass):
         return out_dag
 
 
-def _build_gate_lengths(props=None, target=None):
+def _build_gate_lengths(props: BackendProperties | None = None, target: Target | None = None):
     """Builds a ``gate_lengths`` dictionary from either ``props`` (BackendV1)
     or ``target`` (BackendV2).
 
     The dictionary has the form:
     {gate_name: {(qubits,): duration}}
     """
-    gate_lengths = {}
+    gate_lengths: dict[str, dict[tuple, float]] = {}
     if target is not None:
         for gate, prop_dict in target.items():
             gate_lengths[gate] = {}
@@ -612,14 +612,16 @@ def _build_gate_lengths(props=None, target=None):
     return gate_lengths
 
 
-def _build_gate_errors(props=None, target=None):
+def _build_gate_errors(
+    props: BackendProperties | None = None, target: Target | None = None
+) -> dict[str, dict[tuple, float]]:
     """Builds a ``gate_error`` dictionary from either ``props`` (BackendV1)
     or ``target`` (BackendV2).
 
     The dictionary has the form:
     {gate_name: {(qubits,): error_rate}}
     """
-    gate_errors = {}
+    gate_errors: dict[str, dict[tuple, float]] = {}
     if target is not None:
         for gate, prop_dict in target.items():
             gate_errors[gate] = {}
@@ -638,7 +640,9 @@ def _build_gate_errors(props=None, target=None):
     return gate_errors
 
 
-def _build_gate_lengths_by_qubit(props=None, target=None):
+def _build_gate_lengths_by_qubit(
+    props: BackendProperties | None = None, target: Target | None = None
+):
     """
     Builds a `gate_lengths` dictionary from either `props` (BackendV1)
     or `target (BackendV2)`.
@@ -671,7 +675,9 @@ def _build_gate_lengths_by_qubit(props=None, target=None):
     return gate_lengths
 
 
-def _build_gate_errors_by_qubit(props=None, target=None):
+def _build_gate_errors_by_qubit(
+    props: BackendProperties | None = None, target: Target | None = None
+):
     """
     Builds a `gate_error` dictionary from either `props` (BackendV1)
     or `target (BackendV2)`.

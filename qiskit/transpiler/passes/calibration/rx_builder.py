@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Add single-pulse RX calibrations that are bootstrapped from the SX calibration."""
+from __future__ import annotations
 
-from typing import Union
 from functools import lru_cache
 import numpy as np
 
@@ -77,7 +77,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
     def __init__(
         self,
-        target: Target = None,
+        target: Target | None = None,
     ):
         """Bootstrap single-pulse RX gate calibrations from the
         (hardware-calibrated) SX gate calibration.
@@ -90,7 +90,6 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
         super().__init__()
         self.target = target
-        self.already_generated = {}
         self.requires = [NormalizeRXAngle(self.target)]
 
     def supported(self, node_op: Instruction, qubits: list) -> bool:
@@ -109,7 +108,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
             == "Drag"
         )
 
-    def get_calibration(self, node_op: Instruction, qubits: list) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: Instruction, qubits: list) -> Schedule | ScheduleBlock:
         """
         Generate RX calibration for the rotation angle specified in node_op.
         """

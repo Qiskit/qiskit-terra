@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """An analysis pass to find evolution gates in which the Paulis commute."""
-
-from typing import Tuple
+from __future__ import annotations
 
 import numpy as np
 
@@ -95,7 +94,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         return len(commuting_subparts) == 1
 
     @staticmethod
-    def _pauli_to_edge(pauli: Pauli) -> Tuple[int, ...]:
+    def _pauli_to_edge(pauli: Pauli) -> tuple[int, ...]:
         """Convert a pauli to an edge.
 
         Args:

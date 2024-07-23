@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
-from typing import Type, Union, List, Optional
+from __future__ import annotations
+
+from collections.abc import Sequence
 from fnmatch import fnmatch
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -25,7 +27,7 @@ class Decompose(TransformationPass):
 
     def __init__(
         self,
-        gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
+        gates_to_decompose: type[Gate] | Sequence[type[Gate]] | Sequence[str] | str | None = None,
     ) -> None:
         """Decompose initializer.
 

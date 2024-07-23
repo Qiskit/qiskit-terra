@@ -14,7 +14,6 @@
 Utility functions in the fast gradient implementation.
 """
 from __future__ import annotations
-from typing import Union
 import numpy as np
 
 
@@ -36,7 +35,7 @@ def is_permutation(x: np.ndarray) -> bool:
     )
 
 
-def reverse_bits(x: Union[int, np.ndarray], nbits: int, enable: bool) -> Union[int, np.ndarray]:
+def reverse_bits(x: int | np.ndarray, nbits: int, enable: bool) -> int | np.ndarray:
     """
     Reverses the bit order in a number of ``nbits`` length.
     If ``x`` is an array, then operation is applied to every entry.

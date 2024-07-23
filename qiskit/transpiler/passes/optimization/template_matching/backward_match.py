@@ -24,7 +24,11 @@ Exact and practical pattern matching for quantum circuit optimization.
 `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 
 """
+from __future__ import annotations
+
 import heapq
+
+from qiskit.dagcircuit import DAGDependency
 
 from qiskit.circuit.controlledgate import ControlledGate
 
@@ -34,7 +38,7 @@ class Match:
     Object to represent a match and its qubit configurations.
     """
 
-    def __init__(self, match, qubit, clbit):
+    def __init__(self, match: list[list[int]], qubit: list[int], clbit: list[int]):
         """
         Create a Match class with necessary arguments.
         Args:
@@ -57,7 +61,13 @@ class MatchingScenarios:
     """
 
     def __init__(
-        self, circuit_matched, circuit_blocked, template_matched, template_blocked, matches, counter
+        self,
+        circuit_matched: list[list[int]],
+        circuit_blocked: list[bool],
+        template_matched: list[list[int]],
+        template_blocked: list[bool],
+        matches: list[list[int]],
+        counter: int,
     ):
         """
         Create a MatchingScenarios class with necessary arguments.
@@ -87,9 +97,9 @@ class MatchingScenariosList:
         """
         Create an empty MatchingScenariosList.
         """
-        self.matching_scenarios_list = []
+        self.matching_scenarios_list: list[MatchingScenarios] = []
 
-    def append_scenario(self, matching):
+    def append_scenario(self, matching: MatchingScenarios):
         """
         Append a scenario to the list.
         Args:
@@ -97,7 +107,7 @@ class MatchingScenariosList:
         """
         self.matching_scenarios_list.append(matching)
 
-    def pop_scenario(self):
+    def pop_scenario(self) -> MatchingScenarios:
         """
         Pop the first scenario of the list.
         Returns:
@@ -117,13 +127,13 @@ class BackwardMatch:
 
     def __init__(
         self,
-        circuit_dag_dep,
-        template_dag_dep,
-        forward_matches,
-        node_id_c,
-        node_id_t,
-        qubits,
-        clbits=None,
+        circuit_dag_dep: DAGDependency,
+        template_dag_dep: DAGDependency,
+        forward_matches: list[list[int]],
+        node_id_c: int,
+        node_id_t: int,
+        qubits: list[int],
+        clbits: list[int] | None = None,
         heuristics_backward_param=None,
     ):
         """
@@ -146,7 +156,7 @@ class BackwardMatch:
         self.node_id_c = node_id_c
         self.node_id_t = node_id_t
         self.forward_matches = forward_matches
-        self.match_final = []
+        self.match_final: list[Match] = []
         self.heuristics_backward_param = (
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
@@ -317,7 +327,9 @@ class BackwardMatch:
                 return False
         return True
 
-    def _init_matched_blocked_list(self):
+    def _init_matched_blocked_list(
+        self,
+    ) -> tuple[list[list[int]], list[bool], list[list[int]], list[bool]]:
         """
         Initialize the list of blocked and matchedwith attributes.
         Returns:
@@ -390,7 +402,7 @@ class BackwardMatch:
         and a circuit qubits configuration.
 
         """
-        match_store_list = []
+        match_store_list: list[Match] = []
 
         counter = 1
 
@@ -742,8 +754,8 @@ class BackwardMatch:
         length = max(len(m.match) for m in match_store_list)
 
         # Store the matches with maximal length.
-        for scenario in match_store_list:
-            if (len(scenario.match) == length) and not any(
-                scenario.match == x.match for x in self.match_final
+        for match_scenario in match_store_list:
+            if (len(match_scenario.match) == length) and not any(
+                match_scenario.match == x.match for x in self.match_final
             ):
-                self.match_final.append(scenario)
+                self.match_final.append(match_scenario)

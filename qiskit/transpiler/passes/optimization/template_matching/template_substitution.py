@@ -14,9 +14,15 @@
 Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
+from __future__ import annotations
+
 import collections
 import copy
 import itertools
+from collections.abc import Sequence
+
+from qiskit.transpiler.passes.optimization.template_matching import maximal_matches
+
 
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -34,9 +40,9 @@ class SubstitutionConfig:
 
     def __init__(
         self,
-        circuit_config,
-        template_config,
-        pred_block,
+        circuit_config: list[int],
+        template_config: list[int],
+        pred_block: list[int],
         qubit_config,
         template_dag_dep,
         clbit_config=None,
@@ -63,7 +69,13 @@ class TemplateSubstitution:
     Class to run the substitution algorithm from the list of maximal matches.
     """
 
-    def __init__(self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None):
+    def __init__(
+        self,
+        max_matches: list[maximal_matches.Match],
+        circuit_dag_dep: DAGDependency,
+        template_dag_dep: DAGDependency,
+        user_cost_dict: dict | None = None,
+    ):
         """
         Initialize TemplateSubstitution with necessary arguments.
         Args:
@@ -79,8 +91,8 @@ class TemplateSubstitution:
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
 
-        self.substitution_list = []
-        self.unmatched_list = []
+        self.substitution_list: list[SubstitutionConfig] = []
+        self.unmatched_list: list[int] = []
         self.dag_dep_optimized = DAGDependency()
         self.dag_optimized = DAGCircuit()
 
@@ -127,7 +139,7 @@ class TemplateSubstitution:
                 "p": 1,
             }
 
-    def _pred_block(self, circuit_sublist, index):
+    def _pred_block(self, circuit_sublist: list, index: int) -> list[int]:
         """
         It returns the predecessors of a given part of the circuit.
         Args:
@@ -136,11 +148,11 @@ class TemplateSubstitution:
         Returns:
             list: List of predecessors of the current match circuit configuration.
         """
-        predecessors = set()
+        predecessors: set[int] = set()
         for node_id in circuit_sublist:
             predecessors = predecessors | set(self.circuit_dag_dep.get_node(node_id).predecessors)
 
-        exclude = set()
+        exclude: set[int] = set()
         for elem in self.substitution_list[:index]:
             exclude = exclude | set(elem.circuit_config) | set(elem.pred_block)
 
@@ -187,7 +199,9 @@ class TemplateSubstitution:
         else:
             return False
 
-    def _template_inverse(self, template_list, template_sublist, template_complement):
+    def _template_inverse(
+        self, template_list: Sequence, template_sublist, template_complement: list[int]
+    ) -> list[int]:
         """
         The template circuit realizes the identity operator, then given the list of
         matches in the template, it returns the inverse part of the template that
@@ -203,12 +217,12 @@ class TemplateSubstitution:
         left = []
         right = []
 
-        pred = set()
+        pred: set[int] = set()
         for index in template_sublist:
             pred = pred | set(self.template_dag_dep.get_node(index).predecessors)
         pred = list(pred - set(template_sublist))
 
-        succ = set()
+        succ: set[int] = set()
         for index in template_sublist:
             succ = succ | set(self.template_dag_dep.get_node(index).successors)
         succ = list(succ - set(template_sublist))
@@ -247,7 +261,7 @@ class TemplateSubstitution:
             bool: True if the matches groups are in the right order, False otherwise.
         """
         for scenario in self.substitution_list:
-            predecessors = set()
+            predecessors: set[int] = set()
             for match in scenario.circuit_config:
                 predecessors = predecessors | set(self.circuit_dag_dep.get_node(match).predecessors)
             predecessors = predecessors - set(scenario.circuit_config)
@@ -273,7 +287,7 @@ class TemplateSubstitution:
 
         # Initialize predecessors for each group of matches.
         for scenario in self.substitution_list:
-            predecessors = set()
+            predecessors: set[int] = set()
             for index in scenario.circuit_config:
                 predecessors = predecessors | set(self.circuit_dag_dep.get_node(index).predecessors)
             list_predecessors.append(predecessors)
@@ -356,7 +370,7 @@ class TemplateSubstitution:
             index = self.substitution_list.index(scenario)
             scenario.pred_block = self._pred_block(scenario.circuit_config, index)
 
-        circuit_list = []
+        circuit_list: list[int] = []
         for elem in self.substitution_list:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
@@ -508,7 +522,7 @@ class TemplateSubstitution:
 
         circuit_params, template_params = [], []
         # Set of all parameter names that are present in the circuits to be optimized.
-        circuit_params_set = set()
+        circuit_params_set: set[str] = set()
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)
 
@@ -530,7 +544,9 @@ class TemplateSubstitution:
 
         # Substitutions for parameters that have clashing names between the input circuits and the
         # defined templates.
-        template_clash_substitutions = collections.defaultdict(dummy_parameter)
+        template_clash_substitutions: dict[str, Parameter] = collections.defaultdict(
+            dummy_parameter
+        )
 
         # add parameters from template to template_params, replacing parameters with names that
         # clash with those in the circuit.

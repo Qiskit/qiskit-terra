@@ -67,9 +67,9 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
     def __init__(
         self,
-        instruction_schedule_map: InstructionScheduleMap = None,
+        instruction_schedule_map: InstructionScheduleMap | None = None,
         verbose: bool = True,
-        target: Target = None,
+        target: Target | None = None,
     ):
         """
         Initializes a RZXGate calibration builder.

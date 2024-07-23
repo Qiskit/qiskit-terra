@@ -11,10 +11,13 @@
 # that they have been altered from the originals.
 
 """Creating Sabre starting layouts."""
+from __future__ import annotations
 
 import itertools
 
-from qiskit.transpiler import CouplingMap, Target, AnalysisPass, TranspilerError
+from qiskit.dagcircuit import DAGCircuit
+
+from qiskit.transpiler import CouplingMap, Target, AnalysisPass, TranspilerError, Layout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
 from qiskit._accelerate.error_map import ErrorMap
 
@@ -152,7 +155,7 @@ class SabrePreLayout(AnalysisPass):
 
         return augmented_coupling_map, augmented_error_map
 
-    def _get_extra_edges_used(self, dag, layout):
+    def _get_extra_edges_used(self, dag: DAGCircuit, layout: Layout) -> set[tuple[int, int]]:
         """Returns the set of extra edges involved in the layout."""
         extra_edges_used = set()
         virtual_bits = layout.get_virtual_bits()
@@ -188,7 +191,7 @@ class SabrePreLayout(AnalysisPass):
 
         # keeps the set of "necessary" extra edges: without a necessary edge
         # a layout no longer exists
-        extra_edges_necessary = []
+        extra_edges_necessary: list[tuple[int, int]] = []
 
         extra_edges_unprocessed_set = self._get_extra_edges_used(dag, starting_layout)
 

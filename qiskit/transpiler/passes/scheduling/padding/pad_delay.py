@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Padding pass to insert Delay to the empty slots."""
+from __future__ import annotations
 
 from qiskit.circuit import Qubit
 from qiskit.circuit.delay import Delay
@@ -51,7 +52,7 @@ class PadDelay(BasePadding):
     See :class:`BasePadding` pass for details.
     """
 
-    def __init__(self, fill_very_end: bool = True, target: Target = None):
+    def __init__(self, fill_very_end: bool = True, target: Target | None = None):
         """Create new padding delay pass.
 
         Args:

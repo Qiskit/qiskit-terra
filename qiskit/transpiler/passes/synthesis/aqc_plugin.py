@@ -62,17 +62,17 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     """
 
     @property
-    def max_qubits(self):
+    def max_qubits(self) -> int:
         """Maximum number of supported qubits is ``14``."""
         return 14
 
     @property
-    def min_qubits(self):
+    def min_qubits(self) -> int:
         """Minimum number of supported qubits is ``3``."""
         return 3
 
     @property
-    def supports_natural_direction(self):
+    def supports_natural_direction(self) -> bool:
         """The plugin does not support natural direction,
         it assumes bidirectional two qubit gates."""
         return False
@@ -98,13 +98,13 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         return None
 
     @property
-    def supports_basis_gates(self):
+    def supports_basis_gates(self) -> bool:
         """The plugin does not support basis gates and by default it synthesizes a circuit using
         ``["rx", "ry", "rz", "cx"]`` gate basis."""
         return False
 
     @property
-    def supports_coupling_map(self):
+    def supports_coupling_map(self) -> bool:
         """The plugin does not support coupling maps."""
         return False
 

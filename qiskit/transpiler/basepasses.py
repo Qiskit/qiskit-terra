@@ -190,7 +190,7 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         new_dag, state = super().execute(
             passmanager_ir=passmanager_ir,

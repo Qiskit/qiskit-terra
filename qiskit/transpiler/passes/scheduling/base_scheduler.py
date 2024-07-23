@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
+from __future__ import annotations
 import warnings
 
 from qiskit.transpiler import InstructionDurations
@@ -218,10 +219,10 @@ class BaseSchedulerTransform(TransformationPass):
 
     def __init__(
         self,
-        durations: InstructionDurations = None,
+        durations: InstructionDurations | None = None,
         clbit_write_latency: int = 0,
         conditional_latency: int = 0,
-        target: Target = None,
+        target: Target | None = None,
     ):
         """Scheduler initializer.
 

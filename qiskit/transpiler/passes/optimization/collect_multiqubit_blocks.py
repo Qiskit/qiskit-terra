@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """Collect sequences of uninterrupted gates acting on a number of qubits."""
+from __future__ import annotations
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.circuit import Gate
-from qiskit.dagcircuit import DAGOpNode, DAGInNode
+from qiskit.circuit import Gate, Qubit
+from qiskit.dagcircuit import DAGOpNode, DAGInNode, DAGCircuit
 
 
 class CollectMultiQBlocks(AnalysisPass):
@@ -39,18 +40,20 @@ class CollectMultiQBlocks(AnalysisPass):
     and the data structure allows these changes to be done quickly.
     """
 
-    def __init__(self, max_block_size=2):
+    def __init__(self, max_block_size: int = 2):
         super().__init__()
-        self.parent = {}  # parent array for the union
+        self.parent: dict[Qubit, Qubit] = {}  # parent array for the union
 
-        # the dicts belowed are keyed by a qubit signifying the root of a
+        # the dicts below are keyed by a qubit signifying the root of a
         #    set in the DSU data structure
-        self.bit_groups = {}  # current groups of bits stored at top of trees
-        self.gate_groups = {}  # current gate lists for the groups
+        self.bit_groups: dict[Qubit, list[Qubit]] = (
+            {}
+        )  # current groups of bits stored at top of trees
+        self.gate_groups: dict[Qubit, list[Qubit]] = {}  # current gate lists for the groups
 
         self.max_block_size = max_block_size  # maximum block size
 
-    def find_set(self, index):
+    def find_set(self, index: Qubit) -> Qubit:
         """DSU function for finding root of set of items
         If my parent is myself, I am the root. Otherwise we recursively
         find the root for my parent. After that, we assign my parent to be
@@ -66,7 +69,7 @@ class CollectMultiQBlocks(AnalysisPass):
         self.parent[index] = self.find_set(self.parent[index])
         return self.parent[index]
 
-    def union_set(self, set1, set2):
+    def union_set(self, set1: Qubit, set2: Qubit):
         """DSU function for unioning two sets together
         Find the roots of each set. Then assign one to have the other
         as its parent, thus liking the sets.
@@ -85,7 +88,7 @@ class CollectMultiQBlocks(AnalysisPass):
         self.gate_groups[set2].clear()
         self.bit_groups[set2].clear()
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit):
         """Run the CollectMultiQBlocks pass on `dag`.
 
         The blocks contain "op" nodes in topological sort order
@@ -105,7 +108,7 @@ class CollectMultiQBlocks(AnalysisPass):
 
         block_list = []
 
-        def collect_key(x):
+        def collect_key(x: DAGInNode | DAGOpNode) -> str:
             """special key function for topological ordering.
             Heuristic for this is to push all gates involving measurement
             or barriers, etc. as far back as possible (because they force
@@ -172,7 +175,7 @@ class CollectMultiQBlocks(AnalysisPass):
                 # adding in all of the new qubits would make the group too big
                 # we must block off sub portions of the groups until the new
                 # group would no longer be too big
-                savings = {}
+                savings: dict[Qubit, int] = {}
                 tot_size = 0
                 for bit in cur_qubits:
                     top = self.find_set(bit)

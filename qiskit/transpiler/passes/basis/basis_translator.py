@@ -12,6 +12,7 @@
 
 
 """Translates gates to a target basis using a given equivalence library."""
+from __future__ import annotations
 
 import time
 import logging
@@ -21,6 +22,7 @@ from itertools import zip_longest
 from collections import defaultdict
 
 import rustworkx
+from qiskit.transpiler import Target
 
 from qiskit.circuit import (
     Gate,
@@ -104,7 +106,13 @@ class BasisTranslator(TransformationPass):
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
-    def __init__(self, equivalence_library, target_basis, target=None, min_qubits=0):
+    def __init__(
+        self,
+        equivalence_library,
+        target_basis: list[str],
+        target: Target | None = None,
+        min_qubits=0,
+    ):
         """Initialize a BasisTranslator instance.
 
         Args:
@@ -122,7 +130,7 @@ class BasisTranslator(TransformationPass):
         self._target_basis = target_basis
         self._target = target
         self._non_global_operations = None
-        self._qargs_with_non_global_operation = {}
+        self._qargs_with_non_global_operation: dict[tuple, set[str]] = {}
         self._min_qubits = min_qubits
         if target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()

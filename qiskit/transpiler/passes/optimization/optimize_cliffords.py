@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Combine consecutive Cliffords over the same qubits."""
+from __future__ import annotations
+
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
@@ -24,7 +27,7 @@ class OptimizeCliffords(TransformationPass):
     """
 
     @control_flow.trivial_recurse
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the OptimizeCliffords pass on `dag`.
 
         Args:
@@ -34,9 +37,9 @@ class OptimizeCliffords(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
 
-        blocks = []
+        blocks: list[list[DAGOpNode]] = []
         prev_node = None
-        cur_block = []
+        cur_block: list[DAGOpNode] = []
 
         # Iterate over all nodes and collect consecutive Cliffords over the
         # same qubits. In this very first proof-of-concept implementation

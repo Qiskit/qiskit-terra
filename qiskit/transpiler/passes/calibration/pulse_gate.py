@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Instruction schedule map reference pass."""
-
-from typing import List, Union
+from __future__ import annotations
 
 from qiskit.circuit import Instruction as CircuitInst
 from qiskit.pulse import Schedule, ScheduleBlock
@@ -49,8 +48,8 @@ class PulseGates(CalibrationBuilder):
 
     def __init__(
         self,
-        inst_map: InstructionScheduleMap = None,
-        target: Target = None,
+        inst_map: InstructionScheduleMap | None = None,
+        target: Target | None = None,
     ):
         """Create new pass.
 
@@ -70,7 +69,7 @@ class PulseGates(CalibrationBuilder):
             target.update_from_instruction_schedule_map(inst_map)
         self.target = target
 
-    def supported(self, node_op: CircuitInst, qubits: List) -> bool:
+    def supported(self, node_op: CircuitInst, qubits: list) -> bool:
         """Determine if a given node supports the calibration.
 
         Args:
@@ -82,7 +81,7 @@ class PulseGates(CalibrationBuilder):
         """
         return self.target.has_calibration(node_op.name, tuple(qubits))
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Gets the calibrated schedule for the given instruction and qubits.
 
         Args:

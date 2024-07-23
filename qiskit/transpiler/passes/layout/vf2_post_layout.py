@@ -12,6 +12,8 @@
 
 
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
+from __future__ import annotations
+
 from enum import Enum
 import logging
 import inspect
@@ -185,7 +187,7 @@ class VF2PostLayout(AnalysisPass):
             # we should add these to all entries based on the number of qubits, so we
             # treat that as a valid operation even if there is no scoring for the
             # strict direction case
-            global_ops = None
+            global_ops: dict[int, list] | None = None
             if None in self.target.qargs:
                 global_ops = {1: [], 2: []}
                 for op in self.target.operation_names_for_qargs(None):

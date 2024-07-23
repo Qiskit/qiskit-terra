@@ -22,12 +22,18 @@ Exact and practical pattern matching for quantum circuit optimization.
 `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 
 """
+from __future__ import annotations
 
 import itertools
 
+from qiskit.dagcircuit import DAGDependency
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.transpiler.passes.optimization.template_matching.forward_match import ForwardMatch
-from qiskit.transpiler.passes.optimization.template_matching.backward_match import BackwardMatch
+from qiskit.transpiler.passes.optimization.template_matching.backward_match import (
+    BackwardMatch,
+    Match,
+)
 
 
 class TemplateMatching:
@@ -37,22 +43,22 @@ class TemplateMatching:
 
     def __init__(
         self,
-        circuit_dag_dep,
-        template_dag_dep,
-        heuristics_qubits_param=None,
-        heuristics_backward_param=None,
+        circuit_dag_dep: DAGDependency,
+        template_dag_dep: DAGDependency,
+        heuristics_qubits_param: list[int] | None = None,
+        heuristics_backward_param: list[int] | None = None,
     ):
         """
         Create a TemplateMatching object with necessary arguments.
         Args:
-            circuit_dag_dep (QuantumCircuit): circuit.
-            template_dag_dep (QuantumCircuit): template.
+            circuit_dag_dep (DAGDependency): circuit.
+            template_dag_dep (DAGDependency): template.
             heuristics_backward_param (list[int]): [length, survivor]
             heuristics_qubits_param (list[int]): [length]
         """
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
-        self.match_list = []
+        self.match_list: list[Match] = []
         self.heuristics_qubits_param = (
             heuristics_qubits_param if heuristics_qubits_param is not None else []
         )
@@ -60,7 +66,9 @@ class TemplateMatching:
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
 
-    def _list_first_match_new(self, node_circuit, node_template, n_qubits_t, n_clbits_t):
+    def _list_first_match_new(
+        self, node_circuit, node_template, n_qubits_t: int, n_clbits_t: int
+    ) -> tuple[list[list[int]], list[int]]:
         """
         Returns the list of qubit for circuit given the first match, the unknown qubit are
         replaced by -1.
@@ -141,7 +149,7 @@ class TemplateMatching:
         for sublist in itertools.combinations([e for e in lst if e not in exclude], length):
             yield list(sublist)
 
-    def _list_qubit_clbit_circuit(self, list_first_match, permutation):
+    def _list_qubit_clbit_circuit(self, list_first_match: list[int], permutation) -> list[int]:
         """
         Function that returns the list of the circuit qubits and clbits give a permutation
         and an initial match.
@@ -164,7 +172,7 @@ class TemplateMatching:
 
         return list_circuit
 
-    def _add_match(self, backward_match_list):
+    def _add_match(self, backward_match_list: list[Match]):
         """
         Method to add a match in list only if it is not already in it.
         If the match is already in the list, the qubit configuration
@@ -186,7 +194,7 @@ class TemplateMatching:
             if not already_in:
                 self.match_list.append(b_match)
 
-    def _explore_circuit(self, node_id_c, node_id_t, n_qubits_t, length):
+    def _explore_circuit(self, node_id_c: int, node_id_t: int, n_qubits_t: int, length: int):
         """
         Explore the successors of the node_id_c (up to the given length).
         Args:

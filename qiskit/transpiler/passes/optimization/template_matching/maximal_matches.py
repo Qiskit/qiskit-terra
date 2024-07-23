@@ -14,6 +14,7 @@
 It stores all maximal matches from the given matches obtained by the template
 matching algorithm.
 """
+from __future__ import annotations
 
 
 class Match:
@@ -42,7 +43,7 @@ class MaximalMatches:
     of matches obtained with the template matching algorithm.
     """
 
-    def __init__(self, template_matches):
+    def __init__(self, template_matches: list[Match]):
         """
         Initialize MaximalMatches with the necessary arguments.
         Args:
@@ -50,7 +51,7 @@ class MaximalMatches:
         """
         self.template_matches = template_matches
 
-        self.max_match_list = []
+        self.max_match_list: list[Match] = []
 
     def run_maximal_matches(self):
         """

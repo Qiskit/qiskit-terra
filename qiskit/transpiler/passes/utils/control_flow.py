@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 
 """Internal utilities for working with control-flow operations."""
+from __future__ import annotations
 
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 from qiskit.circuit import ControlFlowOp
 from qiskit.converters import circuit_to_dag, dag_to_circuit

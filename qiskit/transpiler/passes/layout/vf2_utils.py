@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """This module contains common utils for vf2 layout passes."""
+from __future__ import annotations
 
 from collections import defaultdict
 import statistics
@@ -52,7 +53,7 @@ def build_interaction_graph(dag, strict_direction=True):
             qargs = [wire_map[q] for q in node.qargs]
             if len_args == 1:
                 if qargs[0] not in im_graph_node_map:
-                    weights = defaultdict(int)
+                    weights: dict[str, int] = defaultdict(int)
                     weights[node.name] += weight
                     im_graph_node_map[qargs[0]] = im_graph.add_node(weights)
                     reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]

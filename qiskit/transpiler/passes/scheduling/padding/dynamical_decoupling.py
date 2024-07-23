@@ -105,14 +105,14 @@ class PadDynamicalDecoupling(BasePadding):
 
     def __init__(
         self,
-        durations: InstructionDurations = None,
-        dd_sequence: list[Gate] = None,
+        durations: InstructionDurations | None = None,
+        dd_sequence: list[Gate] | None = None,
         qubits: list[int] | None = None,
         spacing: list[float] | None = None,
         skip_reset_qubits: bool = True,
         pulse_alignment: int = 1,
         extra_slack_distribution: str = "middle",
-        target: Target = None,
+        target: Target | None = None,
     ):
         """Dynamical decoupling initializer.
 

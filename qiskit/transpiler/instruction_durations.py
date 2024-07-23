@@ -12,7 +12,8 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union, Iterable
+
+from typing import Iterable, Optional, Tuple, List, Union
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
@@ -36,7 +37,9 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
+        self,
+        instruction_durations: "InstructionDurationsType" | None = None,
+        dt: float | None = None,
     ):
         self.duration_by_name: dict[str, tuple[float, str]] = {}
         self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
@@ -96,7 +99,7 @@ class InstructionDurations:
 
         return cls(instruction_durations, dt=dt)
 
-    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
+    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float | None = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:
@@ -165,7 +168,7 @@ class InstructionDurations:
     def get(
         self,
         inst: str | qiskit.circuit.Instruction,
-        qubits: int | list[int],
+        qubits: int | Iterable[int],
         unit: str = "dt",
         parameters: list[float] | None = None,
     ) -> float:
@@ -208,7 +211,7 @@ class InstructionDurations:
     def _get(
         self,
         name: str,
-        qubits: list[int],
+        qubits: Iterable[int],
         to_unit: str,
         parameters: Iterable[float] | None = None,
     ) -> float:

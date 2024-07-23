@@ -11,11 +11,11 @@
 # that they have been altered from the originals.
 
 """Check if the DAG has reached a relative semi-stable point over previous runs."""
+from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
 import math
-from typing import Tuple
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -50,7 +50,7 @@ class MinimumPoint(TransformationPass):
         and an earlier minimum is restored.
     """
 
-    def __init__(self, property_set_list, prefix, backtrack_depth=5):
+    def __init__(self, property_set_list: list, prefix: str, backtrack_depth: int = 5):
         """Initialize an instance of this pass
 
         Args:
@@ -72,7 +72,7 @@ class MinimumPoint(TransformationPass):
         self.minimum_reached = f"{prefix}_minimum_point"
         self.backtrack_depth = backtrack_depth
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the MinimumPoint pass on `dag`."""
         score = tuple(self.property_set[x] for x in self.property_set_list)
         state = self.property_set[self.backtrack_name]
@@ -114,5 +114,5 @@ class _MinimumPointState:
     __slots__ = ("dag", "score", "since")
 
     dag: DAGCircuit
-    score: Tuple[float, ...]
+    score: tuple[float, ...]
     since: int

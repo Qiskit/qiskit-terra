@@ -158,9 +158,8 @@ QFT Synthesis
    QFTSynthesisFull
    QFTSynthesisLine
 """
-
-from typing import Optional, Union, List, Tuple, Callable
-
+from __future__ import annotations
+from typing import Optional, Callable
 import numpy as np
 import rustworkx as rx
 
@@ -343,12 +342,12 @@ class HighLevelSynthesis(TransformationPass):
 
     def __init__(
         self,
-        hls_config: Optional[HLSConfig] = None,
-        coupling_map: Optional[CouplingMap] = None,
-        target: Optional[Target] = None,
+        hls_config: HLSConfig | None = None,
+        coupling_map: CouplingMap | None = None,
+        target: Target | None = None,
         use_qubit_indices: bool = False,
-        equivalence_library: Optional[EquivalenceLibrary] = None,
-        basis_gates: Optional[List[str]] = None,
+        equivalence_library: EquivalenceLibrary | None = None,
+        basis_gates: list[str] | None = None,
         min_qubits: int = 0,
     ):
         """
@@ -446,8 +445,8 @@ class HighLevelSynthesis(TransformationPass):
         return dag
 
     def _recursively_handle_op(
-        self, op: Operation, qubits: Optional[List] = None
-    ) -> Tuple[Union[QuantumCircuit, DAGCircuit, Operation], bool]:
+        self, op: Operation, qubits: list | None = None
+    ) -> tuple[QuantumCircuit | DAGCircuit | Operation, bool]:
         """Recursively synthesizes a single operation.
 
         Note: the reason that this function accepts an operation and not a dag node
@@ -521,9 +520,7 @@ class HighLevelSynthesis(TransformationPass):
         dag = self.run(dag)
         return dag, True
 
-    def _synthesize_op_using_plugins(
-        self, op: Operation, qubits: List
-    ) -> Union[QuantumCircuit, None]:
+    def _synthesize_op_using_plugins(self, op: Operation, qubits: list) -> QuantumCircuit | None:
         """
         Attempts to synthesize op using plugin mechanism.
         Returns either the synthesized circuit or None (which occurs when no
@@ -604,7 +601,7 @@ class HighLevelSynthesis(TransformationPass):
 
         return best_decomposition
 
-    def _synthesize_annotated_op(self, op: Operation) -> Union[Operation, None]:
+    def _synthesize_annotated_op(self, op: Operation) -> Operation | None:
         """
         Recursively synthesizes annotated operations.
         Returns either the synthesized operation or None (which occurs when the operation

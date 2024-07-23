@@ -18,7 +18,6 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 from __future__ import annotations
-from typing import List
 from dataclasses import dataclass
 
 from qiskit import circuit
@@ -36,8 +35,8 @@ class Layout:
         """construct a Layout from a bijective dictionary, mapping
         virtual qubits to physical qubits"""
         self._regs = []
-        self._p2v = {}
-        self._v2p = {}
+        self._p2v: dict[int, circuit.Qubit] = {}
+        self._v2p: dict[circuit.Qubit, int] = {}
         if input_dict is not None:
             if not isinstance(input_dict, dict):
                 raise LayoutError("Layout constructor takes a dict")
@@ -202,14 +201,14 @@ class Layout:
         """
         return set(self._regs)
 
-    def get_virtual_bits(self):
+    def get_virtual_bits(self) -> dict[circuit.Qubit, int]:
         """
         Returns the dictionary where the keys are virtual (qu)bits and the
         values are physical (qu)bits.
         """
         return self._v2p
 
-    def get_physical_bits(self):
+    def get_physical_bits(self) -> dict[int, circuit.Qubit]:
         """
         Returns the dictionary where the keys are physical (qu)bits and the
         values are virtual (qu)bits.
@@ -368,7 +367,7 @@ class Layout:
             out.add_register(qreg)
         return out
 
-    def compose(self, other: Layout, qubits: List[Qubit]) -> Layout:
+    def compose(self, other: Layout, qubits: list[Qubit]) -> Layout:
         """Compose this layout with another layout.
 
         If this layout represents a mapping from the P-qubits to the positions of the Q-qubits,
@@ -388,7 +387,7 @@ class Layout:
         other_v2p = other.get_virtual_bits()
         return Layout({virt: other_v2p[qubits[phys]] for virt, phys in self._v2p.items()})
 
-    def inverse(self, source_qubits: List[Qubit], target_qubits: List[Qubit]):
+    def inverse(self, source_qubits: list[Qubit], target_qubits: list[Qubit]):
         """Finds the inverse of this layout.
 
         This is possible when the layout is a bijective mapping, however the input
@@ -415,7 +414,7 @@ class Layout:
             }
         )
 
-    def to_permutation(self, qubits: List[Qubit]):
+    def to_permutation(self, qubits: list[Qubit]):
         """Creates a permutation corresponding to this layout.
 
         This is possible when the layout is a bijective mapping with the same
@@ -551,7 +550,7 @@ class TranspileLayout:
     input_qubit_mapping: dict[circuit.Qubit, int]
     final_layout: Layout | None = None
     _input_qubit_count: int | None = None
-    _output_qubit_list: List[Qubit] | None = None
+    _output_qubit_list: list[Qubit] | None = None
 
     def initial_virtual_layout(self, filter_ancillas: bool = False) -> Layout:
         """Return a :class:`.Layout` object for the initial layout.
@@ -578,7 +577,7 @@ class TranspileLayout:
             }
         )
 
-    def initial_index_layout(self, filter_ancillas: bool = False) -> List[int]:
+    def initial_index_layout(self, filter_ancillas: bool = False) -> list[int]:
         """Generate an initial layout as an array of integers.
 
         Args:
@@ -592,7 +591,7 @@ class TranspileLayout:
 
         virtual_map = self.initial_layout.get_virtual_bits()
         if filter_ancillas:
-            output = [None] * self._input_qubit_count
+            output: list[int | None] = [None] * self._input_qubit_count
         else:
             output = [None] * len(virtual_map)
         for index, (virt, phys) in enumerate(virtual_map.items()):
@@ -602,7 +601,7 @@ class TranspileLayout:
             output[pos] = phys
         return output
 
-    def routing_permutation(self) -> List[int]:
+    def routing_permutation(self) -> list[int]:
         """Generate a final layout as an array of integers.
 
         If there is no :attr:`.final_layout` attribute present then that indicates
@@ -618,7 +617,7 @@ class TranspileLayout:
         virtual_map = self.final_layout.get_virtual_bits()
         return [virtual_map[virt] for virt in self._output_qubit_list]
 
-    def final_index_layout(self, filter_ancillas: bool = True) -> List[int]:
+    def final_index_layout(self, filter_ancillas: bool = True) -> list[int]:
         """Generate the final layout as an array of integers.
 
         This method will generate an array of final positions for each qubit in the input circuit.

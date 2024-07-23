@@ -56,7 +56,7 @@ class BasePadding(TransformationPass):
 
     def __init__(
         self,
-        target: Target = None,
+        target: Target | None = None,
     ):
         """BasePadding initializer.
 

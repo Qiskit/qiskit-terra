@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Filter ops from a circuit"""
+from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass

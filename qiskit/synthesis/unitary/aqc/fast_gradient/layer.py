@@ -15,7 +15,6 @@ Layer classes for the fast gradient implementation.
 """
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Optional
 import numpy as np
 from .fast_grad_utils import (
     bit_permutation_1q,
@@ -62,7 +61,7 @@ class Layer1Q(LayerBase):
     interleaves with the identity ones.
     """
 
-    def __init__(self, num_qubits: int, k: int, g2x2: Optional[np.ndarray] = None):
+    def __init__(self, num_qubits: int, k: int, g2x2: np.ndarray | None = None):
         """
         Args:
             num_qubits: number of qubits.
@@ -102,7 +101,7 @@ class Layer2Q(LayerBase):
     interleaves with the identity ones.
     """
 
-    def __init__(self, num_qubits: int, j: int, k: int, g4x4: Optional[np.ndarray] = None):
+    def __init__(self, num_qubits: int, j: int, k: int, g4x4: np.ndarray | None = None):
         """
         Args:
             num_qubits: number of qubits.

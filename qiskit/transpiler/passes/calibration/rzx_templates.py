@@ -13,9 +13,9 @@
 """
 Convenience function to load RZXGate based templates.
 """
+from __future__ import annotations
 
 from enum import Enum
-from typing import List, Dict
 
 from qiskit.circuit.library.templates import rzx
 
@@ -31,7 +31,7 @@ class RZXTemplateMap(Enum):
     CY = rzx.rzx_cy()
 
 
-def rzx_templates(template_list: List[str] = None) -> Dict:
+def rzx_templates(template_list: list[str] | None = None) -> dict[str, list | dict[str, int]]:
     """Convenience function to get the cost_dict and templates for template matching.
 
     Args:

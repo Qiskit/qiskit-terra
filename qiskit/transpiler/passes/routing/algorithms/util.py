@@ -31,7 +31,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TypeVar, MutableMapping
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 
@@ -85,7 +85,7 @@ def permutation_circuit(swaps: Iterable[list[Swap[_V]]]) -> PermutationCircuit:
     swap_list = list(swaps)
 
     # Set of unique nodes used in the swaps.
-    nodes = {
+    nodes: set[_V] = {
         swap_node for swap_step in swap_list for swap_nodes in swap_step for swap_node in swap_nodes
     }
 
@@ -93,7 +93,7 @@ def permutation_circuit(swaps: Iterable[list[Swap[_V]]]) -> PermutationCircuit:
     for qubit in node_qargs.values():
         dag.add_qreg(qubit)
 
-    inputmap = {node: q[0] for node, q in node_qargs.items()}
+    inputmap: dict[_V, Qubit] = {node: q[0] for node, q in node_qargs.items()}
 
     # Apply swaps to the circuit.
     for swap_step in swap_list:

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
+from __future__ import annotations
 
 import warnings
 
@@ -29,7 +30,7 @@ class BaseScheduler(AnalysisPass):
 
     CONDITIONAL_SUPPORTED = (Gate, Delay)
 
-    def __init__(self, durations: InstructionDurations = None, target: Target = None):
+    def __init__(self, durations: InstructionDurations | None = None, target: Target | None = None):
         """Scheduler initializer.
 
         Args:

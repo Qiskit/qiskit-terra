@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
+from __future__ import annotations
 
 from itertools import groupby
 
@@ -81,8 +82,8 @@ class Optimize1qGates(TransformationPass):
                     right_name = "p"
                 else:
                     right_name = "u1"
-            right_parameters = (0, 0, 0)  # (theta, phi, lambda)
-            right_global_phase = 0
+            right_parameters = (0.0, 0.0, 0.0)  # (theta, phi, lambda)
+            right_global_phase = 0.0
             for current_node in run:
                 left_name = current_node.name
                 if (
@@ -92,7 +93,7 @@ class Optimize1qGates(TransformationPass):
                 ):
                     raise TranspilerError("internal error")
                 if left_name in ("u1", "p"):
-                    left_parameters = (0, 0, current_node.op.params[0])
+                    left_parameters = (0.0, 0.0, current_node.op.params[0])
                 elif left_name == "u2":
                     left_parameters = (
                         np.pi / 2,

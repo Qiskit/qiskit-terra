@@ -23,6 +23,9 @@ Exact and practical pattern matching for quantum circuit optimization.
 `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 
 """
+from __future__ import annotations
+
+from qiskit.dagcircuit import DAGDependency, DAGDepNode, DAGOpNode, DAGOutNode
 
 from qiskit.circuit.controlledgate import ControlledGate
 
@@ -33,7 +36,13 @@ class ForwardMatch:
     """
 
     def __init__(
-        self, circuit_dag_dep, template_dag_dep, node_id_c, node_id_t, qubits, clbits=None
+        self,
+        circuit_dag_dep: DAGDependency,
+        template_dag_dep: DAGDependency,
+        node_id_c: int,
+        node_id_t: int,
+        qubits: list[int],
+        clbits: list[int] | None = None,
     ):
         """
         Create a ForwardMatch class with necessary arguments.
@@ -65,19 +74,19 @@ class ForwardMatch:
         self.node_id_t = node_id_t
 
         # List of match
-        self.match = []
+        self.match: list[list[int]] = []
 
         # List of candidates for the forward match
-        self.candidates = []
+        self.candidates: list[set[int]] = []
 
         # List of nodes in circuit which are matched
-        self.matched_nodes_list = []
+        self.matched_nodes_list: list[list[int | DAGDepNode]] = []
 
         # Transformation of the qarg indices of the circuit to be adapted to the template indices
-        self.qarg_indices = []
+        self.qarg_indices: list[int] = []
 
         # Transformation of the carg indices of the circuit to be adapted to the template indices
-        self.carg_indices = []
+        self.carg_indices: list[int] = []
 
     def _init_successors_to_visit(self):
         """
@@ -150,7 +159,7 @@ class ForwardMatch:
             maximal_index = self.template_dag_dep.direct_successors(node_id_t)[-1]
             pred = [elem for elem in pred if elem <= maximal_index]
 
-        block = []
+        block: list[int] = []
         for node_id in pred:
             for dir_succ in self.template_dag_dep.direct_successors(node_id):
                 if dir_succ not in matches:
@@ -202,7 +211,7 @@ class ForwardMatch:
         node_update.successorstovisit.pop(successor_id)
         return node_update
 
-    def _get_successors_to_visit(self, node, list_id):
+    def _get_successors_to_visit(self, node: DAGOpNode | DAGOutNode, list_id: int) -> int:
         """
         Return the successor for a given node and id.
         Args:

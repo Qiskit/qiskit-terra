@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Reduce 1Q gate complexity by commuting through 2Q gates and resynthesizing."""
+from __future__ import annotations
 
 from copy import copy
 import logging
@@ -78,7 +79,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         self._run_to_completion = run_to_completion
 
     @staticmethod
-    def _find_adjoining_run(dag, runs, run, front=True):
+    def _find_adjoining_run(
+        dag: DAGCircuit, runs: list[list[DAGOpNode]], run: list[DAGOpNode], front=True
+    ) -> tuple[DAGOpNode, list[DAGOpNode]]:
         """
         Finds the run which abuts `run` from the front (or the rear if `front == False`), separated
         by a blocking node.
@@ -90,7 +93,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         blocker = next(dag.predecessors(edge_node) if front else dag.successors(edge_node))
         possibilities = dag.predecessors(blocker) if front else dag.successors(blocker)
 
-        adjoining_run = []
+        adjoining_run: list[DAGOpNode] = []
         for possibility in possibilities:
             if isinstance(possibility, DAGOpNode) and possibility.qargs == edge_node.qargs:
                 adjoining_run = []
@@ -105,7 +108,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         return (blocker, adjoining_run)
 
     @staticmethod
-    def _commute_through(blocker, run, front=True):
+    def _commute_through(blocker: DAGOpNode, run: list[DAGOpNode], front: bool = True):
         """
         Pulls `DAGOpNode`s from the front of `run` (or the back, if `front == False`) until it
         encounters a gate which does not commute with `blocker`.
@@ -120,7 +123,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         # time
         run_clone = deque(run)
 
-        commuted = deque([])
+        commuted: deque[DAGOpNode] = deque([])
         preindex, commutation_rule = None, None
         if isinstance(blocker, DAGOpNode):
             preindex = None
@@ -184,7 +187,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         spliced_run = [node_map[node._node_id] for node in new_dag.topological_op_nodes()]
         mov_list(old_run, spliced_run)
 
-    def _step(self, dag):
+    def _step(self, dag: DAGCircuit):
         """
         Performs one full pass of optimization work.
 

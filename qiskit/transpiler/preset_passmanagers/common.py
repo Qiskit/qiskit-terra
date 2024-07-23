@@ -12,14 +12,16 @@
 
 
 """Common preset passmanager generators."""
+from __future__ import annotations
 
 import collections
-from typing import Optional
+from collections.abc import Sequence
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
 from qiskit.passmanager.flow_controllers import ConditionalController
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
@@ -449,6 +451,7 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    unroll: Sequence[BasePass]
     if method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
@@ -616,8 +619,8 @@ VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
 
 def get_vf2_limits(
     optimization_level: int,
-    layout_method: Optional[str] = None,
-    initial_layout: Optional[Layout] = None,
+    layout_method: str | None = None,
+    initial_layout: Layout | None = None,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 

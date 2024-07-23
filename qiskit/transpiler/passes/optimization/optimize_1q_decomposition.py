@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
+from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Sequence
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
@@ -253,11 +255,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         return dag
 
-    def _error(self, circuit, qubit):
+    def _error(
+        self, circuit: euler_one_qubit_decomposer.OneQubitGateSequence | Sequence[DAGOpNode], qubit
+    ) -> tuple[float, int]:
         """
         Calculate a rough error for a `circuit` that runs on a specific
         `qubit` of `target` (`circuit` can either be an OneQubitGateSequence
-        from Rust or a list of DAGOPNodes).
+        from Rust or a list of DAGOpNode).
 
         Use basis errors from target if available, otherwise use length
         of circuit as a weak proxy for error.

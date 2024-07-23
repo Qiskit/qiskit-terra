@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Unify time unit in circuit for scheduling and following passes."""
-from typing import Set
+from __future__ import annotations
 
 from qiskit.circuit import Delay
 from qiskit.dagcircuit import DAGCircuit
@@ -36,7 +36,9 @@ class TimeUnitConversion(TransformationPass):
     * raise error: if they are a mix of SI units and ``'dt'``.
     """
 
-    def __init__(self, inst_durations: InstructionDurations = None, target: Target = None):
+    def __init__(
+        self, inst_durations: InstructionDurations | None = None, target: Target | None = None
+    ):
         """TimeUnitAnalysis initializer.
 
         Args:
@@ -134,14 +136,14 @@ class TimeUnitConversion(TransformationPass):
         return circ_durations
 
     @staticmethod
-    def _units_used_in_delays(dag: DAGCircuit) -> Set[str]:
+    def _units_used_in_delays(dag: DAGCircuit) -> set[str]:
         units_used = set()
         for node in dag.op_nodes(op=Delay):
             units_used.add(node.op.unit)
         return units_used
 
     @staticmethod
-    def _unified(unit_set: Set[str]) -> str:
+    def _unified(unit_set: set[str]) -> str:
         if not unit_set:
             return "dt"
 
