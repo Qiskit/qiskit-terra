@@ -56,7 +56,7 @@ from qiskit.exceptions import QiskitError
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.utils import deprecate_func
+from qiskit.utils import deprecate_func, deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -926,6 +926,13 @@ class Target(BaseTarget):
         self._instruction_schedule_map = state["instruction_schedule_map"]
         super().__setstate__(state["base"])
 
+    @deprecate_arg(
+        "backend_properties",
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
+        "accepted anymore as a parameter.",
+    )
     @classmethod
     def from_configuration(
         cls,

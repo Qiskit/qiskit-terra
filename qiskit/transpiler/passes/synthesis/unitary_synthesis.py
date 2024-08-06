@@ -71,7 +71,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 )
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
-
+from qiskit.utils import deprecate_arg
 
 GATE_NAME_MAP = {
     "cx": CXGate._standard_gate,
@@ -313,6 +313,13 @@ def _preferred_direction(
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
+    @deprecate_arg(
+        "backend_props",
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
+        "accepted anymore as a parameter.",
+    )
     def __init__(
         self,
         basis_gates: list[str] = None,

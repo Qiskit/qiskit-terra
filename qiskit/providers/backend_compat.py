@@ -25,10 +25,17 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
+@deprecate_func(
+    since="1.3",
+    removal_timeline="in the 2.0 release",
+    additional_msg="With the deprecation of `qiskit.providers.models` this utility function "
+    "is not needed.",
+)
 def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,

@@ -32,12 +32,20 @@ from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
+from qiskit.utils import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
 
 
+@deprecate_arg(
+    "backend_properties",
+    since="1.3",
+    removal_timeline="in the 2.0 release",
+    additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
+    "accepted anymore as a parameter.",
+)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
