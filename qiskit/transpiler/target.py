@@ -926,6 +926,7 @@ class Target(BaseTarget):
         self._instruction_schedule_map = state["instruction_schedule_map"]
         super().__setstate__(state["base"])
 
+    @classmethod
     @deprecate_arg(
         "backend_properties",
         since="1.3",
@@ -933,7 +934,6 @@ class Target(BaseTarget):
         additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
         "accepted anymore as a parameter.",
     )
-    @classmethod
     def from_configuration(
         cls,
         basis_gates: list[str],
