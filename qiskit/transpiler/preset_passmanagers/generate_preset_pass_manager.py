@@ -355,7 +355,6 @@ def generate_preset_pass_manager(
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
     approximation_degree = _parse_approximation_degree(approximation_degree)
-
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,

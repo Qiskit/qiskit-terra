@@ -59,6 +59,7 @@ from .basic_provider_tools import (
 )
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
+from ...utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +213,12 @@ class BasicSimulator(BackendV2):
                 )
         return target
 
+    @deprecate_func(
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Because `qiskit.providers.models.BackendConfiguration` is deprecated, this "
+        "method wont be accepted anymore as a parameter.",
+    )
     def configuration(self) -> BackendConfiguration:
         """Return the simulator backend configuration.
 

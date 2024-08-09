@@ -418,14 +418,23 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            self._target = convert_to_target(
-                configuration=self._config,
-                properties=self._properties,
-                defaults=self._defaults,
-                custom_name_mapping=self._name_mapping,
-                add_delay=self._add_delay,
-                filter_faulty=self._filter_faulty,
-            )
+            with warnings.catch_warnings():
+                # convert_to_target is deprecated along BackendV2Converter
+                # They both need to be removed at the same time
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.providers\.backend_compat\.convert_to_target.+",
+                    module="qiskit",
+                )
+                self._target = convert_to_target(
+                    configuration=self._config,
+                    properties=self._properties,
+                    defaults=self._defaults,
+                    custom_name_mapping=self._name_mapping,
+                    add_delay=self._add_delay,
+                    filter_faulty=self._filter_faulty,
+                )
         return self._target
 
     @property

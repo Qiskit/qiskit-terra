@@ -319,6 +319,7 @@ class UnitarySynthesis(TransformationPass):
         removal_timeline="in the 2.0 release",
         additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
         "accepted anymore as a parameter.",
+        predicate=lambda x: x is not None,
     )
     def __init__(
         self,

@@ -16,11 +16,20 @@ import pprint
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.utils import deprecate_arg
 
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
+    @deprecate_arg(
+        "backend_properties",
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
+        "accepted anymore as a parameter.",
+        predicate=lambda x: x is not None,
+    )
     def __init__(
         self,
         initial_layout=None,
@@ -109,7 +118,7 @@ class PassManagerConfig:
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
-        This method automatically gererates a PassManagerConfig object based on the backend's
+        This method automatically generates a PassManagerConfig object based on the backend's
         features. User options can be used to overwrite the configuration.
 
         Args:
