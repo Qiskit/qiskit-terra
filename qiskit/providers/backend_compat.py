@@ -307,6 +307,7 @@ def convert_to_target(
 def qubit_props_list_from_props(
     properties: BackendProperties,
 ) -> List[QubitProperties]:
+    # TODO Remove this function with BackendProperties
     """Uses BackendProperties to construct
     and return a list of QubitProperties.
     """
