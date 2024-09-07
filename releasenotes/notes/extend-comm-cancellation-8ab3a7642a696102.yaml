@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.CommutativeCancellation` which did not consider cancellation of
+    some diagonal gates or the :class:`.SXGate`. Now these are correctly included and e.g. 
+    the following circuit::
+
+                ┌─────┐
+      q_0: ──■──┤ Sdg ├──■──
+           ┌─┴─┐└┬────┤┌─┴─┐
+      q_1: ┤ X ├─┤ √X ├┤ X ├
+           └───┘ └────┘└───┘
+
+    is correctly reduced to::
+
+           ┌─────┐
+      q_0: ┤ Sdg ├
+           └┬────┤
+      q_1: ─┤ √X ├
+            └────┘

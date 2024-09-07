@@ -55,17 +55,18 @@ class CommutativeCancellation(TransformationPass):
                 precedence and ``basis_gates`` will be ignored.
         """
         super().__init__()
-        if basis_gates:
+
+        if target is not None:
+            self.basis = set(target.operation_names)
+        elif basis_gates is not None:
             self.basis = set(basis_gates)
         else:
             self.basis = set()
-        if target is not None:
-            self.basis = set(target.operation_names)
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
 
-        self._z_rotations = {"p", "z", "u1", "rz", "t", "s"}
-        self._x_rotations = {"x", "rx"}
+        self._z_rotations = {"p", "z", "u1", "rz", "t", "s", "sdg", "tdg"}
+        self._x_rotations = {"x", "rx", "sx", "sxdg"}
         self._gates = {"cx", "cy", "cz", "h", "y"}  # Now the gates supported are hard-coded
 
         # build a commutation checker restricted to the gates we cancel -- the others we
@@ -85,15 +86,19 @@ class CommutativeCancellation(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        var_z_gate = None
-        z_var_gates = [gate for gate in dag.count_ops().keys() if gate in self._var_z_map]
-        if z_var_gates:
+        # For RZ we do extra gymnastics: we prioritize the Z-rotation that is already in the
+        # circuit, if there is one.
+        var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
+        z_var_gates = [gate for gate in dag.count_ops().keys() if gate in var_z_map]
+        if len(z_var_gates) > 0:
             # prioritize z gates in circuit
-            var_z_gate = self._var_z_map[next(iter(z_var_gates))]
+            var_z_gate = var_z_map[z_var_gates[0]]
         else:
-            z_var_gates = [gate for gate in self.basis if gate in self._var_z_map]
-            if z_var_gates:
-                var_z_gate = self._var_z_map[next(iter(z_var_gates))]
+            z_var_gates = [gate for gate in self.basis if gate in var_z_map]
+            if len(z_var_gates) > 0:
+                var_z_gate = var_z_map[z_var_gates[0]]
+            else:
+                var_z_gate = None  # no Z-rotation in circuit or in the basis!
 
         # Gate sets to be cancelled
         cancellation_sets = defaultdict(lambda: [])
@@ -119,7 +124,7 @@ class CommutativeCancellation(TransformationPass):
                         cancellation_sets[(node.name, wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in self._z_rotations:
                         cancellation_sets[("z_rotation", wire, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ["rx", "x"]:
+                    if num_qargs == 1 and node.name in self._x_rotations:
                         cancellation_sets[("x_rotation", wire, com_set_idx)].append(node)
                     # Don't deal with Y rotation, because Y rotation doesn't commute with CNOT, so
                     # it should be dealt with by optimized1qgate pass
@@ -136,7 +141,8 @@ class CommutativeCancellation(TransformationPass):
 
         for cancel_set_key in cancellation_sets:
             if cancel_set_key[0] == "z_rotation" and var_z_gate is None:
-                continue
+                continue  # we would like to cancel, but our hands are bound
+
             set_len = len(cancellation_sets[cancel_set_key])
             if set_len > 1 and cancel_set_key[0] in self._gates:
                 gates_to_cancel = cancellation_sets[cancel_set_key]
@@ -162,11 +168,15 @@ class CommutativeCancellation(TransformationPass):
                         current_angle = np.pi
                     elif current_node.name == "t":
                         current_angle = np.pi / 4
-                    elif current_node.name == "s":
+                    elif current_node.name == "tdg":
+                        current_angle = -np.pi / 4
+                    elif current_node.name in ["s", "sx"]:
                         current_angle = np.pi / 2
+                    elif current_node.name in ["sdg", "sxdg"]:
+                        current_angle = -np.pi / 2
                     else:
                         raise RuntimeError(
-                            f"Angle for operation {current_node.name } is not defined"
+                            f"Angle for operation {current_node.name} is not defined"
                         )
 
                     # Compose gates

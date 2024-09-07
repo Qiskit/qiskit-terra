@@ -16,7 +16,7 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
+import qiskit.circuit.library as lib
 from qiskit.circuit.parameter import Parameter
 from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler.target import Target
@@ -58,8 +58,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.y(qr[0])
         circuit.rz(0.5, qr[0])
         circuit.rz(0.5, qr[0])
-        circuit.append(U1Gate(0.5), [qr[0]])  # TODO this should work with Phase gates too
-        circuit.append(U1Gate(0.5), [qr[0]])
+        circuit.append(lib.PhaseGate(0.5), [qr[0]])
+        circuit.append(lib.U1Gate(0.5), [qr[0]])
         circuit.rx(0.5, qr[0])
         circuit.rx(0.5, qr[0])
         circuit.cx(qr[0], qr[1])
@@ -74,7 +74,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(RZGate(2.0), [qr[0]])
+        expected.append(lib.RZGate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
 
         self.assertEqual(expected, new_circuit)
@@ -174,7 +174,7 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    def test_control_bit_of_cnot(self):
+    def test_cnot_control_nocancel(self):
         """A simple circuit where nothing should be cancelled.
 
         qr0:----.------[X]------.--       qr0:----.------[X]------.--
@@ -197,89 +197,72 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    def test_control_bit_of_cnot1(self):
+    def test_cnot_control_cancel(self):
         """A simple circuit where the two cnots should be cancelled.
 
-        qr0:----.------[Z]------.--       qr0:---[Z]---
+        qr0:----.------[U]------.--       qr0:---[U]---
                 |               |
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
+        gates = [
+            lib.SGate(),
+            lib.SdgGate(),
+            lib.TGate(),
+            lib.TdgGate(),
+            lib.ZGate(),
+            lib.RZGate(0.2),
+            lib.PhaseGate(0.3),
+        ]
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.z(qr[0])
-        circuit.cx(qr[0], qr[1])
+        pm = PassManager(CommutativeCancellation())
 
-        new_pm = PassManager(CommutativeCancellation())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.z(qr[0])
+        for gate in gates:
+            with self.subTest(gate=gate):
+                circuit = QuantumCircuit(2)
+                circuit.cx(0, 1)
+                circuit.append(gate, [0])
+                circuit.cx(0, 1)
 
-        self.assertEqual(expected, new_circuit)
+                expected = QuantumCircuit(2)
+                expected.append(gate, [0])
 
-    def test_control_bit_of_cnot2(self):
-        """A simple circuit where the two cnots should be cancelled.
+                new_circuit = pm.run(circuit)
 
-        qr0:----.------[T]------.--       qr0:---[T]---
-                |               |
-        qr1:---(+)-------------(+)-   =   qr1:---------
+                self.assertEqual(expected, new_circuit)
+
+    def test_cnot_control_and_target(self):
+        """A circuit where the two cnots should be cancelled.
+
+        qr0:-[U1]--.--[U2]...--.--[Un]-       qr0:---[RZ]---
+                   |           |
+        qr1:-[V1]-(+)-[V2]...-(+)-[Vn]-   =   qr1:---[RX]---
         """
+        circuit = QuantumCircuit(2)
+        circuit.sx(1)
+        circuit.s(0)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.t(qr[0])
-        circuit.cx(qr[0], qr[1])
+        circuit.cx(0, 1)
 
-        new_pm = PassManager(CommutativeCancellation())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.t(qr[0])
+        circuit.z(0)
+        circuit.t(0)
+        circuit.rz(1.23, 0)
+        circuit.tdg(0)
+        circuit.rx(0.4, 1)
+        circuit.sxdg(1)
 
-        self.assertEqual(expected, new_circuit)
+        circuit.cx(0, 1)
 
-    def test_control_bit_of_cnot3(self):
-        """A simple circuit where the two cnots should be cancelled.
+        circuit.sdg(0)
+        circuit.x(1)
 
-        qr0:----.------[Rz]------.--       qr0:---[Rz]---
-                |                |
-        qr1:---(+)-------- -----(+)-   =   qr1:----------
-        """
+        pm = PassManager(CommutativeCancellation())
+        new_circuit = pm.run(circuit)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.rz(np.pi / 3, qr[0])
-        circuit.cx(qr[0], qr[1])
+        expect = QuantumCircuit(2)
+        expect.rz(1.23 + np.pi, 0)  # pi shift from Z gate
+        expect.rx(0.4 + np.pi, 1)  # pi shift from X gate
 
-        new_pm = PassManager(CommutativeCancellation())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.rz(np.pi / 3, qr[0])
-
-        self.assertEqual(expected, new_circuit)
-
-    def test_control_bit_of_cnot4(self):
-        """A simple circuit where the two cnots should be cancelled.
-
-        qr0:----.------[T]------.--       qr0:---[T]---
-                |               |
-        qr1:---(+)-------------(+)-   =   qr1:---------
-        """
-
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.t(qr[0])
-        circuit.cx(qr[0], qr[1])
-
-        new_pm = PassManager(CommutativeCancellation())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.t(qr[0])
-
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(expect, new_circuit)
 
     def test_target_bit_of_cnot(self):
         """A simple circuit where nothing should be cancelled.
@@ -378,7 +361,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
+        expected.append(lib.RZGate(np.pi * 17 / 12), [qr[2]])
         expected.cx(qr[2], qr[1])
         expected.global_phase = (np.pi * 17 / 12 - (2 * np.pi / 3)) / 2
         self.assertEqual(expected, new_circuit)
@@ -430,8 +413,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
-        expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
+        expected.append(lib.RZGate(np.pi * 17 / 12), [qr[2]])
+        expected.append(lib.RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
 
         self.assertEqual(
@@ -596,9 +579,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rz(np.pi, 0)
         theta = Parameter("theta")
         target = Target(num_qubits=2)
-        target.add_instruction(CXGate())
-        target.add_instruction(PhaseGate(theta))
-        target.add_instruction(SXGate())
+        target.add_instruction(lib.CXGate())
+        target.add_instruction(lib.PhaseGate(theta))
+        target.add_instruction(lib.SXGate())
         passmanager = PassManager()
         passmanager.append(CommutativeCancellation(target=target))
         new_circuit = passmanager.run(circuit)
