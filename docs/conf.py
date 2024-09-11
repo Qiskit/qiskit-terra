@@ -32,7 +32,7 @@ author = "Qiskit Development Team"
 # The short X.Y version
 version = "1.3"
 # The full version, including alpha/beta/rc tags
-release = "1.3.0"
+release = "1.3.0b1"
 
 language = "en"
 
@@ -113,23 +113,6 @@ autoclass_content = "both"
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
-
-# The pulse library contains some names that differ only in capitalization, during the changeover
-# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
-# capitalization, this causes problems when the documentation is built on an OS/filesystem that is
-# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
-# from happening.
-autosummary_filename_map = {
-    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
-    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
-    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
-    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
-    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
-    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
-    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
-    "qiskit.pulse.library.Square": "qiskit.pulse.library.Square_fun.rst",
-    "qiskit.pulse.library.Sech": "qiskit.pulse.library.Sech_fun.rst",
-}
 
 # We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
 # slows down the build (a little) and can sometimes result in _regular_ section headings in

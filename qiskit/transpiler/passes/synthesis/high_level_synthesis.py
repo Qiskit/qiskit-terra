@@ -280,6 +280,15 @@ class HighLevelSynthesis(TransformationPass):
         return self._run(dag, tracker)
 
     def _run(self, dag: DAGCircuit, tracker: QubitTracker) -> DAGCircuit:
+        # Check if HighLevelSynthesis can be skipped.
+        for node in dag.op_nodes():
+            qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+            if not self._definitely_skip_node(node, qubits, dag):
+                break
+        else:
+            # The for-loop terminates without reaching the break statement
+            return dag
+
         # Start by analyzing the nodes in the DAG. This for-loop is a first version of a potentially
         # more elaborate approach to find good operation/ancilla allocations. It greedily iterates
         # over the nodes, checking whether we can synthesize them, while keeping track of the
@@ -293,12 +302,7 @@ class HighLevelSynthesis(TransformationPass):
             used_qubits = None
 
             # check if synthesis for the operation can be skipped
-            if (
-                dag.has_calibration_for(node)
-                or len(node.qargs) < self._min_qubits
-                or node.is_directive()
-                or self._definitely_skip_node(node, qubits)
-            ):
+            if self._definitely_skip_node(node, qubits, dag):
                 pass
 
             # next check control flow
@@ -312,7 +316,7 @@ class HighLevelSynthesis(TransformationPass):
             # now we are free to synthesize
             else:
                 # this returns the synthesized operation and the qubits it acts on -- note that this
-                # may be different than the original qubits, since we may use auxiliary qubits
+                # may be different from the original qubits, since we may use auxiliary qubits
                 synthesized, used_qubits = self._synthesize_operation(node.op, qubits, tracker)
 
             # if the synthesis changed the operation (i.e. it is not None), store the result
@@ -335,7 +339,7 @@ class HighLevelSynthesis(TransformationPass):
         if len(synthesized_nodes) == 0:
             return dag
 
-        # Otherwise we will rebuild with the new operations. Note that we could also
+        # Otherwise, we will rebuild with the new operations. Note that we could also
         # check if no operation changed in size and substitute in-place, but rebuilding is
         # generally as fast or faster, unless very few operations are changed.
         out = dag.copy_empty_like()
@@ -631,19 +635,32 @@ class HighLevelSynthesis(TransformationPass):
 
         return synthesized
 
-    def _definitely_skip_node(self, node: DAGOpNode, qubits: tuple[int] | None) -> bool:
+    def _definitely_skip_node(
+        self, node: DAGOpNode, qubits: tuple[int] | None, dag: DAGCircuit
+    ) -> bool:
         """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
         attempt to synthesise it) without accessing its Python-space `Operation`.
 
         This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
         avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
         node (which is _most_ nodes)."""
+
+        if (
+            dag.has_calibration_for(node)
+            or len(node.qargs) < self._min_qubits
+            or node.is_directive()
+        ):
+            return True
+
         return (
             # The fast path is just for Rust-space standard gates (which excludes
             # `AnnotatedOperation`).
             node.is_standard_gate()
-            # If it's a controlled gate, we might choose to do funny things to it.
-            and not node.is_controlled_gate()
+            # We don't have the fast-path for controlled gates over 3 or more qubits.
+            # However, we most probably want the fast-path for controlled 2-qubit gates
+            # (such as CX, CZ, CY, CH, CRX, and so on), so "_definitely_skip_node" should
+            # not immediately return False when encountering a controlled gate over 2 qubits.
+            and not (node.is_controlled_gate() and node.num_qubits >= 3)
             # If there are plugins to try, they need to be tried.
             and not self._methods_to_try(node.name)
             # If all the above constraints hold, and it's already supported or the basis translator

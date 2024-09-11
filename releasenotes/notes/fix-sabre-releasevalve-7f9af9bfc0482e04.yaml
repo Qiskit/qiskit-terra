@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an edge case in :class:`.SabreLayout`, where in rare cases on large
+    devices and challenging circuits, the routing would fail. This was due to the 
+    release valve making more than one two-qubit gate routable, where only one was expected.
+    Fixed `#13081 <https://github.com/Qiskit/qiskit/issues/13081>`__.

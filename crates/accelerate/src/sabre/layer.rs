@@ -70,7 +70,10 @@ impl FrontLayer {
     pub fn remove(&mut self, index: &NodeIndex) {
         // The actual order in the indexmap doesn't matter as long as it's reproducible.
         // Swap-remove is more efficient than a full shift-remove.
-        let [a, b] = self.nodes.swap_remove(index).unwrap();
+        let [a, b] = self
+            .nodes
+            .swap_remove(index)
+            .expect("Tried removing index that does not exist.");
         self.qubits[a.index()] = None;
         self.qubits[b.index()] = None;
     }
