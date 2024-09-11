@@ -126,7 +126,7 @@ class PassManagerConfig:
         features. User options can be used to overwrite the configuration.
 
         Args:
-            backend (BackendV1): The backend that provides the configuration.
+            backend (BackendV1 or BackendV2): The backend that provides the configuration.
             pass_manager_options: User-defined option-value pairs.
 
         Returns:
@@ -135,12 +135,12 @@ class PassManagerConfig:
         Raises:
             AttributeError: If the backend does not support a `configuration()` method.
         """
-        res = cls(**pass_manager_options)
         backend_version = getattr(backend, "version", 0)
         if not isinstance(backend_version, int):
             backend_version = 0
         if backend_version < 2:
             config = backend.configuration()
+        res = cls(**pass_manager_options)
         if res.basis_gates is None:
             if backend_version < 2:
                 res.basis_gates = getattr(config, "basis_gates", None)
