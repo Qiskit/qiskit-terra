@@ -14,3 +14,4 @@ pyo3.workspace = true
 indexmap.workspace = true
 hashbrown.workspace = true
 oq3_semantics = "0.6.0"
+ahash.workspace = true

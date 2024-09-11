@@ -42,7 +42,7 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
     Returns:
         The synthesized quantum circuit.
     """
-    return QuantumCircuit._from_circuit_data(_synth_permutation_basic(pattern))
+    return QuantumCircuit._from_circuit_data(_synth_permutation_basic(pattern), add_regs=True)
 
 
 def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
@@ -75,4 +75,4 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
            *Routing Permutations on Graphs Via Matchings.*,
            `(Full paper) <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
     """
-    return QuantumCircuit._from_circuit_data(_synth_permutation_acg(pattern))
+    return QuantumCircuit._from_circuit_data(_synth_permutation_acg(pattern), add_regs=True)

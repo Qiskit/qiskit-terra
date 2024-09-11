@@ -21,7 +21,6 @@ import qiskit._accelerate.circuit
 from qiskit.circuit import (
     Clbit,
     ClassicalRegister,
-    ControlFlowOp,
     IfElseOp,
     WhileLoopOp,
     SwitchCaseOp,
@@ -175,67 +174,3 @@ _SEMANTIC_EQ_CONTROL_FLOW = {
 }
 
 _SEMANTIC_EQ_SYMMETRIC = frozenset({"barrier", "swap", "break_loop", "continue_loop"})
-
-
-# Note: called from dag_node.rs.
-def _semantic_eq(node1, node2, bit_indices1, bit_indices2):
-    """
-    Check if DAG nodes are considered equivalent, e.g., as a node_match for
-    :func:`rustworkx.is_isomorphic_node_match`.
-
-    Args:
-        node1 (DAGOpNode, DAGInNode, DAGOutNode): A node to compare.
-        node2 (DAGOpNode, DAGInNode, DAGOutNode): The other node to compare.
-        bit_indices1 (dict): Dictionary mapping Bit instances to their index
-            within the circuit containing node1
-        bit_indices2 (dict): Dictionary mapping Bit instances to their index
-            within the circuit containing node2
-
-    Return:
-        Bool: If node1 == node2
-    """
-    if not isinstance(node1, DAGOpNode) or not isinstance(node1, DAGOpNode):
-        return type(node1) is type(node2) and bit_indices1.get(node1.wire) == bit_indices2.get(
-            node2.wire
-        )
-    if isinstance(node1.op, ControlFlowOp) and isinstance(node2.op, ControlFlowOp):
-        # While control-flow operations aren't represented natively in the DAG, we have to do
-        # some unpleasant dispatching and very manual handling.  Once they have more first-class
-        # support we'll still be dispatching, but it'll look more appropriate (like the dispatch
-        # based on `DAGOpNode`/`DAGInNode`/`DAGOutNode` that already exists) and less like we're
-        # duplicating code from the `ControlFlowOp` classes.
-        if type(node1.op) is not type(node2.op):
-            return False
-        comparer = _SEMANTIC_EQ_CONTROL_FLOW.get(type(node1.op))
-        if comparer is None:  # pragma: no cover
-            raise RuntimeError(f"unhandled control-flow operation: {type(node1.op)}")
-        return comparer(node1, node2, bit_indices1, bit_indices2)
-
-    node1_qargs = [bit_indices1[qarg] for qarg in node1.qargs]
-    node1_cargs = [bit_indices1[carg] for carg in node1.cargs]
-
-    node2_qargs = [bit_indices2[qarg] for qarg in node2.qargs]
-    node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
-
-    # For barriers, qarg order is not significant so compare as sets
-    if node1.op.name == node2.op.name and node1.name in _SEMANTIC_EQ_SYMMETRIC:
-        node1_qargs = set(node1_qargs)
-        node1_cargs = set(node1_cargs)
-        node2_qargs = set(node2_qargs)
-        node2_cargs = set(node2_cargs)
-
-    return (
-        node1_qargs == node2_qargs
-        and node1_cargs == node2_cargs
-        and _legacy_condition_eq(
-            getattr(node1.op, "condition", None),
-            getattr(node2.op, "condition", None),
-            bit_indices1,
-            bit_indices2,
-        )
-        and node1.op == node2.op
-    )
-
-
-# Bind semantic_eq from Python to Rust implementation
-DAGNode.semantic_eq = staticmethod(_semantic_eq)

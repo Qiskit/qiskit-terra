@@ -200,7 +200,7 @@ def _mcsu2_real_diagonal(
         circuit.h(target)
 
     if use_basis_gates:
-        circuit = transpile(circuit, basis_gates=["p", "u", "cx"])
+        circuit = transpile(circuit, basis_gates=["p", "u", "cx"], qubits_initially_zero=False)
 
     return circuit
 

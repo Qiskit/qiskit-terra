@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an edge case when transpiling a circuit with ``optimization_level`` 2 or 3 with an
+    incomplete 1-qubit basis gate set on a circuit containing 2-qubit gates, that can be
+    implemented as a product of single qubit gates. This bug is resolved by restricting
+    :class:`.Split2QUnitaries` to consider only :class:`.UnitaryGate` objects.
+    Fixed `#12970 <https://github.com/Qiskit/qiskit/issues/12970>`__.

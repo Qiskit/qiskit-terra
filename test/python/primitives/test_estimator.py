@@ -13,6 +13,7 @@
 """Tests for Estimator."""
 
 import unittest
+from test import QiskitTestCase
 
 import numpy as np
 from ddt import data, ddt, unpack
@@ -24,7 +25,6 @@ from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestEstimator(QiskitTestCase):
@@ -354,6 +354,41 @@ class TestEstimator(QiskitTestCase):
 
         keys = [_observable_key(get_op(i)) for i in range(5)]
         self.assertEqual(len(keys), len(set(keys)))
+
+    def test_reset(self):
+        """Test for circuits with reset."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.reset(0)
+        op = SparsePauliOp("ZI")
+
+        seed = 12
+        n = 1000
+        with self.subTest("shots=None"):
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator(options={"seed": seed})
+                result = estimator.run([qc for _ in range(n)], [op] * n).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
+
+            with self.assertWarns(DeprecationWarning):
+                result2 = estimator.run([qc for _ in range(n)], [op] * n).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result.values, result2.values)
+
+        with self.subTest("shots=10000"):
+            shots = 10000
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator(options={"seed": seed})
+                result = estimator.run([qc for _ in range(n)], [op] * n, shots=shots).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
+
+            with self.assertWarns(DeprecationWarning):
+                result2 = estimator.run([qc for _ in range(n)], [op] * n, shots=shots).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result.values, result2.values)
 
 
 @ddt

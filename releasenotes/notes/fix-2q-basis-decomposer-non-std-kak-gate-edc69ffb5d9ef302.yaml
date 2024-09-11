@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.TwoQubitBasisDecomposer` where the Rust-based code
+    would panic if the given KAK gate wasn't a Rust-space :class:`StandardGate`.

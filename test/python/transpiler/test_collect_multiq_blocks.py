@@ -93,6 +93,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
         dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
+
         pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]
 
         self.assertEqual(dag_nodes, pass_nodes)

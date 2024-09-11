@@ -18,8 +18,8 @@ from test import QiskitTestCase
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit.library import UnitaryGate, XGate, ZGate, HGate
-from qiskit.circuit import Parameter, CircuitInstruction
+from qiskit.circuit.library import UnitaryGate, XGate, ZGate, HGate, CPhaseGate
+from qiskit.circuit import Parameter, CircuitInstruction, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
@@ -160,15 +160,11 @@ class TestSplit2QUnitaries(QiskitTestCase):
     def test_almost_identity(self):
         """Test that the pass handles QFT correctly."""
         qc = QuantumCircuit(2)
-        qc.cp(pi * 2 ** -(26), 0, 1)
+        qc.unitary(CPhaseGate(pi * 2 ** -(26)).to_matrix(), [0, 1])
         pm = PassManager()
-        pm.append(Collect2qBlocks())
-        pm.append(ConsolidateBlocks())
         pm.append(Split2QUnitaries(fidelity=1.0 - 1e-9))
         qc_split = pm.run(qc)
         pm = PassManager()
-        pm.append(Collect2qBlocks())
-        pm.append(ConsolidateBlocks())
         pm.append(Split2QUnitaries())
         qc_split2 = pm.run(qc)
         self.assertEqual(qc_split.num_nonlocal_gates(), 0)
@@ -211,15 +207,62 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertTrue(CircuitInstruction(ZGate(), qubits=[qr[1]], clbits=[]) in qc.data)
         self.assertTrue(CircuitInstruction(HGate(), qubits=[qr[2]], clbits=[]) in qc.data)
 
-    def test_split_qft(self):
-        """Test that the pass handles QFT correctly."""
-        qc = QuantumCircuit(100)
-        qc.h(0)
-        for i in range(qc.num_qubits - 2, 0, -1):
-            qc.cp(pi * 2 ** -(qc.num_qubits - 1 - i), qc.num_qubits - 1, i)
+    def test_gate_no_array(self):
+        """
+        Test that the pass doesn't fail when the circuit contains a custom gate
+        with no ``__array__`` implementation.
+
+        Reproduce from: https://github.com/Qiskit/qiskit/issues/12970
+        """
+
+        class MyGate(Gate):
+            """Custom gate"""
+
+            def __init__(self):
+                super().__init__("mygate", 2, [])
+
+            def to_matrix(self):
+                return np.eye(4, dtype=complex)
+                # return np.eye(4, dtype=float)
+
+        def mygate(self, qubit1, qubit2):
+            return self.append(MyGate(), [qubit1, qubit2], [])
+
+        QuantumCircuit.mygate = mygate
+
+        qc = QuantumCircuit(2)
+        qc.mygate(0, 1)
+
         pm = PassManager()
         pm.append(Collect2qBlocks())
         pm.append(ConsolidateBlocks())
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
-        self.assertEqual(26, qc_split.num_nonlocal_gates())
+
+        self.assertTrue(Operator(qc).equiv(qc_split))
+        self.assertTrue(
+            matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
+        )
+
+    def test_nosplit_custom(self):
+        """Test a single custom gate is not split, even if it is a product.
+
+        That is because we cannot guarantee the split gate is valid in a given basis.
+        Regression test for #12970.
+        """
+
+        class MyGate(Gate):
+            """A custom gate that could be split."""
+
+            def __init__(self):
+                super().__init__("mygate", 2, [])
+
+            def to_matrix(self):
+                return np.eye(4, dtype=complex)
+
+        qc = QuantumCircuit(2)
+        qc.append(MyGate(), [0, 1])
+
+        no_split = Split2QUnitaries()(qc)
+
+        self.assertDictEqual({"mygate": 1}, no_split.count_ops())

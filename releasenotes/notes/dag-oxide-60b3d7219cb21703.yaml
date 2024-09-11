@@ -1,0 +1,49 @@
+---
+features_transpiler:
+  - |
+    The implementation of the :class:`.DAGCircuit` has been rewritten in Rust. This rewrite of
+    the Python class should be fully API compatible with the previous Python implementation of
+    the class. While the class was previously implemented using
+    `rustworkx <https://www.rustworkx.org/>`__ and its underlying data graph structure existed
+    in Rust, the implementation of the class and all the data was stored in Python. This new
+    version of :class:`.DAGCircuit` stores a Rust native representation for all its data and
+    is fully implemented in Rust. This new implementation should be more efficient in memory
+    usage as it compresses     the qubit and clbit representation for instructions at rest.
+    It also enables speed up for     transpiler passes as they can fully manipulate a
+    :class:`.DAGCircuit` from Rust.
+upgrade_transpiler:
+  - |
+    :class:`.DAGNode` objects (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and
+    :class:`.DAGOpNode`) no longer return references to the same underlying object from
+    :class:`.DAGCircuit` methods. This was never a guarantee before that all returned nodes would
+    be shared reference to the same object, but with the migration of the :class:`.DAGCircuit` to
+    Rust when a :class:`.DAGNode` a new :class:`.DAGNode` instance is generated on the fly when
+    a node is returned to Python. These objects will evaluate as equal using ``==`` or similar
+    checks that rely on ``__eq__`` but will no longer identify as the same object.
+  - |
+    The :class:`.DAGOpNode` instances returned from the :class:`.DAGCircuit` are no longer shared
+    references to the underlying data stored on the DAG. In previous release it was possible to
+    do something like::
+
+        for node in dag.op_nodes():
+            node.op = new_op
+
+    however this type of mutation was always unsound as it could break the DAG's internal caching
+    and cause corruption of the data structure. Instead you should use the API provided by
+    :class:`.DAGCircuit` for mutation such as :meth:`.DAGCircuit.substitute_node`,
+    :meth:`.DAGCircuit.substitute_node_with_dag`, or :meth:`.DAGCircuit.contract_node`. For example
+    the above code block would become::
+
+        for node in dag.op_nodes():
+          dag.substitute_node(node, new_op)
+
+    This is similar to an upgrade note from 1.2.0 where this was noted on for mutation of the
+    :attr:`.DAGOpNode.op` attribute, not the :class:`.DAGOpNode` itself. However in 1.3 this extends
+    to the entire object, not just it's inner ``op`` attribute. In general this type of mutation was
+    always unsound and not supported, but could previously have potentially worked in some cases.
+fixes:
+  - |
+    Fixed an issue with :meth:`.DAGCircuit.apply_operation_back` and
+    :meth:`.DAGCircuit.apply_operation_front` where previously if you set a
+    :class:`.Clbit` object to the input for the ``qargs`` argument it would silently be accepted.
+    This has been fixed so the type mismatch is correctly identified and an exception is raised.

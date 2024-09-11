@@ -1,0 +1,5 @@
+---
+features_synthesis:
+  - |
+    The function :func:`~qiskit.quantum_info.random_clifford` was ported to Rust,
+    improving the runtime by a factor of 3.

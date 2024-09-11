@@ -372,7 +372,7 @@ def _apply_sabre_result(
         empty.add_clbits(block.clbits)
         for creg in block.cregs:
             empty.add_creg(creg)
-        empty._global_phase = block.global_phase
+        empty.global_phase = block.global_phase
         return empty
 
     def apply_swaps(dest_dag, swaps, layout):
@@ -388,7 +388,7 @@ def _apply_sabre_result(
         the virtual qubit in the root source DAG that it is bound to."""
         swap_map, node_order, node_block_results = result
         for node_id in node_order:
-            node = source_dag._multi_graph[node_id]
+            node = source_dag.node(node_id)
             if node_id in swap_map:
                 apply_swaps(dest_dag, swap_map[node_id], layout)
             if not node.is_control_flow():

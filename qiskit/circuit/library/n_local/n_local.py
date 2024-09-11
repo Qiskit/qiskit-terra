@@ -31,8 +31,10 @@ from qiskit.circuit import (
 )
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 
 from ..blueprintcircuit import BlueprintCircuit
+
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -1037,51 +1039,11 @@ def get_entangler_map(
     Raises:
         ValueError: If the entanglement mode ist not supported.
     """
-    n, m = num_circuit_qubits, num_block_qubits
-    if m > n:
-        raise ValueError(
-            "The number of block qubits must be smaller or equal to the number of "
-            "qubits in the circuit."
-        )
-
-    if entanglement == "pairwise" and num_block_qubits > 2:
-        raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
-
-    if entanglement == "full":
-        return list(itertools.combinations(list(range(n)), m))
-    elif entanglement == "reverse_linear":
-        # reverse linear connectivity. In the case of m=2 and the entanglement_block='cx'
-        # then it's equivalent to 'full' entanglement
-        reverse = [tuple(range(n - i - m, n - i)) for i in range(n - m + 1)]
-        return reverse
-    elif entanglement in ["linear", "circular", "sca", "pairwise"]:
-        linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
-        # if the number of block qubits is 1, we don't have to add the 'circular' part
-        if entanglement == "linear" or m == 1:
-            return linear
-
-        if entanglement == "pairwise":
-            return linear[::2] + linear[1::2]
-
-        # circular equals linear plus top-bottom entanglement (if there's space for it)
-        if n > m:
-            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
-        else:
-            circular = linear
-        if entanglement == "circular":
-            return circular
-
-        # sca is circular plus shift and reverse
-        shifted = circular[-offset:] + circular[:-offset]
-        if offset % 2 == 1:  # if odd, reverse the qubit indices
-            sca = [ind[::-1] for ind in shifted]
-        else:
-            sca = shifted
-
-        return sca
-
-    else:
-        raise ValueError(f"Unsupported entanglement type: {entanglement}")
+    try:
+        return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)
+    except Exception as exc:
+        # need this as Rust is now raising a QiskitError, where this function was raising ValueError
+        raise ValueError("Something went wrong in Rust space, here's the error:") from exc
 
 
 _StdlibGateResult = collections.namedtuple("_StdlibGateResult", ("gate", "num_params"))

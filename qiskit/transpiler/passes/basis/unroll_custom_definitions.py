@@ -66,7 +66,9 @@ class UnrollCustomDefinitions(TransformationPass):
 
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(
+                    node, control_flow.map_blocks(self.run, node.op), propagate_condition=False
+                )
                 continue
 
             if getattr(node.op, "_directive", False):

@@ -378,7 +378,7 @@ for synthesizing :class:`.PermutationGate` objects -- i.e. those with
 is :class:`~.KMSSynthesisPermutation`. This particular synthesis algorithm created
 a circuit adhering to the linear nearest-neighbor connectivity.
 
-.. automodule:: qiskit.transpiler.passes.synthesis.high_level_synthesis
+.. automodule:: qiskit.transpiler.passes.synthesis.hls_plugins
    :no-members:
    :no-inherited-members:
    :no-special-members:

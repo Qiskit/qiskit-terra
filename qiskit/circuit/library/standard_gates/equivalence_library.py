@@ -189,6 +189,21 @@ cphase_to_cu1 = QuantumCircuit(q)
 cphase_to_cu1.append(CU1Gate(theta), [0, 1])
 _sel.add_equivalence(CPhaseGate(theta), cphase_to_cu1)
 
+# CPhaseGate
+#
+#                  global phase: ϴ/4
+#                                  ┌─────────┐
+#  q_0: ─■────     q_0: ─■─────────┤ Rz(ϴ/2) ├
+#        │P(ϴ)  ≡        │ZZ(-ϴ/2) ├─────────┤
+#  q_1: ─■────     q_1: ─■─────────┤ Rz(ϴ/2) ├
+#                                  └─────────┘
+theta = Parameter("theta")
+cphase_to_rzz = QuantumCircuit(2, global_phase=theta / 4)
+cphase_to_rzz.rzz(-theta / 2, 0, 1)
+cphase_to_rzz.rz(theta / 2, 0)
+cphase_to_rzz.rz(theta / 2, 1)
+_sel.add_equivalence(CPhaseGate(theta), cphase_to_rzz)
+
 # RGate
 #
 #    ┌────────┐        ┌───────────────────────┐
@@ -393,6 +408,19 @@ for inst, qargs, cargs in [
 ]:
     def_rzx.append(inst, qargs, cargs)
 _sel.add_equivalence(RZXGate(theta), def_rzx)
+
+# RZXGate to RZZGate
+#      ┌─────────┐
+# q_0: ┤0        ├     q_0: ──────■───────────
+#      │  Rzx(ϴ) │  ≡       ┌───┐ │ZZ(ϴ) ┌───┐
+# q_1: ┤1        ├     q_1: ┤ H ├─■──────┤ H ├
+#      └─────────┘          └───┘        └───┘
+theta = Parameter("theta")
+rzx_to_rzz = QuantumCircuit(2)
+rzx_to_rzz.h(1)
+rzx_to_rzz.rzz(theta, 0, 1)
+rzx_to_rzz.h(1)
+_sel.add_equivalence(RZXGate(theta), rzx_to_rzz)
 
 
 # RYGate
@@ -653,6 +681,21 @@ rzz_to_rzx.h(1)
 rzz_to_rzx.rzx(theta, 0, 1)
 rzz_to_rzx.h(1)
 _sel.add_equivalence(RZZGate(theta), rzz_to_rzx)
+
+# RZZ to CPhase
+#
+#                 global phase: ϴ/2
+#                                ┌───────┐
+#  q_0: ─■─────   q_0: ─■────────┤ Rz(ϴ) ├
+#        │ZZ(ϴ) ≡       │P(-2*ϴ) ├───────┤
+#  q_1: ─■─────   q_1: ─■────────┤ Rz(ϴ) ├
+#                                └───────┘
+theta = Parameter("theta")
+rzz_to_cphase = QuantumCircuit(2, global_phase=theta / 2)
+rzz_to_cphase.cp(-theta * 2, 0, 1)
+rzz_to_cphase.rz(theta, 0)
+rzz_to_cphase.rz(theta, 1)
+_sel.add_equivalence(RZZGate(theta), rzz_to_cphase)
 
 # RZZ to RYY
 q = QuantumRegister(2, "q")

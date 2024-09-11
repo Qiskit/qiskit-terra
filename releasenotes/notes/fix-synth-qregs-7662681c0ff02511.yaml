@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug where various synthesis methods created circuits without quantum or
+    classical registers. This also affected functions that internally used the synthesis
+    methods, such as :meth:`.Clifford.to_circuit`.
+    Fixed `#13041 <https://github.com/Qiskit/qiskit/issues/13041>`__.

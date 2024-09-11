@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.PadDynamicalDecoupling`, which previously
+    did not correctly display the error message that a delay is not
+    pulse-aligned, if the previous or following node was an input/output
+    node. Now, the error message is correctly displayed.

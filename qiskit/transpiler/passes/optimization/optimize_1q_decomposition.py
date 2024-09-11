@@ -35,7 +35,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.circuit import Qubit
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagnode import DAGOpNode
 
 
 logger = logging.getLogger(__name__)
@@ -82,9 +81,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
 
-        self._basis_gates = basis
+        if basis:
+            self._basis_gates = set(basis)
+        else:
+            self._basis_gates = None
         self._target = target
-        self._global_decomposers = []
+        self._global_decomposers = None
         self._local_decomposers_cache = {}
 
         if basis:
@@ -209,48 +211,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        runs = []
-        qubits = []
-        bases = []
-        for run in dag.collect_1q_runs():
-            qubit = dag.find_bit(run[0].qargs[0]).index
-            runs.append(run)
-            qubits.append(qubit)
-            bases.append(self._get_decomposer(qubit))
-        best_sequences = euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
-            runs, qubits, bases, simplify=True, error_map=self.error_map
+        euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
+            dag,
+            target=self._target,
+            global_decomposers=self._global_decomposers,
+            basis_gates=self._basis_gates,
         )
-        for index, best_circuit_sequence in enumerate(best_sequences):
-            run = runs[index]
-            qubit = qubits[index]
-            if self._target is None:
-                basis = self._basis_gates
-            else:
-                basis = self._target.operation_names_for_qargs((qubit,))
-            if best_circuit_sequence is not None:
-                (old_error, new_error, best_circuit_sequence) = best_circuit_sequence
-                if self._substitution_checks(
-                    dag,
-                    run,
-                    best_circuit_sequence,
-                    basis,
-                    qubit,
-                    old_error=old_error,
-                    new_error=new_error,
-                ):
-                    first_node_id = run[0]._node_id
-                    qubit = run[0].qargs
-                    for gate, angles in best_circuit_sequence:
-                        op = CircuitInstruction.from_standard(gate, qubit, angles)
-                        node = DAGOpNode.from_instruction(op, dag=dag)
-                        node._node_id = dag._multi_graph.add_node(node)
-                        dag._increment_op(gate.name)
-                        dag._multi_graph.insert_node_on_in_edges(node._node_id, first_node_id)
-                    dag.global_phase += best_circuit_sequence.global_phase
-                    # Delete the other nodes in the run
-                    for current_node in run:
-                        dag.remove_op_node(current_node)
-
         return dag
 
     def _error(self, circuit, qubit):

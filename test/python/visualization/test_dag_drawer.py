@@ -16,12 +16,14 @@ import os
 import tempfile
 import unittest
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Store
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
 from qiskit.visualization import VisualizationError
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.utils import optionals as _optionals
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit.classical import expr, types
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
@@ -44,6 +46,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(self.dag, style="multicolor")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
         """filename must contain name and extension"""
         with self.assertRaisesRegex(
@@ -107,6 +110,17 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             image_ref = path_to_diagram_reference("dag_dep.png")
             image = Image.open(tmp_path)
             self.assertImagesAreEqual(image, image_ref, 0.1)
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_with_var_wires(self):
+        """Test visualization works with var nodes."""
+        a = expr.Var.new("a", types.Bool())
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.apply_operation_back(Store(a, a), (), ())
+        image = dag_drawer(dag)
+        self.assertIsNotNone(image)
 
 
 if __name__ == "__main__":

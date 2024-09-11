@@ -104,6 +104,12 @@ class TestPermutationGate(QiskitTestCase):
         expected_inverse_perm = PermutationGate([3, 0, 5, 1, 4, 2])
         self.assertTrue(np.array_equal(inverse_perm.pattern, expected_inverse_perm.pattern))
 
+    def test_repeat(self):
+        """Test the ``repeat`` method."""
+        pattern = [2, 4, 1, 3, 0]
+        perm = PermutationGate(pattern)
+        self.assertTrue(np.allclose(Operator(perm.repeat(2)), Operator(perm) @ Operator(perm)))
+
 
 class TestPermutationGatesOnCircuit(QiskitTestCase):
     """Tests for quantum circuits containing permutations."""

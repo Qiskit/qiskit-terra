@@ -579,6 +579,16 @@ The :class:`Store` instruction is particularly special, in that it allows writin
 :class:`Qubit` nor :class:`Clbit` operands, but has an explicit :attr:`~Store.lvalue` and
 :attr:`~Store.rvalue`.
 
+For example, to determine the parity of a bitstring ``cr`` and store it in another register ``creg``,
+the :class:`Store` instruction can be used in the following way::
+
+    parity = expr.lift(cr[0])
+    for i in range(1,n):
+        parity = expr.bit_xor(cr[i], parity)
+    qc.store(creg[0], parity)
+
+
+
 .. autoclass:: Store
     :show-inheritance:
     :members:
@@ -675,6 +685,13 @@ Within :class:`QuantumCircuit`, classical control flow is represented by specifi
     :toctree: ../stubs/
 
     ControlFlowOp
+
+For convenience, there is a :class:`frozenset` instance containing the :attr:`.Instruction.name`
+attributes of each of the control-flow operations.
+
+.. data:: CONTROL_FLOW_OP_NAMES
+
+    Set of the instruction names of Qiskit's known control-flow operations.
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
@@ -1247,6 +1264,7 @@ from .controlflow import (
     CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
+    CONTROL_FLOW_OP_NAMES,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

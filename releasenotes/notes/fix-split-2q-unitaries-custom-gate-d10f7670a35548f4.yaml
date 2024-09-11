@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.Split2QUnitaries` where it would fail to run on circuits
+    with custom gates that didn't implement :meth:`__array__`.
+    See `#12984 <https://github.com/Qiskit/qiskit/issues/12970>`__.

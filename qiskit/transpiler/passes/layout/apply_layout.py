@@ -118,6 +118,6 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
-        new_dag._global_phase = dag._global_phase
+        new_dag.global_phase = dag.global_phase
 
         return new_dag

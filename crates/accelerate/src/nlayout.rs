@@ -24,7 +24,7 @@ use hashbrown::HashMap;
 macro_rules! qubit_newtype {
     ($id: ident) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub struct $id(u32);
+        pub struct $id(pub u32);
 
         impl $id {
             #[inline]
@@ -72,6 +72,7 @@ impl PhysicalQubit {
         layout.phys_to_virt[self.index()]
     }
 }
+
 qubit_newtype!(VirtualQubit);
 impl VirtualQubit {
     /// Get the physical qubit that currently corresponds to this index of virtual qubit in the

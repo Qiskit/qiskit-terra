@@ -164,7 +164,7 @@ where
     pub fn iter(&self) -> Iter<K, V> {
         Iter {
             map: self.map.iter(),
-            null_value: &self.null_val,
+            null_value: self.null_val.as_ref(),
         }
     }
 
@@ -209,7 +209,7 @@ where
 /// Iterator for the key-value pairs in `NullableIndexMap`.
 pub struct Iter<'a, K, V> {
     map: BaseIter<'a, K, V>,
-    null_value: &'a Option<V>,
+    null_value: Option<&'a V>,
 }
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
@@ -218,12 +218,8 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((key, val)) = self.map.next() {
             Some((Some(key), val))
-        } else if let Some(value) = self.null_value {
-            let value = value;
-            self.null_value = &None;
-            Some((None, value))
         } else {
-            None
+            self.null_value.take().map(|value| (None, value))
         }
     }
 

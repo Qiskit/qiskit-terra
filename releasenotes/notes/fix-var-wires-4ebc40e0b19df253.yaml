@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with :func:`.dag_drawer` and :meth:`.DAGCircuit.draw`
+    when attempting to visualize a :class:`.DAGCircuit` instance that contained
+    :class:`.Var` wires. The visualizer would raise an exception trying to
+    do this which has been fixed so the expected visualization will be
+    generated.

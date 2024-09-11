@@ -315,8 +315,10 @@ class QFTGate(Gate):
         """
         super().__init__(name="qft", num_qubits=num_qubits, params=[])
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=complex, copy=None):
         """Return a numpy array for the QFTGate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         n = self.num_qubits
         nums = np.arange(2**n)
         outer = np.outer(nums, nums)

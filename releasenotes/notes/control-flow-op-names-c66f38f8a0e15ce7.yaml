@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    A new data attribute, :data:`qiskit.circuit.CONTROL_FLOW_OP_NAMES`, is available to easily find
+    and check whether a given :class:`~.circuit.Instruction` is a control-flow operation by name.

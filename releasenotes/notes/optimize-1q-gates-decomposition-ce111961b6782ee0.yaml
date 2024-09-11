@@ -1,0 +1,12 @@
+---
+features_transpiler:
+  - |
+    Added a new method :meth:`.DAGCircuit.control_flow_ops` which provides a fast
+    path to get all the :class:`.DAGOpNode` in a :class:`.DAGCircuit` that
+    contain a :class:`.ControlFlowOp`. This was possible before using the
+    :meth:`.DAGCircuit.op_nodes` method and passing the :class:`.ControlFlowOp` class
+    as a filter, but this new function will perform the operation faster.
+  - |
+    Ported the entirety of the :class:`.Optimize1qGatesDecomposition` transpiler
+    pass to Rust. This improves the runtime performance of the pass between 5x
+    to 10x.

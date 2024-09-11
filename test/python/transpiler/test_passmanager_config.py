@@ -140,6 +140,7 @@ class TestPassManagerConfig(QiskitTestCase):
 \ttiming_constraints: None
 \tunitary_synthesis_method: default
 \tunitary_synthesis_plugin_config: None
+\tqubits_initially_zero: True
 \ttarget: Target: Basic Target
 \tNumber of qubits: None
 \tInstructions:

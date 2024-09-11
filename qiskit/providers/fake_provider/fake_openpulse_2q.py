@@ -16,14 +16,14 @@ Fake backend supporting OpenPulse.
 import datetime
 import warnings
 
-from qiskit.providers.models import (
+from qiskit.providers.models.backendconfiguration import (
     GateConfig,
     PulseBackendConfiguration,
-    PulseDefaults,
-    Command,
     UchannelLO,
 )
+
 from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
+from qiskit.providers.models.pulsedefaults import PulseDefaults, Command
 from qiskit.qobj import PulseQobjInstruction
 
 from .fake_backend import FakeBackend

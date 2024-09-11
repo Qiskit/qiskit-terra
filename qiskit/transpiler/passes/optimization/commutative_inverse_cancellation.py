@@ -12,6 +12,7 @@
 
 """Cancel pairs of inverse gates exploiting commutation relations."""
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -34,6 +35,7 @@ class CommutativeInverseCancellation(TransformationPass):
         """
         self._matrix_based = matrix_based
         self._max_qubits = max_qubits
+        self.comm_checker = scc
         super().__init__()
 
     def _skip_node(self, node):
@@ -92,7 +94,6 @@ class CommutativeInverseCancellation(TransformationPass):
 
         removed = [False for _ in range(circ_size)]
 
-        cc = scc
         phase_update = 0
 
         for idx1 in range(0, circ_size):
@@ -118,13 +119,9 @@ class CommutativeInverseCancellation(TransformationPass):
                         matched_idx2 = idx2
                         break
 
-                if not cc.commute(
-                    topo_sorted_nodes[idx1].op,
-                    topo_sorted_nodes[idx1].qargs,
-                    topo_sorted_nodes[idx1].cargs,
-                    topo_sorted_nodes[idx2].op,
-                    topo_sorted_nodes[idx2].qargs,
-                    topo_sorted_nodes[idx2].cargs,
+                if not self.comm_checker.commute_nodes(
+                    topo_sorted_nodes[idx1],
+                    topo_sorted_nodes[idx2],
                     max_num_qubits=self._max_qubits,
                 ):
                     break

@@ -1,0 +1,18 @@
+---
+features_transpiler:
+  - |
+    A new argument ``qubits_initially_zero`` has been added to :func:`qiskit.compiler.transpile`,
+    :func:`.generate_preset_pass_manager`, and to :class:`~.PassManagerConfig`.
+    If set to ``True``, the qubits are assumed to be initially in the state :math:`|0\rangle`,
+    potentially allowing additional optimization opportunities for individual transpiler passes.
+  - |
+    The constructor for :class:`.HighLevelSynthesis` transpiler pass now accepts an
+    additional argument ``qubits_initially_zero``. If set to ``True``, the pass assumes that the
+    qubits are initially in the state :math:`|0\rangle`. In addition, the pass keeps track of
+    clean and dirty auxiliary qubits throughout the run, and passes this information to plugins
+    via kwargs ``num_clean_ancillas`` and ``num_dirty_ancillas``.
+upgrade_transpiler:
+  - |
+    The :func:`~qiskit.compiler.transpile` now assumes that the qubits are initially in the state
+    :math:`|0\rangle`. To avoid this assumption, one can set the argument ``qubits_initially_zero``
+    to ``False``.

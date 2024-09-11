@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix a bug that caused the method :meth:`Initialize.gates_to_uncompute()` fail.

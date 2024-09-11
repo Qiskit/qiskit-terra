@@ -62,6 +62,12 @@ class TestHamiltonianGate(QiskitTestCase):
             ham.adjoint().to_matrix(), np.transpose(np.conj(ham.to_matrix()))
         )
 
+    def test_repeat(self):
+        """test repeat operation"""
+        ham = HamiltonianGate(np.array([[1, 0.5 + 4j], [0.5 - 4j, -0.2]]), np.pi * 0.143)
+        operator = Operator(ham)
+        self.assertTrue(np.allclose(Operator(ham.repeat(2)), operator @ operator))
+
 
 class TestHamiltonianCircuit(QiskitTestCase):
     """Hamiltonian gate circuit tests."""

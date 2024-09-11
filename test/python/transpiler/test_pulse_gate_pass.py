@@ -16,7 +16,7 @@ import ddt
 
 from qiskit import pulse, circuit, transpile
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
-from qiskit.providers.models import GateConfig
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.quantum_info.random import random_unitary
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 

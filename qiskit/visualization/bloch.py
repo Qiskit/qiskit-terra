@@ -50,6 +50,7 @@ __all__ = ["Bloch"]
 
 import math
 import os
+import re
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -58,6 +59,47 @@ from mpl_toolkits.mplot3d import Axes3D, proj3d
 from mpl_toolkits.mplot3d.art3d import Patch3D
 
 from .utils import matplotlib_close_if_inline
+
+
+# This version pattern is taken from the pypa packaging project:
+# https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
+# which is dual licensed Apache 2.0 and BSD see the source for the original
+# authors and other details
+VERSION_PATTERN = (
+    "^"
+    + r"""
+    v?
+    (?:
+        (?:(?P<epoch>[0-9]+)!)?                           # epoch
+        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+        (?P<pre>                                          # pre-release
+            [-_\.]?
+            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            [-_\.]?
+            (?P<pre_n>[0-9]+)?
+        )?
+        (?P<post>                                         # post release
+            (?:-(?P<post_n1>[0-9]+))
+            |
+            (?:
+                [-_\.]?
+                (?P<post_l>post|rev|r)
+                [-_\.]?
+                (?P<post_n2>[0-9]+)?
+            )
+        )?
+        (?P<dev>                                          # dev release
+            [-_\.]?
+            (?P<dev_l>dev)
+            [-_\.]?
+            (?P<dev_n>[0-9]+)?
+        )?
+    )
+    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
+"""
+    + "$"
+)
+VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
 class Arrow3D(Patch3D, FancyArrowPatch):
@@ -419,7 +461,8 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+            version_match = VERSION_PATTERN_REGEX.search(matplotlib.__version__)
+            if tuple(int(x) for x in version_match.group("release").split(".")) >= (3, 4, 0):
                 self.axes = Axes3D(
                     self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
                 )

@@ -72,13 +72,13 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_true_direction_in_same_layer(self):
         """Two CXs distance_qubits 1 to each other, in the same layer
-        qr0:--(+)--
+        qr0:---.--
                |
-        qr1:---.---
+        qr1:--(+)---
 
-        qr2:--(+)--
+        qr2:---.---
                |
-        qr3:---.---
+        qr3:--(+)--
 
         CouplingMap map: [0]->[1]->[2]->[3]
         """
@@ -96,9 +96,9 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_wrongly_mapped(self):
         """Needs [0]-[1] in a [0]--[2]--[1]
-        qr0:--(+)--
+        qr0:---.---
                |
-        qr1:---.---
+        qr1:--(+)--
 
         CouplingMap map: [0]->[2]->[1]
         """
@@ -115,11 +115,11 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_true_direction_undirected(self):
         """Mapped but with wrong direction
-        qr0:--(+)-[H]--.--
+        qr0:---.--[H]-(+)-
                |       |
-        qr1:---.-------|--
+        qr1:--(+)------|--
                        |
-        qr2:----------(+)-
+        qr2:-----------.--
 
         CouplingMap map: [1]<-[0]->[2]
         """
@@ -138,13 +138,13 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_false_direction_in_same_layer_undirected(self):
         """Two CXs in the same layer, but one is wrongly directed
-        qr0:--(+)--
+        qr0:---.---
                |
-        qr1:---.---
+        qr1:--(+)--
 
-        qr2:---.---
+        qr2:--(+)--
                |
-        qr3:--(+)--
+        qr3:---.---
 
         CouplingMap map: [0]->[1]->[2]->[3]
         """

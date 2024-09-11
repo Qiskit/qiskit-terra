@@ -18,6 +18,7 @@ import qiskit.circuit
 from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
+from qiskit.providers.backend import BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
 
@@ -75,6 +76,9 @@ class InstructionDurations:
             TranspilerError: If dt and dtm is different in the backend.
         """
         # All durations in seconds in gate_length
+        if isinstance(backend, BackendV2):
+            return backend.target.durations()
+
         instruction_durations = []
         backend_properties = backend.properties()
         if hasattr(backend_properties, "_gates"):

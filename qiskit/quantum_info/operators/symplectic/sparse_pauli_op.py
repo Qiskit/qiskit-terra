@@ -256,6 +256,8 @@ class SparsePauliOp(LinearOp):
             raise ValueError(
                 f"incorrect number of operators: expected {len(self.paulis)}, got {len(value)}"
             )
+        self.coeffs *= (-1j) ** value.phase
+        value.phase = 0
         self._pauli_list = value
 
     @property

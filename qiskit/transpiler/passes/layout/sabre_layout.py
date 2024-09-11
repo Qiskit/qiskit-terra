@@ -310,7 +310,7 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-        mapped_dag._global_phase = dag._global_phase
+        mapped_dag.global_phase = dag.global_phase
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }

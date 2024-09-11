@@ -133,6 +133,21 @@ class TestIsometry(QiskitTestCase):
         result = Operator(qc)
         np.testing.assert_array_almost_equal(result.data, np.identity(result.dim[0]))
 
+    @data(
+        np.eye(2, 2),
+        random_unitary(2, seed=297102).data,
+        np.eye(4, 4),
+        random_unitary(4, seed=123642).data,
+        random_unitary(8, seed=568288).data,
+    )
+    def test_isometry_repeat(self, iso):
+        """Tests for the repeat of isometries from n to n qubits"""
+        iso_gate = Isometry(iso, 0, 0)
+
+        op = Operator(iso_gate)
+        op_double = Operator(iso_gate.repeat(2))
+        np.testing.assert_array_almost_equal(op @ op, op_double)
+
 
 if __name__ == "__main__":
     unittest.main()

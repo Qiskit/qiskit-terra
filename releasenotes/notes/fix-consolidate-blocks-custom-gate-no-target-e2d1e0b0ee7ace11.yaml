@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.ConsolidateBlocks` transpiler pass, when the
+    input circuit contains a custom opaque gate and neither the
+    ``basis_gates`` or ``target`` options are set the pass would raise a
+    ``QiskitError`` and fail. This has been corrected so that the in these
+    situations the transpiler pass will not consolidate the block identified
+    containing a custom gate instead of failing.

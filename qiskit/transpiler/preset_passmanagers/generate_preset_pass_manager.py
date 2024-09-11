@@ -59,6 +59,7 @@ def generate_preset_pass_manager(
     init_method=None,
     optimization_method=None,
     dt=None,
+    qubits_initially_zero=True,
     *,
     _skip_target=False,
 ):
@@ -233,6 +234,8 @@ def generate_preset_pass_manager(
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"optimization"`` for the
             ``stage_name`` argument.
+        qubits_initially_zero (bool): Indicates whether the input circuit is
+                zero-initialized.
 
     Returns:
         StagedPassManager: The preset pass manager for the given options
@@ -355,6 +358,7 @@ def generate_preset_pass_manager(
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
     approximation_degree = _parse_approximation_degree(approximation_degree)
+    seed_transpiler = _parse_seed_transpiler(seed_transpiler)
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,
@@ -375,6 +379,7 @@ def generate_preset_pass_manager(
         "hls_config": hls_config,
         "init_method": init_method,
         "optimization_method": optimization_method,
+        "qubits_initially_zero": qubits_initially_zero,
     }
 
     if backend is not None:
@@ -527,3 +532,11 @@ def _parse_approximation_degree(approximation_degree):
     if approximation_degree < 0.0 or approximation_degree > 1.0:
         raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
+
+
+def _parse_seed_transpiler(seed_transpiler):
+    if seed_transpiler is None:
+        return None
+    if not isinstance(seed_transpiler, int) or seed_transpiler < 0:
+        raise ValueError("Expected non-negative integer as seed for transpiler.")
+    return seed_transpiler

@@ -2,4 +2,4 @@ blank_issues_enabled: true
 contact_links:
   - name: Non-API docs issues
     url: https://github.com/Qiskit/documentation/issues/new/choose
-    about: Open an issue about documentation in the Start, Build, Transpile, Verify, Run, or Migration guides sections of docs.quantum.ibm.com (non-API documentation)
+    about: Open an issue about documentation in the guides and additional resources sections of docs.quantum.ibm.com (non-API documentation)

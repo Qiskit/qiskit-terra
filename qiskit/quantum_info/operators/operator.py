@@ -55,6 +55,30 @@ class Operator(LinearOp):
     .. math::
 
         \rho \mapsto M \rho M^\dagger.
+
+    For example, the following operator :math:`M = X` applied to the zero state
+    :math:`|\psi\rangle=|0\rangle (\rho = |0\rangle\langle 0|)` changes it to the
+    one state :math:`|\psi\rangle=|1\rangle (\rho = |1\rangle\langle 1|)`:
+
+    .. code-block:: python
+
+        >>> import numpy as np
+        >>> from qiskit.quantum_info import Operator
+        >>> op = Operator(np.array([[0.0, 1.0], [1.0, 0.0]]))  # Represents Pauli X operator
+
+        >>> from qiskit.quantum_info import Statevector
+        >>> sv = Statevector(np.array([1.0, 0.0]))
+        >>> sv.evolve(op)
+        Statevector([0.+0.j, 1.+0.j],
+                    dims=(2,))
+
+        >>> from qiskit.quantum_info import DensityMatrix
+        >>> dm = DensityMatrix(np.array([[1.0, 0.0], [0.0, 0.0]]))
+        >>> dm.evolve(op)
+        DensityMatrix([[0.+0.j, 0.+0.j],
+                    [0.+0.j, 1.+0.j]],
+                    dims=(2,))
+
     """
 
     def __init__(

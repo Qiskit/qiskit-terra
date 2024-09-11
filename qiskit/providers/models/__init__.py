@@ -38,26 +38,52 @@ Classes
    GateProperties
    Nduv
 """
+# pylint: disable=undefined-all-variable
+__all__ = [
+    "BackendConfiguration",
+    "PulseBackendConfiguration",
+    "QasmBackendConfiguration",
+    "UchannelLO",
+    "GateConfig",
+    "BackendProperties",
+    "GateProperties",
+    "Nduv",
+    "BackendStatus",
+    "JobStatus",
+    "PulseDefaults",
+    "Command",
+]
+
+import importlib
 import warnings
 
-from .backendconfiguration import (
-    BackendConfiguration,
-    PulseBackendConfiguration,
-    QasmBackendConfiguration,
-    UchannelLO,
-    GateConfig,
-)
-from .backendproperties import BackendProperties, GateProperties, Nduv
-from .backendstatus import BackendStatus
-from .jobstatus import JobStatus
-from .pulsedefaults import PulseDefaults, Command
+
+_NAME_MAP = {
+    # public object name mapped to containing module
+    "BackendConfiguration": "qiskit.providers.models.backendconfiguration",
+    "PulseBackendConfiguration": "qiskit.providers.models.backendconfiguration",
+    "QasmBackendConfiguration": "qiskit.providers.models.backendconfiguration",
+    "UchannelLO": "qiskit.providers.models.backendconfiguration",
+    "GateConfig": "qiskit.providers.models.backendconfiguration",
+    "BackendProperties": "qiskit.providers.models.backendproperties",
+    "GateProperties": "qiskit.providers.models.backendproperties",
+    "Nduv": "qiskit.providers.models.backendproperties",
+    "BackendStatus": "qiskit.providers.models.backendstatus",
+    "JobStatus": "qiskit.providers.models.jobstatus",
+    "PulseDefaults": "qiskit.providers.models.pulsedefaults",
+    "Command": "qiskit.providers.models.pulsedefaults",
+}
 
 
-warnings.warn(
-    "qiskit.providers.models is deprecated since Qiskit 1.2 and will be removed in Qiskit 2.0. "
-    "With the removal of Qobj, there is no need for these schema-conformant objects. If you still need "
-    "to use them, it could be because you are using a BackendV1, which is also deprecated in favor "
-    "of BackendV2.",
-    DeprecationWarning,
-    2,
-)
+def __getattr__(name):
+    if (module_name := _NAME_MAP.get(name)) is not None:
+        warnings.warn(
+            "qiskit.providers.models is deprecated since Qiskit 1.2 and will be "
+            "removed in Qiskit 2.0. With the removal of Qobj, there is no need for these "
+            "schema-conformant objects. If you still need to use them, it could be because "
+            "you are using a BackendV1, which is also deprecated in favor of BackendV2.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module 'qiskit.providers.models' has no attribute '{name}'")

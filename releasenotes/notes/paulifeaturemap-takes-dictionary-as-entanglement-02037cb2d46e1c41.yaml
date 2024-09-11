@@ -1,0 +1,26 @@
+---
+fixes:
+  - |
+    Fixed that the entanglement in :class:`.PauliFeatureMap` and :class:`.ZZFeatureMap`
+    could be given as ``List[int]`` or ``List[List[int]]``, which was incompatible with the fact
+    that entanglement blocks of different sizes are used. Instead, the entanglement can be 
+    given as dictionary with ``{block_size: entanglement}`` pairs.
+features_circuits:
+  - |
+    :class:`.PauliFeatureMap` and :class:`.ZZFeatureMap` now support specifying the 
+    entanglement as a dictionary where the keys represent the number of qubits, and 
+    the values are lists of integer tuples that define which qubits are entangled with one another. This
+    allows for more flexibility in constructing feature maps tailored to specific quantum algorithms. 
+    Example usage::
+
+      from qiskit.circuit.library import PauliFeatureMap
+      entanglement = {
+        1: [(0,), (2,)],
+        2: [(0, 1), (1, 2)],
+        3: [(0, 1, 2)],
+      }
+      qc = PauliFeatureMap(3, reps=2, paulis=['Z', 'ZZ', 'ZZZ'], entanglement=entanglement, insert_barriers=True)
+      qc.decompose().draw('mpl')
+
+
+

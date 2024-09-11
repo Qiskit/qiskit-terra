@@ -71,12 +71,13 @@ For example::
 import unittest
 import os
 import sys
+import warnings
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap, StochasticSwap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -104,8 +105,15 @@ class CommonUtilitiesMixin:
         if initial_layout:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
-        # pylint: disable=not-callable
-        passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
+        with warnings.catch_warnings():
+            # TODO: remove this filter when StochasticSwap is removed
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".*StochasticSwap.*",
+            )
+            # pylint: disable=not-callable
+            passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 
     def create_backend(self):

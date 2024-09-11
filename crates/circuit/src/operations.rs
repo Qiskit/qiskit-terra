@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use approx::relative_eq;
 use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
@@ -33,6 +34,29 @@ pub enum Param {
     ParameterExpression(PyObject),
     Float(f64),
     Obj(PyObject),
+}
+
+impl Param {
+    pub fn eq(&self, py: Python, other: &Param) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(a == b),
+            [Self::Float(a), Self::ParameterExpression(b)] => b.bind(py).eq(a),
+            [Self::ParameterExpression(a), Self::Float(b)] => a.bind(py).eq(b),
+            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(_), Self::Float(_)] => Ok(false),
+            [Self::Float(_), Self::Obj(_)] => Ok(false),
+            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
+            [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
+        }
+    }
+
+    pub fn is_close(&self, py: Python, other: &Param, max_relative: f64) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
+            _ => self.eq(py, other),
+        }
+    }
 }
 
 impl<'py> FromPyObject<'py> for Param {
@@ -101,6 +125,24 @@ impl Param {
             Param::Obj(ob.clone().unbind())
         })
     }
+
+    /// Clones the [Param] object safely by reference count or copying.
+    pub fn clone_ref(&self, py: Python) -> Self {
+        match self {
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            Param::Float(float) => Param::Float(*float),
+            Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
+        }
+    }
+}
+
+// This impl allows for shared usage between [Param] and &[Param].
+// Such blanked impl doesn't exist inherently due to Rust's type system limitations.
+// See https://doc.rust-lang.org/std/convert/trait.AsRef.html#reflexivity for more information.
+impl AsRef<Param> for Param {
+    fn as_ref(&self) -> &Param {
+        self
+    }
 }
 
 /// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
@@ -131,6 +173,7 @@ pub trait Operation {
 /// `PackedInstruction::op`, and in turn is a view object onto a `PackedOperation`.
 ///
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
+#[derive(Debug)]
 pub enum OperationRef<'a> {
     Standard(StandardGate),
     Gate(&'a PyGate),
@@ -392,7 +435,7 @@ impl StandardGate {
         if let Some(extra) = extra_attrs {
             let kwargs = [
                 ("label", extra.label.to_object(py)),
-                ("unit", extra.unit.to_object(py)),
+                ("unit", extra.py_unit(py).into_any()),
                 ("duration", extra.duration.to_object(py)),
             ]
             .into_py_dict_bound(py);
@@ -2182,10 +2225,7 @@ impl Operation for PyGate {
     fn standard_gate(&self) -> Option<StandardGate> {
         Python::with_gil(|py| -> Option<StandardGate> {
             match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => match stdgate.extract(py) {
-                    Ok(out_gate) => out_gate,
-                    Err(_) => None,
-                },
+                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
                 Err(_) => None,
             }
         })

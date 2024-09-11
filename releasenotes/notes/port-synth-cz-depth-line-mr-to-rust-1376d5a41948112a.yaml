@@ -1,0 +1,6 @@
+---
+features_synthesis:
+  - |
+    Port :func: `.synth_cz_depth_line_mr` to Rust. This function synthesizes a CZ circuit for linear nearest neighbor (LNN) connectivity, based on the Maslov and Roetteler method. On a 350x350 binary matrix, the Rust implementation yields a speedup of about 30 times.
+  - |
+    Port :func: `.synth_permutation_reverse_lnn_kms` to Rust, which synthesizes a reverse permutation for linear nearest-neighbor architecture using the Kutin, Moulton, Smithline method.

@@ -175,7 +175,7 @@ class GateDirection(TransformationPass):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                node.op = node.op.replace_blocks(
+                new_op = node.op.replace_blocks(
                     dag_to_circuit(
                         self._run_coupling_map(
                             circuit_to_dag(block),
@@ -188,6 +188,7 @@ class GateDirection(TransformationPass):
                     )
                     for block in node.op.blocks
                 )
+                dag.substitute_node(node, new_op, propagate_condition=False)
                 continue
             if len(node.qargs) != 2:
                 continue
@@ -222,7 +223,7 @@ class GateDirection(TransformationPass):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                node.op = node.op.replace_blocks(
+                new_op = node.op.replace_blocks(
                     dag_to_circuit(
                         self._run_target(
                             circuit_to_dag(block),
@@ -234,6 +235,7 @@ class GateDirection(TransformationPass):
                     )
                     for block in node.op.blocks
                 )
+                dag.substitute_node(node, new_op, propagate_condition=False)
                 continue
             if len(node.qargs) != 2:
                 continue

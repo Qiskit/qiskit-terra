@@ -72,9 +72,9 @@ class BaseScheduler(AnalysisPass):
             # Note that node duration is updated (but this is analysis pass)
             op = node.op.to_mutable()
             op.duration = duration
-            node.op = op
+            dag.substitute_node(node, op, propagate_condition=False)
         else:
-            duration = node.op.duration
+            duration = node.duration
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

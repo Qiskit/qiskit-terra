@@ -43,7 +43,7 @@ from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
 from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug where :meth:`.InstructionDurations.from_backend` did not work for :class:`.BackendV2` backends.
+    Fixed `#12760 <https://github.com/Qiskit/qiskit/issues/12760>`.

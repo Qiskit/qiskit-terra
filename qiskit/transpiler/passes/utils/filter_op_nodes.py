@@ -18,6 +18,8 @@ from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 
+from qiskit._accelerate.filter_op_nodes import filter_op_nodes
+
 
 class FilterOpNodes(TransformationPass):
     """Remove all operations that match a filter function
@@ -59,7 +61,5 @@ class FilterOpNodes(TransformationPass):
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
-        for node in dag.op_nodes():
-            if not self.predicate(node):
-                dag.remove_op_node(node)
+        filter_op_nodes(dag, self.predicate)
         return dag

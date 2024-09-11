@@ -113,7 +113,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_plot_state_hinton(self):
         """test plot_state_hinton"""
@@ -437,7 +437,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_plot_16_qubit_gate_map(self):
         """Test plot_gate_map using 16 qubit backend"""
@@ -455,7 +455,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_plot_27_qubit_gate_map(self):
         """Test plot_gate_map using 27 qubit backend"""
@@ -527,7 +527,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_qubit_color(self):
         """Test qubit_color parameter of plot_gate_map"""
@@ -545,7 +545,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_qubit_labels(self):
         """Test qubit_labels parameter of plot_gate_map"""
@@ -658,7 +658,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.99)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
 
 if __name__ == "__main__":

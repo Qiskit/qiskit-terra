@@ -45,7 +45,7 @@ def trivial_recurse(method):
     use :func:`map_blocks` as::
 
         if isinstance(node.op, ControlFlowOp):
-            node.op = map_blocks(self.run, node.op)
+            dag.substitute_node(node, map_blocks(self.run, node.op))
 
     from with :meth:`.BasePass.run`."""
 
@@ -54,8 +54,12 @@ def trivial_recurse(method):
         def bound_wrapped_method(dag):
             return out(self, dag)
 
-        for node in dag.op_nodes(ControlFlowOp):
-            node.op = map_blocks(bound_wrapped_method, node.op)
+        control_flow_nodes = dag.control_flow_op_nodes()
+        if control_flow_nodes is not None:
+            for node in control_flow_nodes:
+                dag.substitute_node(
+                    node, map_blocks(bound_wrapped_method, node.op), propagate_condition=False
+                )
         return method(self, dag)
 
     return out

@@ -16,6 +16,7 @@
 
 from qiskit.circuit import Delay, Parameter
 from qiskit.providers.fake_provider import Fake27QPulseV1
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -92,3 +93,10 @@ class TestInstructionDurationsClass(QiskitTestCase):
         parameterized_delay = Delay(param, "s")
         with self.assertRaises(TranspilerError):
             InstructionDurations().get(parameterized_delay, 0)
+
+    def test_from_backend_with_backendv2(self):
+        """Test if `from_backend()` method allows using BackendV2"""
+        backend = GenericBackendV2(num_qubits=4, calibrate_instructions=True, seed=42)
+        inst_durations = InstructionDurations.from_backend(backend)
+        self.assertEqual(inst_durations, backend.target.durations())
+        self.assertIsInstance(inst_durations, InstructionDurations)

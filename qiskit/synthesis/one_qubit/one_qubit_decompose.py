@@ -224,7 +224,8 @@ class OneQubitEulerDecomposer:
         return QuantumCircuit._from_circuit_data(
             euler_one_qubit_decomposer.unitary_to_circuit(
                 unitary, [self.basis], 0, None, simplify, atol
-            )
+            ),
+            add_regs=True,
         )
 
     @property

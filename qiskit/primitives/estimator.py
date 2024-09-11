@@ -22,7 +22,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
@@ -31,7 +30,7 @@ from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
     _observable_key,
-    bound_circuit_to_instruction,
+    _statevector_from_circuit,
     init_observable,
 )
 
@@ -43,13 +42,21 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     :Run Options:
 
         - **shots** (None or int) --
-          The number of shots. If None, it calculates the exact expectation
-          values. Otherwise, it samples from normal distributions with standard errors as standard
+          The number of shots. If None, it calculates the expectation values
+          with full state vector simulation.
+          Otherwise, it samples from normal distributions with standard errors as standard
           deviations using normal distribution approximation.
 
         - **seed** (np.random.Generator or int) --
           Set a fixed seed or generator for the normal distribution. If shots is None,
           this option is ignored.
+
+    .. note::
+        The result of this class is exact if the circuit contains only unitary operations.
+        On the other hand, the result could be stochastic if the circuit contains a non-unitary
+        operation such as a reset for a some subsystems.
+        The stochastic result can be made reproducible by setting ``seed``, e.g.,
+        ``Estimator(options={"seed":123})``.
     """
 
     @deprecate_func(
@@ -112,7 +119,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            final_state = Statevector(bound_circuit_to_instruction(circ))
+            final_state = _statevector_from_circuit(circ, rng)
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)

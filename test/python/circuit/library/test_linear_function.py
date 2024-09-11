@@ -502,6 +502,19 @@ class TestLinearFunctions(QiskitTestCase):
         self.assertEqual(Clifford(qc_to_linear_function), qc_to_clifford)
         self.assertEqual(qc_to_linear_function, LinearFunction(qc_to_clifford))
 
+    @data(2, 3)
+    def test_repeat_method(self, num_qubits):
+        """Test the repeat() method."""
+        rng = np.random.default_rng(127)
+        for num_gates, seed in zip(
+            [0, 5, 5 * num_qubits], rng.integers(100000, size=10, dtype=np.uint64)
+        ):
+            # create a random linear circuit
+            linear_circuit = random_linear_circuit(num_qubits, num_gates, seed=seed)
+            operator = Operator(linear_circuit)
+            linear_function = LinearFunction(linear_circuit)
+            self.assertTrue(Operator(linear_function.repeat(2)), operator @ operator)
+
 
 if __name__ == "__main__":
     unittest.main()

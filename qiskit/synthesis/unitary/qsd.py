@@ -255,7 +255,9 @@ def _apply_a2(circ):
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
     decomposer = two_qubit_decompose_up_to_diagonal
-    ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)
+    ccirc = transpile(
+        circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0, qubits_initially_zero=False
+    )
     ind2q = []
     # collect 2q instrs
     for i, instruction in enumerate(ccirc.data):

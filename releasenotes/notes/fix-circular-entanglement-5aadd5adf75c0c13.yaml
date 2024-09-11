@@ -1,0 +1,16 @@
+fixes:
+  - |
+    Fixed a bug with the ``"circular"`` and ``"sca"`` entanglement for
+    :class:`.NLocal` circuits and its derivatives. For entanglement blocks
+    of more than 2 qubits, the circular entanglement was previously missing
+    some connections. For example, for 4 qubits and a block size of 3 the
+    code previously used::
+
+      [(2, 3, 0), (0, 1, 2), (1, 2, 3)]
+
+    but now is correctly adding the ``(3, 0, 1)`` connections, that is::
+
+      [(2, 3, 0), (3, 0, 1), (0, 1, 2), (1, 2, 3)]
+
+    As such, the ``"circular"`` and ``"sca"`` entanglements use ``num_qubits``
+    entangling blocks per layer.

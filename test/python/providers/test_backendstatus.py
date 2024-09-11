@@ -14,7 +14,7 @@ Test the BackendStatus.
 """
 
 from qiskit.providers.fake_provider import Fake5QV1
-from qiskit.providers.models import BackendStatus
+from qiskit.providers.models.backendstatus import BackendStatus
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 

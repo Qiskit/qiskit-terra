@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    The :class:`.RemoveDiagonalGatesBeforeMeasure` transpiler pass has been upgraded to
+    include more diagonal gates: :class:`.PhaseGate`, :class:`.CPhaseGate`,
+    :class:`.CSGate`, :class:`.CSdgGate` and :class:`.CCZGate`.
+    In addition, the code of the :class:`.RemoveDiagonalGatesBeforeMeasure` was ported to Rust,
+    and is now x20 faster for a 20 qubit circuit.

@@ -1152,17 +1152,41 @@ class QuantumCircuit:
         """The unit that :attr:`duration` is specified in."""
         self.metadata = {} if metadata is None else metadata
         """Arbitrary user-defined metadata for the circuit.
-
+ 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
 
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
+    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit()
+
+        if data.num_qubits > 0:
+            if add_regs:
+                qr = QuantumRegister(name="q", bits=data.qubits)
+                out.qregs = [qr]
+                out._qubit_indices = {
+                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
+                }
+            else:
+                out._qubit_indices = {
+                    bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)
+                }
+
+        if data.num_clbits > 0:
+            if add_regs:
+                cr = ClassicalRegister(name="c", bits=data.clbits)
+                out.cregs = [cr]
+                out._clbit_indices = {
+                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
+                }
+            else:
+                out._clbit_indices = {
+                    bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)
+                }
+
         out._data = data
-        out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
-        out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
+
         return out
 
     @staticmethod
@@ -3013,16 +3037,7 @@ class QuantumCircuit:
                         self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
-                self.qregs.append(register)
-
-                for idx, bit in enumerate(register):
-                    if bit in self._qubit_indices:
-                        self._qubit_indices[bit].registers.append((register, idx))
-                    else:
-                        self._data.add_qubit(bit)
-                        self._qubit_indices[bit] = BitLocations(
-                            self._data.num_qubits - 1, [(register, idx)]
-                        )
+                self._add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
@@ -3040,6 +3055,16 @@ class QuantumCircuit:
                 self.add_bits(register)
             else:
                 raise CircuitError("expected a register")
+
+    def _add_qreg(self, qreg: QuantumRegister) -> None:
+        self.qregs.append(qreg)
+
+        for idx, bit in enumerate(qreg):
+            if bit in self._qubit_indices:
+                self._qubit_indices[bit].registers.append((qreg, idx))
+            else:
+                self._data.add_qubit(bit)
+                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
@@ -3212,10 +3237,17 @@ class QuantumCircuit:
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         dag = circuit_to_dag(self, copy_operations=True)
-        dag = HighLevelSynthesis().run(dag)
+
+        if gates_to_decompose is None:
+            # We should not rewrite the circuit using HLS when we have gates_to_decompose,
+            # or else HLS will rewrite all objects with available plugins (e.g., Cliffords,
+            # PermutationGates, and now also MCXGates)
+            dag = HighLevelSynthesis().run(dag)
+
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
+
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
@@ -3509,10 +3541,8 @@ class QuantumCircuit:
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
-        count_ops: dict[Instruction, int] = {}
-        for instruction in self._data:
-            count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
-        return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
+        ops_dict = self._data.count_ops()
+        return OrderedDict(ops_dict)
 
     def num_nonlocal_gates(self) -> int:
         """Return number of non-local gates (i.e. involving 2+ qubits).

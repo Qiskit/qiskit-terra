@@ -145,7 +145,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(qc1, output)
 
     def test_decomposition_preserves_qregs_order(self):
-        """Test decomposing a gate preserves it's definition registers order"""
+        """Test decomposing a gate preserves the order of registers in its definition"""
         qr = QuantumRegister(2, "qr1")
         qc1 = QuantumCircuit(qr)
         qc1.cx(1, 0)

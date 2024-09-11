@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """The Pauli expansion circuit module."""
-
-from typing import Optional, Callable, List, Union
+from typing import Optional, Callable, List, Union, Sequence, Dict, Tuple
 from functools import reduce
 import numpy as np
 
@@ -116,7 +115,11 @@ class PauliFeatureMap(NLocal):
         self,
         feature_dimension: Optional[int] = None,
         reps: int = 2,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: Union[
+            str,
+            Dict[int, List[Tuple[int]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
+        ] = "full",
         alpha: float = 2.0,
         paulis: Optional[List[str]] = None,
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
@@ -129,8 +132,13 @@ class PauliFeatureMap(NLocal):
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
-            entanglement: Specifies the entanglement structure. Refer to
-                :class:`~qiskit.circuit.library.NLocal` for detail.
+            entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+                ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
+                dictionary where the keys represent the number of qubits and the values are list
+                of integer-pairs specifying the indices of qubits that are entangled with one
+                another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
+                ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
+                a repetition
             alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
@@ -280,6 +288,45 @@ class PauliFeatureMap(NLocal):
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
+
+    def get_entangler_map(
+        self, rep_num: int, block_num: int, num_block_qubits: int
+    ) -> Sequence[Sequence[int]]:
+
+        # if entanglement is a Callable[[int], Union[str | Dict[...]]]
+        if callable(self._entanglement):
+            entanglement = self._entanglement(rep_num)
+        else:
+            entanglement = self._entanglement
+
+        # entanglement is Dict[int, List[List[int]]]
+        if isinstance(entanglement, dict):
+            if all(
+                isinstance(e2, (int, np.int32, np.int64))
+                for key in entanglement.keys()
+                for en in entanglement[key]
+                for e2 in en
+            ):
+                for qb, ent in entanglement.items():
+                    for en in ent:
+                        if len(en) != qb:
+                            raise ValueError(
+                                f"For num_qubits = {qb}, entanglement must be a "
+                                f"tuple of length {qb}. You specified {en}."
+                            )
+
+            # Check if the entanglement is specified for all the pauli blocks being used
+            for pauli in self.paulis:
+                if len(pauli) not in entanglement.keys():
+                    raise ValueError(f"No entanglement specified for {pauli} pauli.")
+
+            return entanglement[num_block_qubits]
+
+        else:
+            # if the entanglement is not Dict[int, List[List[int]]] or
+            # Dict[int, List[Tuple[int]]] then we fall back on the original
+            # `get_entangler_map()` method from NLocal
+            return super().get_entangler_map(rep_num, block_num, num_block_qubits)
 
 
 def self_product(x: np.ndarray) -> float:

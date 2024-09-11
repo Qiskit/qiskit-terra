@@ -507,112 +507,41 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
-    @data(1, 2, 3, 4)
-    def test_multi_control_toffoli_matrix_clean_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with clean ancillas.
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
-        # set up circuit
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_controls, q_target)
-
-        if num_controls > 2:
-            num_ancillas = num_controls - 2
-            q_ancillas = QuantumRegister(num_controls)
-            qc.add_register(q_ancillas)
-        else:
-            num_ancillas = 0
-            q_ancillas = None
-
-        # apply hadamard on control qubits and toffoli gate
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic")
-
-        # obtain unitary for circuit
-        simulated = Operator(qc).data
-
-        # compare to expectation
-        if num_ancillas > 0:
-            simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-
-        base = XGate().to_matrix()
-        expected = _compute_control_matrix(base, num_controls)
-        self.assertTrue(matrix_equal(simulated, expected))
-
-    @data(1, 2, 3, 4, 5)
-    def test_multi_control_toffoli_matrix_basic_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (basic-dirty-ancilla).
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
+    @combine(
+        num_controls=[2, 3, 4, 5, 6],
+        mode=[
+            "noancilla",
+            "recursion",
+            "v-chain",
+            "v-chain-dirty",
+            "advanced",
+            "basic",
+            "basic-dirty-ancilla",
+        ],
+    )
+    def test_multi_control_toffoli_matrix_advanced_num_ancillas(self, num_controls, mode):
+        """Test the multi-control Toffoli gate methods with and w/o ancillas."""
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_controls, q_target)
 
         q_ancillas = None
-        if num_controls <= 2:
+        if mode == "noancilla":
             num_ancillas = 0
-        else:
-            num_ancillas = num_controls - 2
+        if mode in ["recursion", "advanced"]:
+            num_ancillas = int(num_controls > 4)
+            q_ancillas = QuantumRegister(num_ancillas)
+            qc.add_register(q_ancillas)
+        if mode[:7] == "v-chain" or mode[:5] == "basic":
+            num_ancillas = max(0, num_controls - 2)
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic-dirty-ancilla")
+        qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
 
         simulated = Operator(qc).data
         if num_ancillas > 0:
             simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-
-        base = XGate().to_matrix()
-        expected = _compute_control_matrix(base, num_controls)
-        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
-
-    @data(1, 2, 3, 4, 5)
-    def test_multi_control_toffoli_matrix_advanced_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (advanced).
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_controls, q_target)
-
-        q_ancillas = None
-        if num_controls <= 4:
-            num_ancillas = 0
-        else:
-            num_ancillas = 1
-            q_ancillas = QuantumRegister(num_ancillas)
-            qc.add_register(q_ancillas)
-
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode="advanced")
-
-        simulated = Operator(qc).data
-        if num_ancillas > 0:
-            simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-
-        base = XGate().to_matrix()
-        expected = _compute_control_matrix(base, num_controls)
-        self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
-
-    @data(1, 2, 3)
-    def test_multi_control_toffoli_matrix_noancilla_dirty_ancillas(self, num_controls):
-        """Test the multi-control Toffoli gate with dirty ancillas (noancilla).
-
-        Based on the test moved here from Aqua:
-        https://github.com/Qiskit/qiskit-aqua/blob/769ca8f/test/aqua/test_mct.py
-        """
-        q_controls = QuantumRegister(num_controls)
-        q_target = QuantumRegister(1)
-        qc = QuantumCircuit(q_controls, q_target)
-
-        qc.mcx(q_controls, q_target[0], None, mode="noancilla")
-
-        simulated = Operator(qc)
 
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
@@ -822,6 +751,20 @@ class TestControlledGate(QiskitTestCase):
         cx_count = tr_mcx_vchain.count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
+
+    @data(5, 10, 15)
+    def test_mcxvchain_clean_ancilla_cx_count(self, num_ctrl_qubits):
+        """Test if cx count of the v-chain mcx with clean ancilla
+        is less than upper bound."""
+        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=False)
+        qc = QuantumCircuit(mcx_vchain.num_qubits)
+
+        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
+
+        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = tr_mcx_vchain.count_ops()["cx"]
+
+        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
 
     @data(7, 10, 15)
     def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
@@ -1495,7 +1438,6 @@ class TestControlledGate(QiskitTestCase):
     @data(
         RXGate,
         RYGate,
-        RZGate,
         RXXGate,
         RYYGate,
         RZXGate,

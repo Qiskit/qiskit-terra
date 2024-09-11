@@ -71,6 +71,7 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectAndCollapse
    CollectLinearFunctions
    CollectCliffords
    ConsolidateBlocks
@@ -238,6 +239,7 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectAndCollapse
 from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification

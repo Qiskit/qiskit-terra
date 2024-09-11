@@ -13,6 +13,8 @@
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
+use ahash::RandomState;
+
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 
@@ -190,8 +192,9 @@ impl BuilderState {
         let qubits = if let Some(asg_qubits) = barrier.qubits().as_ref() {
             // We want any deterministic order for easier circuit reproducibility in Python space,
             // and to include each seen qubit once.  This simply maintains insertion order.
-            let mut qubits = IndexMap::<*const ::pyo3::ffi::PyObject, Py<PyAny>>::with_capacity(
+            let mut qubits = IndexMap::<*const ::pyo3::ffi::PyObject, Py<PyAny>, RandomState>::with_capacity_and_hasher(
                 asg_qubits.len(),
+                RandomState::default()
             );
             for qarg in asg_qubits.iter() {
                 let qarg = expr::expect_gate_operand(qarg)?;

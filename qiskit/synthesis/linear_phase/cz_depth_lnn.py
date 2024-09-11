@@ -24,98 +24,10 @@ References:
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.synthesis.permutation.permutation_reverse_lnn import (
-    _append_cx_stage1,
-    _append_cx_stage2,
+
+from qiskit._accelerate.synthesis.linear_phase import (
+    synth_cz_depth_line_mr as synth_cz_depth_line_mr_inner,
 )
-
-
-def _odd_pattern1(n):
-    """A pattern denoted by Pj in [1] for odd number of qubits:
-    [n-2, n-4, n-4, ..., 3, 3, 1, 1, 0, 0, 2, 2, ..., n-3, n-3]
-    """
-    pat = []
-    pat.append(n - 2)
-    for i in range((n - 3) // 2):
-        pat.append(n - 2 * i - 4)
-        pat.append(n - 2 * i - 4)
-    for i in range((n - 1) // 2):
-        pat.append(2 * i)
-        pat.append(2 * i)
-    return pat
-
-
-def _odd_pattern2(n):
-    """A pattern denoted by Pk in [1] for odd number of qubits:
-    [2, 2, 4, 4, ..., n-1, n-1, n-2, n-2, n-4, n-4, ..., 5, 5, 3, 3, 1]
-    """
-    pat = []
-    for i in range((n - 1) // 2):
-        pat.append(2 * i + 2)
-        pat.append(2 * i + 2)
-    for i in range((n - 3) // 2):
-        pat.append(n - 2 * i - 2)
-        pat.append(n - 2 * i - 2)
-    pat.append(1)
-    return pat
-
-
-def _even_pattern1(n):
-    """A pattern denoted by Pj in [1] for even number of qubits:
-    [n-1, n-3, n-3, n-5, n-5, ..., 1, 1, 0, 0, 2, 2, ..., n-4, n-4, n-2]
-    """
-    pat = []
-    pat.append(n - 1)
-    for i in range((n - 2) // 2):
-        pat.append(n - 2 * i - 3)
-        pat.append(n - 2 * i - 3)
-    for i in range((n - 2) // 2):
-        pat.append(2 * i)
-        pat.append(2 * i)
-    pat.append(n - 2)
-    return pat
-
-
-def _even_pattern2(n):
-    """A pattern denoted by Pk in [1] for even number of qubits:
-    [2, 2, 4, 4, ..., n-2, n-2, n-1, n-1, ..., 3, 3, 1, 1]
-    """
-    pat = []
-    for i in range((n - 2) // 2):
-        pat.append(2 * (i + 1))
-        pat.append(2 * (i + 1))
-    for i in range(n // 2):
-        pat.append(n - 2 * i - 1)
-        pat.append(n - 2 * i - 1)
-    return pat
-
-
-def _create_patterns(n):
-    """Creating the patterns for the phase layers."""
-    if (n % 2) == 0:
-        pat1 = _even_pattern1(n)
-        pat2 = _even_pattern2(n)
-    else:
-        pat1 = _odd_pattern1(n)
-        pat2 = _odd_pattern2(n)
-    pats = {}
-
-    layer = 0
-    for i in range(n):
-        pats[(0, i)] = (i, i)
-
-    if (n % 2) == 0:
-        ind1 = (2 * n - 4) // 2
-    else:
-        ind1 = (2 * n - 4) // 2 - 1
-    ind2 = 0
-    while layer < (n // 2):
-        for i in range(n):
-            pats[(layer + 1, i)] = (pat1[ind1 + i], pat2[ind2 + i])
-        layer += 1
-        ind1 -= 2
-        ind2 += 2
-    return pats
 
 
 def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
@@ -139,56 +51,8 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
            *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
     """
-    num_qubits = mat.shape[0]
-    pats = _create_patterns(num_qubits)
-    patlist = []
-    # s_gates[i] = 0, 1, 2 or 3 for a gate id, sdg, z or s on qubit i respectively
-    s_gates = np.zeros(num_qubits)
 
-    qc = QuantumCircuit(num_qubits)
-    for i in range(num_qubits):
-        for j in range(i + 1, num_qubits):
-            if mat[i][j]:  # CZ(i,j) gate
-                s_gates[i] += 2  # qc.z[i]
-                s_gates[j] += 2  # qc.z[j]
-                patlist.append((i, j - 1))
-                patlist.append((i, j))
-                patlist.append((i + 1, j - 1))
-                patlist.append((i + 1, j))
-
-    for i in range((num_qubits + 1) // 2):
-        for j in range(num_qubits):
-            if pats[(i, j)] in patlist:
-                patcnt = patlist.count(pats[(i, j)])
-                for _ in range(patcnt):
-                    s_gates[j] += 1  # qc.sdg[j]
-        # Add phase gates: s, sdg or z
-        for j in range(num_qubits):
-            if s_gates[j] % 4 == 1:
-                qc.sdg(j)
-            elif s_gates[j] % 4 == 2:
-                qc.z(j)
-            elif s_gates[j] % 4 == 3:
-                qc.s(j)
-        qc = _append_cx_stage1(qc, num_qubits)
-        qc = _append_cx_stage2(qc, num_qubits)
-        s_gates = np.zeros(num_qubits)
-
-    if (num_qubits % 2) == 0:
-        i = num_qubits // 2
-        for j in range(num_qubits):
-            if pats[(i, j)] in patlist and pats[(i, j)][0] != pats[(i, j)][1]:
-                patcnt = patlist.count(pats[(i, j)])
-                for _ in range(patcnt):
-                    s_gates[j] += 1  # qc.sdg[j]
-        # Add phase gates: s, sdg or z
-        for j in range(num_qubits):
-            if s_gates[j] % 4 == 1:
-                qc.sdg(j)
-            elif s_gates[j] % 4 == 2:
-                qc.z(j)
-            elif s_gates[j] % 4 == 3:
-                qc.s(j)
-        qc = _append_cx_stage1(qc, num_qubits)
-
-    return qc
+    # Call Rust implementaton
+    return QuantumCircuit._from_circuit_data(
+        synth_cz_depth_line_mr_inner(mat.astype(bool)), add_regs=True
+    )

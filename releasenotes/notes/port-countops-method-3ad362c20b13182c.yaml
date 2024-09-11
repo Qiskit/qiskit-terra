@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    The :meth:`~.QuantumCircuit.count_ops` method in :class:`.QuantumCircuit` 
+    has been re-written in Rust. It now runs between 3 and 9 times faster.

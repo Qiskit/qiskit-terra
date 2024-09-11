@@ -259,14 +259,15 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
             coupling_map=MUMBAI_CMAP,
             seed=42,
         )
-        res = transpile(
-            qc,
-            backend,
-            layout_method="sabre",
-            routing_method="stochastic",
-            seed_transpiler=12345,
-            optimization_level=1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            res = transpile(
+                qc,
+                backend,
+                layout_method="sabre",
+                routing_method="stochastic",
+                seed_transpiler=12345,
+                optimization_level=1,
+            )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
@@ -306,10 +307,11 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         qc.cx(4, 0)
 
         cm = CouplingMap.from_line(8)
-        pass_ = SabreLayout(
-            cm, seed=0, routing_pass=StochasticSwap(cm, trials=1, seed=0, fake_run=True)
-        )
-        _ = pass_(qc)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = SabreLayout(
+                cm, seed=0, routing_pass=StochasticSwap(cm, trials=1, seed=0, fake_run=True)
+            )
+            _ = pass_(qc)
         layout = pass_.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [2, 3, 4, 1, 5])
 

@@ -14,6 +14,9 @@ Synthesis of a reverse permutation for LNN connectivity.
 """
 
 from qiskit.circuit import QuantumCircuit
+from qiskit._accelerate.synthesis.permutation import (
+    synth_permutation_reverse_lnn_kms as synth_permutation_reverse_lnn_kms_inner,
+)
 
 
 def _append_cx_stage1(qc, n):
@@ -84,7 +87,7 @@ def synth_permutation_reverse_lnn_kms(num_qubits: int) -> QuantumCircuit:
            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
     """
 
-    qc = QuantumCircuit(num_qubits)
-    _append_reverse_permutation_lnn_kms(qc, num_qubits)
-
-    return qc
+    # Call Rust implementation
+    return QuantumCircuit._from_circuit_data(
+        synth_permutation_reverse_lnn_kms_inner(num_qubits), add_regs=True
+    )

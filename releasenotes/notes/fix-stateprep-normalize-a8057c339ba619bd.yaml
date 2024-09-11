@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.StatePreparation` where the ``normalize`` 
+    argument was ignored for input arrays.
+    Fixed `#12984 <https://github.com/Qiskit/qiskit/issues/12984>`__.

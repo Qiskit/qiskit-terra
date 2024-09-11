@@ -125,7 +125,9 @@ class OptimizeAnnotated(TransformationPass):
         # Handle control-flow
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(
+                    node, control_flow.map_blocks(self.run, node.op), propagate_condition=False
+                )
 
         # First, optimize every node in the DAG.
         dag, opt1 = self._canonicalize(dag)
@@ -163,7 +165,7 @@ class OptimizeAnnotated(TransformationPass):
                 node.op.modifiers = canonical_modifiers
             else:
                 # no need for annotated operations
-                node.op = cur
+                dag.substitute_node(node, cur, propagate_condition=False)
             did_something = True
         return dag, did_something
 

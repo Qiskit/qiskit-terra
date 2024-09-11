@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed the definition of the :class:`.CUGate` matrix in Rust-space. 
+    While this was not noticable while handling the :class:`.CUGate` purely on 
+    Python side, this had knock-on effects when transpiler passes were using the 
+    Rust representation, such as could happen in :class:`.Consolidate2qBlocks`.
+    Fixed `#13118 <https://github.com/Qiskit/qiskit/issues/13118>`__.
+

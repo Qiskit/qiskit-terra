@@ -162,7 +162,8 @@ class BasisTranslator(TransformationPass):
         # If the source basis is a subset of the target basis and we have no circuit
         # instructions on qargs that have non-global operations there is nothing to
         # translate and we can exit early.
-        if source_basis.issubset(target_basis) and not qargs_local_source_basis:
+        source_basis_names = {x[0] for x in source_basis}
+        if source_basis_names.issubset(target_basis) and not qargs_local_source_basis:
             return dag
 
         logger.info(
@@ -312,10 +313,7 @@ class BasisTranslator(TransformationPass):
         if node.params:
             parameter_map = dict(zip(target_params, node.params))
             for inner_node in target_dag.topological_op_nodes():
-                new_node = DAGOpNode.from_instruction(
-                    inner_node._to_circuit_instruction(),
-                    dag=target_dag,
-                )
+                new_node = DAGOpNode.from_instruction(inner_node._to_circuit_instruction())
                 new_node.qargs = tuple(
                     node.qargs[target_dag.find_bit(x).index] for x in inner_node.qargs
                 )
@@ -365,7 +363,6 @@ class BasisTranslator(TransformationPass):
             for inner_node in target_dag.topological_op_nodes():
                 new_node = DAGOpNode.from_instruction(
                     inner_node._to_circuit_instruction(),
-                    dag=target_dag,
                 )
                 new_node.qargs = tuple(
                     node.qargs[target_dag.find_bit(x).index] for x in inner_node.qargs

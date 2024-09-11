@@ -233,7 +233,7 @@ class TwoQubitWeylDecomposition:
         circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        return QuantumCircuit._from_circuit_data(circuit_data)
+        return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
@@ -639,7 +639,8 @@ class TwoQubitBasisDecomposer:
         """
 
         if use_dag:
-            from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+            from qiskit.dagcircuit.dagcircuit import DAGCircuit
+            from qiskit.dagcircuit.dagnode import DAGOpNode
 
             sequence = self._inner_decomposer(
                 np.asarray(unitary, dtype=complex),
@@ -659,7 +660,7 @@ class TwoQubitBasisDecomposer:
                     op = CircuitInstruction.from_standard(
                         gate, qubits=tuple(q[x] for x in qubits), params=params
                     )
-                    node = DAGOpNode.from_instruction(op, dag=dag)
+                    node = DAGOpNode.from_instruction(op)
                     dag._apply_op_node_back(node)
             return dag
         else:
@@ -671,7 +672,7 @@ class TwoQubitBasisDecomposer:
                     approximate,
                     _num_basis_uses=_num_basis_uses,
                 )
-                return QuantumCircuit._from_circuit_data(circ_data)
+                return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
             else:
                 sequence = self._inner_decomposer(
                     np.asarray(unitary, dtype=complex),

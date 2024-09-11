@@ -66,4 +66,4 @@ def synth_cnot_count_full_pmh(
     circuit_data = fast_pmh(normalized, section_size)
 
     # construct circuit from the data
-    return QuantumCircuit._from_circuit_data(circuit_data)
+    return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)

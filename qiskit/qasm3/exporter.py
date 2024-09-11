@@ -626,7 +626,13 @@ class QASM3Builder:
             if builtin in _BUILTIN_GATES:
                 # It's built into the langauge; we don't need to re-add it.
                 continue
-            self.symbols.register_gate_without_definition(builtin, None)
+            try:
+                self.symbols.register_gate_without_definition(builtin, None)
+            except QASM3ExporterError as exc:
+                raise QASM3ExporterError(
+                    f"Cannot use '{builtin}' as a basis gate for the reason in the prior exception."
+                    " Consider renaming the gate if needed, or omitting this basis gate if not."
+                ) from exc
 
         header = ast.Header(ast.Version("3.0"), list(self.build_includes()))
 

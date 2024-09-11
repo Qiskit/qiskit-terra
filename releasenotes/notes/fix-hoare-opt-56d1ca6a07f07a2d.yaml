@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.HoareOptimizer` where a controlled gate was simplified
+    by removing its controls but the new gate was not handled correctly.

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue with the visualizations of some backends/coupling maps that showed as folded on their own. The
+    `default ``neato`` setting <https://graphviz.org/docs/layouts/neato/>`_ works well in most cases. However,
+    ``prism`` overlap returns a more regular layout for other scenarios.

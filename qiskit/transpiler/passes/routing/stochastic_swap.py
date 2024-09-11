@@ -38,6 +38,7 @@ from qiskit.circuit import (
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
 from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit.utils import deprecate_func
 
 from .utils import get_swap_map_dag
 
@@ -59,6 +60,12 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
+    @deprecate_func(
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The StochasticSwap transpilation pass is a suboptimal "
+        "routing algorithm and has been superseded by the SabreSwap pass.",
+    )
     def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
 
@@ -76,6 +83,7 @@ class StochasticSwap(TransformationPass):
             initial_layout (Layout): starting layout at beginning of pass.
         """
         super().__init__()
+
         if isinstance(coupling_map, Target):
             self.target = coupling_map
             self.coupling_map = self.target.build_coupling_map()
@@ -215,7 +223,7 @@ class StochasticSwap(TransformationPass):
         int_layout = nlayout.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
-        trial_circuit.add_qubits(layout.get_virtual_bits())
+        trial_circuit.add_qubits(list(layout.get_virtual_bits()))
 
         edges = np.asarray(coupling.get_edges(), dtype=np.uint32).ravel()
         cdist = coupling._dist_matrix
@@ -265,9 +273,7 @@ class StochasticSwap(TransformationPass):
         # Output any swaps
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, depth %d", best_depth)
-            dag.compose(
-                best_circuit, qubits={bit: bit for bit in best_circuit.qubits}, inline_captures=True
-            )
+            dag.compose(best_circuit, qubits=list(best_circuit.qubits), inline_captures=True)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
         # Output this layer

@@ -28,6 +28,7 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit._accelerate.convert_2q_block_matrix import blocks_to_matrix
+from qiskit.exceptions import QiskitError
 
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
@@ -125,7 +126,12 @@ class ConsolidateBlocks(TransformationPass):
                         qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                     unitary = UnitaryGate(Operator(qc), check_input=False)
                 else:
-                    matrix = blocks_to_matrix(block, block_index_map)
+                    try:
+                        matrix = blocks_to_matrix(block, block_index_map)
+                    except QiskitError:
+                        # If building a matrix for the block fails we should not consolidate it
+                        # because there is nothing we can do with it.
+                        continue
                     unitary = UnitaryGate(matrix, check_input=False)
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
@@ -196,7 +202,11 @@ class ConsolidateBlocks(TransformationPass):
         for node in dag.op_nodes():
             if node.name not in CONTROL_FLOW_OP_NAMES:
                 continue
-            node.op = node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks)
+            dag.substitute_node(
+                node,
+                node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
+                propagate_condition=False,
+            )
         return dag
 
     def _check_not_in_basis(self, dag, gate_name, qargs):

@@ -1051,6 +1051,23 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
 
+    def test_misalignment_at_boundaries(self):
+        """Test the correct error message is raised for misalignments at In/Out nodes."""
+        # a circuit where the previous node is DAGInNode, and the next DAGOutNode
+        circuit = QuantumCircuit(1)
+        circuit.delay(101)
+
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, pulse_alignment=2),
+            ]
+        )
+
+        with self.assertRaises(TranspilerError):
+            _ = pm.run(circuit)
+
 
 if __name__ == "__main__":
     unittest.main()

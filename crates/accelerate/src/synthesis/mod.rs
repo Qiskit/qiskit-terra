@@ -12,6 +12,7 @@
 
 mod clifford;
 pub mod linear;
+pub mod linear_phase;
 mod permutation;
 
 use pyo3::prelude::*;
@@ -20,6 +21,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let linear_mod = PyModule::new_bound(m.py(), "linear")?;
     linear::linear(&linear_mod)?;
     m.add_submodule(&linear_mod)?;
+
+    let linear_phase_mod = PyModule::new_bound(m.py(), "linear_phase")?;
+    linear_phase::linear_phase(&linear_phase_mod)?;
+    m.add_submodule(&linear_phase_mod)?;
 
     let permutation_mod = PyModule::new_bound(m.py(), "permutation")?;
     permutation::permutation(&permutation_mod)?;

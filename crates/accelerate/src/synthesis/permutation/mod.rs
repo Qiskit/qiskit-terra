@@ -20,6 +20,8 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 
+use super::linear_phase::cz_depth_lnn::LnnGatesVec;
+
 mod utils;
 
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
@@ -114,11 +116,82 @@ pub fn _synth_permutation_depth_lnn_kms(
     )
 }
 
+/// A single layer of CX gates.
+pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
+    for i in 0..(n / 2) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i) as u32), Qubit((2 * i + 1) as u32)],
+        ))
+    }
+
+    for i in 0..((n + 1) / 2 - 1) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i + 2) as u32), Qubit((2 * i + 1) as u32)],
+        ))
+    }
+}
+
+/// A single layer of CX gates.
+pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
+    for i in 0..(n / 2) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i) as u32)],
+        ))
+    }
+
+    for i in 0..((n + 1) / 2 - 1) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i + 2) as u32)],
+        ))
+    }
+}
+
+/// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
+/// using Kutin, Moulton, Smithline method.
+fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
+    (0..(num_qubits + 1) / 2).for_each(|_| {
+        _append_cx_stage1(gates, num_qubits);
+        _append_cx_stage2(gates, num_qubits);
+    });
+
+    if num_qubits % 2 == 0 {
+        _append_cx_stage1(gates, num_qubits);
+    }
+}
+
+/// Synthesize reverse permutation for linear nearest-neighbor architectures using
+/// Kutin, Moulton, Smithline method.
+///
+/// Synthesis algorithm for reverse permutation from [1], section 5.
+/// This algorithm synthesizes the reverse permutation on :math:`n` qubits over
+/// a linear nearest-neighbor architecture using CX gates with depth :math:`2 * n + 2`.
+///
+/// References:
+///     1. Kutin, S., Moulton, D. P., Smithline, L.,
+///        *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
+///        `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
+#[pyfunction]
+#[pyo3(signature = (num_qubits))]
+fn synth_permutation_reverse_lnn_kms(py: Python, num_qubits: usize) -> PyResult<CircuitData> {
+    let mut gates = LnnGatesVec::new();
+    _append_reverse_permutation_lnn_kms(&mut gates, num_qubits);
+    CircuitData::from_standard_gates(py, num_qubits as u32, gates, Param::Float(0.0))
+}
+
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
     m.add_function(wrap_pyfunction!(_synth_permutation_acg, m)?)?;
     m.add_function(wrap_pyfunction!(_synth_permutation_depth_lnn_kms, m)?)?;
+    m.add_function(wrap_pyfunction!(synth_permutation_reverse_lnn_kms, m)?)?;
     Ok(())
 }

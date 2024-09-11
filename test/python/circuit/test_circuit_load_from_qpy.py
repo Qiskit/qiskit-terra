@@ -1948,8 +1948,11 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that dumping to older QPY versions rejects standalone vars."""
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit(inputs=[a])
-        with io.BytesIO() as fptr, self.assertRaisesRegex(
-            UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+            ),
         ):
             dump(qc, fptr, version=version)
 
@@ -1959,8 +1962,9 @@ class TestLoadFromQPY(QiskitTestCase):
         # Be sure to use a register, since standalone vars would be rejected for other reasons.
         qc = QuantumCircuit(ClassicalRegister(2, "cr"))
         qc.store(expr.index(qc.cregs[0], 0), False)
-        with io.BytesIO() as fptr, self.assertRaisesRegex(
-            UnsupportedFeatureForVersion, "version 12 is required.*Index"
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 12 is required.*Index"),
         ):
             dump(qc, fptr, version=version)
 

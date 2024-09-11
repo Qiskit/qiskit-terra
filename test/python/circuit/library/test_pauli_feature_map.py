@@ -221,6 +221,79 @@ class TestDataPreparation(QiskitTestCase):
         self.assertEqual(str(encoding_z_param_y.parameters), "ParameterView([Parameter(y)])")
         self.assertEqual(str(encoding_zz_param_y.parameters), "ParameterView([Parameter(y)])")
 
+    def test_entanglement_as_dictionary(self):
+        """Test whether PauliFeatureMap accepts entanglement as a dictionary and generates
+        correct feature map circuit"""
+        n_qubits = 3
+        entanglement = {
+            1: [(0,), (2,)],
+            2: [(0, 1), (1, 2)],
+            3: [(0, 1, 2)],
+        }
+        params = [np.pi / 4, np.pi / 2, np.pi]
+
+        def z_block(circuit, q1):
+            circuit.p(2 * params[q1], q1)
+
+        def zz_block(circuit, q1, q2):
+            param = (np.pi - params[q1]) * (np.pi - params[q2])
+            circuit.cx(q1, q2)
+            circuit.p(2 * param, q2)
+            circuit.cx(q1, q2)
+
+        def zzz_block(circuit, q1, q2, q3):
+            param = (np.pi - params[q1]) * (np.pi - params[q2]) * (np.pi - params[q3])
+            circuit.cx(q1, q2)
+            circuit.cx(q2, q3)
+            circuit.p(2 * param, q3)
+            circuit.cx(q2, q3)
+            circuit.cx(q1, q2)
+
+        feat_map = PauliFeatureMap(
+            n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
+        ).assign_parameters(params)
+
+        qc = QuantumCircuit(n_qubits)
+        for _ in range(2):
+            qc.h([0, 1, 2])
+            for e1 in entanglement[1]:
+                z_block(qc, *e1)
+            for e2 in entanglement[2]:
+                zz_block(qc, *e2)
+            for e3 in entanglement[3]:
+                zzz_block(qc, *e3)
+
+        self.assertTrue(Operator(feat_map).equiv(qc))
+
+    def test_invalid_entanglement(self):
+        """Test if a ValueError is raised when an invalid entanglement is passed"""
+        n_qubits = 3
+        entanglement = {
+            1: [(0, 1), (2,)],
+            2: [(0, 1), (1, 2)],
+            3: [(0, 1, 2)],
+        }
+
+        with self.assertRaises(ValueError):
+            feat_map = PauliFeatureMap(
+                n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
+            )
+            feat_map.count_ops()
+
+    def test_entanglement_not_specified(self):
+        """Test if an error is raised when entanglement is not explicitly specified for
+        all n-qubit pauli blocks"""
+        n_qubits = 3
+        entanglement = {
+            1: [(0, 1), (2,)],
+            3: [(0, 1, 2)],
+        }
+        with self.assertRaises(ValueError):
+            feat_map = PauliFeatureMap(
+                n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
+            )
+            feat_map.count_ops()
+
 
 if __name__ == "__main__":
     unittest.main()

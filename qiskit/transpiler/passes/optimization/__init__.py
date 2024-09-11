@@ -39,3 +39,4 @@ from .elide_permutations import ElidePermutations
 from .normalize_rx_angle import NormalizeRXAngle
 from .optimize_annotated import OptimizeAnnotated
 from .split_2q_unitaries import Split2QUnitaries
+from .collect_and_collapse import CollectAndCollapse

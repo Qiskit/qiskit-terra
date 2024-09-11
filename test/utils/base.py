@@ -134,7 +134,7 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings(
             "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
-            message=r"The class ``qiskit\.providers\.models\..*`",
+            message=r".*qiskit\.providers\.models.*",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
@@ -154,6 +154,14 @@ class QiskitTestCase(BaseTestCase):
             category=DeprecationWarning,
             message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
             module="qiskit_aer",
+        )
+
+        # Safe to remove once `FakeBackend` is removed (2.0)
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
+            module="qiskit.providers.fake_provider.fake_backend",
         )
 
         allow_DeprecationWarning_message = [

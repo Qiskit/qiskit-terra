@@ -1,0 +1,17 @@
+---
+features_circuits:
+  - |
+    The standard equivalence library (:data:`.SessionEquivalenceLibrary`) now has rules that can
+    directly convert between Qiskit's standard-library 2q continuous Ising-type interactions (e.g.
+    :class:`.CPhaseGate`, :class:`.RZZGate`, :class:`.RZXGate`, and so on) using local equivalence
+    relations.  Previously, several of these conversions would go via a 2-CX form, which resulted
+    in less efficient circuit generation.
+
+    .. note::
+
+      In general, the :class:`.BasisTranslator` is not guaranteed to find the "best" equivalence
+      relation for a given :class:`.Target`, but will always find an equivalence if one exists.  We
+      rely on more expensive resynthesis and gate-optimization passes in the transpiler to improve
+      the output.  These passes are currently not as effective for basis sets with a continuously
+      parametrized two-qubit interaction as they are for discrete super-controlled two-qubit
+      interactions.

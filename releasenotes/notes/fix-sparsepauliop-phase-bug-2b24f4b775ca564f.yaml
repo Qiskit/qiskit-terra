@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug when :attr:`.SparsePauliOp.paulis` is set to be a :class:`.PauliList` with nonzero 
+    phase, where subsequent calls to several :class:`.SparsePauliOp` methods would produce 
+    incorrect results. Now when :attr:`.SparsePauliOp.paulis` is set to a :class:`.PauliList` with 
+    nonzero phase, the phase is absorbed into :attr:`.SparsePauliOp.coeffs`, and the phase of the 
+    input :class:`.PauliList` is set to zero.

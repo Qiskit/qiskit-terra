@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.11'
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -47,7 +47,6 @@ jobs:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
-          SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
 
       - name: Generate unittest coverage report
         run: |

@@ -113,6 +113,16 @@ class TestStatePreparation(QiskitTestCase):
         qc.append(StatePreparation("01").repeat(2), [0, 1])
         self.assertEqual(qc.decompose().count_ops()["state_preparation"], 2)
 
+    def test_normalize(self):
+        """Test the normalization.
+
+        Regression test of #12984.
+        """
+        qc = QuantumCircuit(1)
+        qc.compose(StatePreparation([1, 1], normalize=True), range(1), inplace=True)
+
+        self.assertTrue(Statevector(qc).equiv(np.array([1, 1]) / np.sqrt(2)))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Parametric controlled standard-library gates (such as :class:`.CRXGate`) will now get correctly
+    extracted to a Rust-space standard gate when using :meth:`.QuantumCircuit.append` and the gate
+    object.  Previously there was a discrepancy where using the :meth:`.QuantumCircuit.crx` method
+    would cause a correct extraction in Rust space, but the :meth:`~.QuantumCirucit.append` form
+    would not.  The bug should generally not have caused any unsoundness from Python.

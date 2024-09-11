@@ -454,14 +454,12 @@ def _get_layered_instructions(
         clbits = new_clbits
 
     dag = circuit_to_dag(circuit)
-    dag.qubits = qubits
-    dag.clbits = clbits
 
     if justify == "none":
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, justify, measure_map)
+        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -515,23 +513,25 @@ def _get_gate_span(qubits, node):
 
 def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node)
-    all_indices = []
-    for check_node in nodes:
-        if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
-    return any(i in gate_span for i in all_indices)
+    return bool(
+        set(_get_gate_span(qubits, node)).intersection(
+            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        )
+    )
+
+
+_GLOBAL_NID = 0
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, qubits, clbits, justification, measure_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
-        self.qubits = dag.qubits
-        self.clbits = dag.clbits
+        self.qubits = qubits
+        self.clbits = clbits
         self.justification = justification
         self.measure_map = measure_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
@@ -660,6 +660,15 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
+        # Before we add the node, we set its node ID to be globally unique
+        # within this spooler. This is necessary because nodes may span
+        # layers (which are separate DAGs), and thus can falsely compare
+        # as equal if their contents and node IDs happen to be the same.
+        # This is particularly important for the matplotlib drawer, which
+        # keys several of its internal data structures with these nodes.
+        global _GLOBAL_NID  # pylint: disable=global-statement
+        node._node_id = _GLOBAL_NID
+        _GLOBAL_NID += 1
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:

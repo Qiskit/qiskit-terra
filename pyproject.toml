@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qiskit"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "Apache 2.0"}
 authors = [
     { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
@@ -27,7 +27,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -75,23 +74,29 @@ aqc = "qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin"
 sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis"
 
 [project.entry-points."qiskit.synthesis"]
-"clifford.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford"
-"clifford.ag" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:AGSynthesisClifford"
-"clifford.bm" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:BMSynthesisClifford"
-"clifford.greedy" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:GreedySynthesisClifford"
-"clifford.layers" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerSynthesisClifford"
-"clifford.lnn" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerLnnSynthesisClifford"
-"linear_function.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction"
-"linear_function.kms" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction"
-"linear_function.pmh" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction"
-"permutation.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation"
-"permutation.kms" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation"
-"permutation.basic" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation"
-"permutation.acg" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation"
-"qft.full" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QFTSynthesisFull"
-"qft.line" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QFTSynthesisLine"
-"qft.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QFTSynthesisFull"
-"permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:TokenSwapperSynthesisPermutation"
+"clifford.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:DefaultSynthesisClifford"
+"clifford.ag" = "qiskit.transpiler.passes.synthesis.hls_plugins:AGSynthesisClifford"
+"clifford.bm" = "qiskit.transpiler.passes.synthesis.hls_plugins:BMSynthesisClifford"
+"clifford.greedy" = "qiskit.transpiler.passes.synthesis.hls_plugins:GreedySynthesisClifford"
+"clifford.layers" = "qiskit.transpiler.passes.synthesis.hls_plugins:LayerSynthesisClifford"
+"clifford.lnn" = "qiskit.transpiler.passes.synthesis.hls_plugins:LayerLnnSynthesisClifford"
+"linear_function.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:DefaultSynthesisLinearFunction"
+"linear_function.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisLinearFunction"
+"linear_function.pmh" = "qiskit.transpiler.passes.synthesis.hls_plugins:PMHSynthesisLinearFunction"
+"mcx.n_dirty_i15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyI15"
+"mcx.n_clean_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNCleanM15"
+"mcx.1_clean_b95" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1CleanB95"
+"mcx.gray_code" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisGrayCode"
+"mcx.noaux_v24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24"
+"mcx.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisDefault"
+"permutation.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
+"permutation.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation"
+"permutation.basic" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
+"permutation.acg" = "qiskit.transpiler.passes.synthesis.hls_plugins:ACGSynthesisPermutation"
+"qft.full" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull"
+"qft.line" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisLine"
+"qft.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull"
+"permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.hls_plugins:TokenSwapperSynthesisPermutation"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
@@ -134,12 +139,12 @@ include = ["qiskit", "qiskit.*"]
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py39', 'py310', 'py311']
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686 cp38-macosx_arm64"
+skip = "pp* cp36-* cp37-* cp38-* *musllinux* *win32 *i686 cp38-macosx_arm64"
 test-skip = "*win32 *linux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -191,7 +196,7 @@ extension-pkg-allow-list = [
     "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
-py-version = "3.8"  # update it when bumping minimum supported python version
+py-version = "3.9"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]

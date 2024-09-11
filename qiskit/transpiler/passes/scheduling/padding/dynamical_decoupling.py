@@ -20,7 +20,7 @@ from qiskit.circuit import Gate, ParameterExpression, Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode, DAGOutNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
@@ -331,8 +331,7 @@ class PadDynamicalDecoupling(BasePadding):
         if time_interval % self._alignment != 0:
             raise TranspilerError(
                 f"Time interval {time_interval} is not divisible by alignment {self._alignment} "
-                f"between DAGNode {prev_node.name} on qargs {prev_node.qargs} and {next_node.name} "
-                f"on qargs {next_node.qargs}."
+                f"between {_format_node(prev_node)} and {_format_node(next_node)}."
             )
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
@@ -371,7 +370,10 @@ class PadDynamicalDecoupling(BasePadding):
                 op = prev_node.op
                 theta_l, phi_l, lam_l = op.params
                 op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
-                prev_node.op = op
+                new_prev_node = dag.substitute_node(prev_node, op, propagate_condition=False)
+                start_time = self.property_set["node_start_time"].pop(prev_node)
+                if start_time is not None:
+                    self.property_set["node_start_time"][new_prev_node] = start_time
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
@@ -430,3 +432,10 @@ class PadDynamicalDecoupling(BasePadding):
             else:
                 params.append(p)
         return tuple(params)
+
+
+def _format_node(node: DAGNode) -> str:
+    """Util to format the DAGNode, DAGInNode, and DAGOutNode."""
+    if isinstance(node, (DAGInNode, DAGOutNode)):
+        return f"{node.__class__.__name__} on qarg {node.wire}"
+    return f"DAGNode {node.name} on qargs {node.qargs}"

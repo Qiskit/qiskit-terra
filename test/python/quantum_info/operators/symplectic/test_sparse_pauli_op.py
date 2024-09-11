@@ -1097,6 +1097,25 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
             op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
 
+    def test_paulis_setter_absorbs_phase(self):
+        """Test that the setter for `paulis` absorbs `paulis.phase` to `self.coeffs`."""
+        coeffs_init = np.array([1, 1j])
+        op = SparsePauliOp(["XY", "ZX"], coeffs=coeffs_init)
+        paulis_new = PauliList(["-1jXY", "1jZX"])
+        op.paulis = paulis_new
+        # Paulis attribute should have no phase:
+        self.assertEqual(op.paulis, PauliList(["XY", "ZX"]))
+        # Coeffs attribute should now include that phase:
+        self.assertTrue(np.allclose(op.coeffs, coeffs_init * np.array([-1j, 1j])))
+        # The phase of the input array is now zero:
+        self.assertTrue(np.allclose(paulis_new.phase, np.array([0, 0])))
+
+    def test_paulis_setter_absorbs_phase_2(self):
+        """Test that `paulis` setter followed by `simplify()` handle phase OK."""
+        spo = SparsePauliOp(["X", "X"])
+        spo.paulis = ["X", "-X"]
+        self.assertEqual(spo.simplify(), SparsePauliOp(["I"], coeffs=[0.0 + 0.0j]))
+
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")

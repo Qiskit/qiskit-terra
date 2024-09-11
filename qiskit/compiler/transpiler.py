@@ -23,7 +23,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
@@ -74,6 +74,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
     num_processes: Optional[int] = None,
+    qubits_initially_zero: bool = True,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -292,6 +293,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
             environment variable. If set to ``None`` the system default or local user configuration
             will be used.
+        qubits_initially_zero: Indicates whether the input circuit is zero-initialized.
 
     Returns:
         The transpiled circuit(s).
@@ -394,6 +396,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         init_method=init_method,
         optimization_method=optimization_method,
         dt=dt,
+        qubits_initially_zero=qubits_initially_zero,
     )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)

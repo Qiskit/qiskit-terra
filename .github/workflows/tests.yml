@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Normally we test min and max version but we can't run python 3.8 or
+        # Normally we test min and max version but we can't run python
         # 3.9 on arm64 until actions/setup-python#808 is resolved
         python-version: ["3.10", "3.12"]
     steps:

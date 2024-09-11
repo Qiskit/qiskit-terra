@@ -12,7 +12,7 @@
 
 """Faulty fake backends for testing"""
 
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.fake_provider import Fake7QPulseV1
 
 

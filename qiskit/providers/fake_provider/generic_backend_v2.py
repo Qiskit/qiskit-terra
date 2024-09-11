@@ -16,6 +16,7 @@ from __future__ import annotations
 import warnings
 
 from collections.abc import Iterable
+from typing import List, Dict, Any, Union
 import numpy as np
 
 from qiskit import pulse
@@ -35,12 +36,12 @@ from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitP
 from qiskit.providers import Options
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import (
-    PulseDefaults,
-    Command,
-)
-from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
+from qiskit.providers.models.pulsedefaults import Command
+from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
+from qiskit.pulse.calibration_entries import PulseQobjDef
+from qiskit.providers.models.pulsedefaults import MeasurementKernel, Discriminator
+from qiskit.qobj.pulse_qobj import QobjMeasurementOption
 
 # Noise default values/ranges for duration and error of supported
 # instructions. There are two possible formats:
@@ -74,17 +75,432 @@ _QUBIT_PROPERTIES = {
     "frequency": (5e9, 5.5e9),
 }
 
-# The number of samples determines the pulse durations of the corresponding
-# instructions. This default defines pulses with durations in multiples of
-# 16 dt for consistency with the pulse granularity of real IBM devices, but
-# keeps the number smaller than what would be realistic for
-# manageability. If needed, more realistic durations could be added in the
-# future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
-_PULSE_LIBRARY = [
-    PulseLibraryItem(name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)),  # 16dt
-    PulseLibraryItem(name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)),  # 32dt
-    PulseLibraryItem(name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)),  # 64dt
-]
+
+class PulseDefaults:
+    """Internal - Description of default settings for Pulse systems. These are instructions
+    or settings that
+    may be good starting points for the Pulse user. The user may modify these defaults for custom
+    scheduling.
+    """
+
+    # Copy from the deprecated from qiskit.providers.models.pulsedefaults.PulseDefaults
+
+    _data = {}
+
+    def __init__(
+        self,
+        qubit_freq_est: List[float],
+        meas_freq_est: List[float],
+        buffer: int,
+        pulse_library: List[PulseLibraryItem],
+        cmd_def: List[Command],
+        meas_kernel: MeasurementKernel = None,
+        discriminator: Discriminator = None,
+        **kwargs: Dict[str, Any],
+    ):
+        """
+        Validate and reformat transport layer inputs to initialize.
+        Args:
+            qubit_freq_est: Estimated qubit frequencies in GHz.
+            meas_freq_est: Estimated measurement cavity frequencies in GHz.
+            buffer: Default buffer time (in units of dt) between pulses.
+            pulse_library: Pulse name and sample definitions.
+            cmd_def: Operation name and definition in terms of Commands.
+            meas_kernel: The measurement kernels
+            discriminator: The discriminators
+            **kwargs: Other attributes for the super class.
+        """
+        self._data = {}
+        self.buffer = buffer
+        self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
+        """Qubit frequencies in Hertz."""
+        self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+        """Measurement frequencies in Hertz."""
+        self.pulse_library = pulse_library
+        self.cmd_def = cmd_def
+        self.instruction_schedule_map = InstructionScheduleMap()
+        self.converter = QobjToInstructionConverter(pulse_library)
+
+        for inst in cmd_def:
+            entry = PulseQobjDef(converter=self.converter, name=inst.name)
+            entry.define(inst.sequence, user_provided=False)
+            self.instruction_schedule_map._add(
+                instruction_name=inst.name,
+                qubits=tuple(inst.qubits),
+                entry=entry,
+            )
+
+        if meas_kernel is not None:
+            self.meas_kernel = meas_kernel
+        if discriminator is not None:
+            self.discriminator = discriminator
+
+        self._data.update(kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError as ex:
+            raise AttributeError(f"Attribute {name} is not defined") from ex
+
+    def to_dict(self):
+        """Return a dictionary format representation of the PulseDefaults.
+        Returns:
+            dict: The dictionary form of the PulseDefaults.
+        """
+        out_dict = {
+            "qubit_freq_est": self.qubit_freq_est,
+            "meas_freq_est": self.qubit_freq_est,
+            "buffer": self.buffer,
+            "pulse_library": [x.to_dict() for x in self.pulse_library],
+            "cmd_def": [x.to_dict() for x in self.cmd_def],
+        }
+        if hasattr(self, "meas_kernel"):
+            out_dict["meas_kernel"] = self.meas_kernel.to_dict()
+        if hasattr(self, "discriminator"):
+            out_dict["discriminator"] = self.discriminator.to_dict()
+        for key, value in self.__dict__.items():
+            if key not in [
+                "qubit_freq_est",
+                "meas_freq_est",
+                "buffer",
+                "pulse_library",
+                "cmd_def",
+                "meas_kernel",
+                "discriminator",
+                "converter",
+                "instruction_schedule_map",
+            ]:
+                out_dict[key] = value
+        out_dict.update(self._data)
+
+        out_dict["qubit_freq_est"] = [freq * 1e-9 for freq in self.qubit_freq_est]
+        out_dict["meas_freq_est"] = [freq * 1e-9 for freq in self.meas_freq_est]
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new PulseDefaults object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the PulseDefaults
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+        Returns:
+            PulseDefaults: The PulseDefaults from the input dictionary.
+        """
+        schema = {
+            "pulse_library": PulseLibraryItem,  # The class PulseLibraryItem is deprecated
+            "cmd_def": Command,
+            "meas_kernel": MeasurementKernel,
+            "discriminator": Discriminator,
+        }
+
+        # Pulse defaults data is nested dictionary.
+        # To avoid deepcopy and avoid mutating the source object, create new dict here.
+        in_data = {}
+        for key, value in data.items():
+            if key in schema:
+                with warnings.catch_warnings():
+                    # The class PulseLibraryItem is deprecated
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    if isinstance(value, list):
+                        in_data[key] = list(map(schema[key].from_dict, value))
+                    else:
+                        in_data[key] = schema[key].from_dict(value)
+            else:
+                in_data[key] = value
+
+        return cls(**in_data)
+
+    def __str__(self):
+        qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
+        meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
+        qfreq = f"Qubit Frequencies [GHz]\n{qubit_freqs}"
+        mfreq = f"Measurement Frequencies [GHz]\n{meas_freqs} "
+        return f"<{self.__class__.__name__}({str(self.instruction_schedule_map)}{qfreq}\n{mfreq})>"
+
+
+def _to_complex(value: Union[List[float], complex]) -> complex:
+    """Convert the input value to type ``complex``.
+    Args:
+        value: Value to be converted.
+    Returns:
+        Input value in ``complex``.
+    Raises:
+        TypeError: If the input value is not in the expected format.
+    """
+    if isinstance(value, list) and len(value) == 2:
+        return complex(value[0], value[1])
+    elif isinstance(value, complex):
+        return value
+
+    raise TypeError(f"{value} is not in a valid complex number format.")
+
+
+class PulseLibraryItem:
+    """INTERNAL - An item in a pulse library."""
+
+    # Copy from the deprecated from qiskit.qobj.PulseLibraryItem
+    def __init__(self, name, samples):
+        """Instantiate a pulse library item.
+
+        Args:
+            name (str): A name for the pulse.
+            samples (list[complex]): A list of complex values defining pulse
+                shape.
+        """
+        self.name = name
+        if isinstance(samples[0], list):
+            self.samples = np.array([complex(sample[0], sample[1]) for sample in samples])
+        else:
+            self.samples = samples
+
+    def to_dict(self):
+        """Return a dictionary format representation of the pulse library item.
+
+        Returns:
+            dict: The dictionary form of the PulseLibraryItem.
+        """
+        return {"name": self.name, "samples": self.samples}
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new PulseLibraryItem object from a dictionary.
+
+        Args:
+            data (dict): A dictionary for the experiment config
+
+        Returns:
+            PulseLibraryItem: The object from the input dictionary.
+        """
+        return cls(**data)
+
+    def __repr__(self):
+        return f"PulseLibraryItem({self.name}, {repr(self.samples)})"
+
+    def __str__(self):
+        return f"Pulse Library Item:\n\tname: {self.name}\n\tsamples: {self.samples}"
+
+    def __eq__(self, other):
+        if isinstance(other, PulseLibraryItem):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
+
+
+class PulseQobjInstruction:
+    """Internal - A class representing a single instruction in a PulseQobj Experiment."""
+
+    # Copy from the deprecated from qiskit.qobj.PulseQobjInstruction
+
+    _COMMON_ATTRS = [
+        "ch",
+        "conditional",
+        "val",
+        "phase",
+        "frequency",
+        "duration",
+        "qubits",
+        "memory_slot",
+        "register_slot",
+        "label",
+        "type",
+        "pulse_shape",
+        "parameters",
+    ]
+
+    def __init__(
+        self,
+        name,
+        t0,
+        ch=None,
+        conditional=None,
+        val=None,
+        phase=None,
+        duration=None,
+        qubits=None,
+        memory_slot=None,
+        register_slot=None,
+        kernels=None,
+        discriminators=None,
+        label=None,
+        type=None,  # pylint: disable=invalid-name,redefined-builtin
+        pulse_shape=None,
+        parameters=None,
+        frequency=None,
+    ):
+        """Instantiate a new PulseQobjInstruction object.
+
+        Args:
+            name (str): The name of the instruction
+            t0 (int): Pulse start time in integer **dt** units.
+            ch (str): The channel to apply the pulse instruction.
+            conditional (int): The register to use for a conditional for this
+                instruction
+            val (complex): Complex value to apply, bounded by an absolute value
+                of 1.
+            phase (float): if a ``fc`` instruction, the frame change phase in
+                radians.
+            frequency (float): if a ``sf`` instruction, the frequency in Hz.
+            duration (int): The duration of the pulse in **dt** units.
+            qubits (list): A list of ``int`` representing the qubits the
+                instruction operates on
+            memory_slot (list): If a ``measure`` instruction this is a list
+                of ``int`` containing the list of memory slots to store the
+                measurement results in (must be the same length as qubits).
+                If a ``bfunc`` instruction this is a single ``int`` of the
+                memory slot to store the boolean function result in.
+            register_slot (list): If a ``measure`` instruction this is a list
+                of ``int`` containing the list of register slots in which to
+                store the measurement results (must be the same length as
+                qubits). If a ``bfunc`` instruction this is a single ``int``
+                of the register slot in which to store the result.
+            kernels (list): List of :class:`QobjMeasurementOption` objects
+                defining the measurement kernels and set of parameters if the
+                measurement level is 1 or 2. Only used for ``acquire``
+                instructions.
+            discriminators (list): A list of :class:`QobjMeasurementOption`
+                used to set the discriminators to be used if the measurement
+                level is 2. Only used for ``acquire`` instructions.
+            label (str): Label of instruction
+            type (str): Type of instruction
+            pulse_shape (str): The shape of the parametric pulse
+            parameters (dict): The parameters for a parametric pulse
+        """
+        self.name = name
+        self.t0 = t0
+        if ch is not None:
+            self.ch = ch
+        if conditional is not None:
+            self.conditional = conditional
+        if val is not None:
+            self.val = val
+        if phase is not None:
+            self.phase = phase
+        if frequency is not None:
+            self.frequency = frequency
+        if duration is not None:
+            self.duration = duration
+        if qubits is not None:
+            self.qubits = qubits
+        if memory_slot is not None:
+            self.memory_slot = memory_slot
+        if register_slot is not None:
+            self.register_slot = register_slot
+        if kernels is not None:
+            self.kernels = kernels
+        if discriminators is not None:
+            self.discriminators = discriminators
+        if label is not None:
+            self.label = label
+        if type is not None:
+            self.type = type
+        if pulse_shape is not None:
+            self.pulse_shape = pulse_shape
+        if parameters is not None:
+            self.parameters = parameters
+
+    def to_dict(self):
+        """Return a dictionary format representation of the Instruction.
+
+        Returns:
+            dict: The dictionary form of the PulseQobjInstruction.
+        """
+        out_dict = {"name": self.name, "t0": self.t0}
+        for attr in self._COMMON_ATTRS:
+            if hasattr(self, attr):
+                out_dict[attr] = getattr(self, attr)
+        if hasattr(self, "kernels"):
+            out_dict["kernels"] = [x.to_dict() for x in self.kernels]
+        if hasattr(self, "discriminators"):
+            out_dict["discriminators"] = [x.to_dict() for x in self.discriminators]
+        return out_dict
+
+    def __repr__(self):
+        out = f'PulseQobjInstruction(name="{self.name}", t0={self.t0}'
+        for attr in self._COMMON_ATTRS:
+            attr_val = getattr(self, attr, None)
+            if attr_val is not None:
+                if isinstance(attr_val, str):
+                    out += f', {attr}="{attr_val}"'
+                else:
+                    out += f", {attr}={attr_val}"
+        out += ")"
+        return out
+
+    def __str__(self):
+        out = f"Instruction: {self.name}\n"
+        out += f"\t\tt0: {self.t0}\n"
+        for attr in self._COMMON_ATTRS:
+            if hasattr(self, attr):
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
+        return out
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new PulseQobjExperimentConfig object from a dictionary.
+
+        Args:
+            data (dict): A dictionary for the experiment config
+
+        Returns:
+            PulseQobjInstruction: The object from the input dictionary.
+        """
+        schema = {
+            "discriminators": QobjMeasurementOption,
+            "kernels": QobjMeasurementOption,
+        }
+        skip = ["t0", "name"]
+
+        # Pulse instruction data is nested dictionary.
+        # To avoid deepcopy and avoid mutating the source object, create new dict here.
+        in_data = {}
+        for key, value in data.items():
+            if key in skip:
+                continue
+            if key == "parameters":
+                # This is flat dictionary of parametric pulse parameters
+                formatted_value = value.copy()
+                if "amp" in formatted_value:
+                    formatted_value["amp"] = _to_complex(formatted_value["amp"])
+                in_data[key] = formatted_value
+                continue
+            if key in schema:
+                if isinstance(value, list):
+                    in_data[key] = list(map(schema[key].from_dict, value))
+                else:
+                    in_data[key] = schema[key].from_dict(value)
+            else:
+                in_data[key] = value
+
+        return cls(data["name"], data["t0"], **in_data)
+
+    def __eq__(self, other):
+        if isinstance(other, PulseQobjInstruction):
+            if self.to_dict() == other.to_dict():
+                return True
+        return False
+
+
+def _pulse_library():
+    # The number of samples determines the pulse durations of the corresponding
+    # instructions. This default defines pulses with durations in multiples of
+    # 16 dt for consistency with the pulse granularity of real IBM devices, but
+    # keeps the number smaller than what would be realistic for
+    # manageability. If needed, more realistic durations could be added in the
+    # future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
+    return [
+        PulseLibraryItem(
+            name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)
+        ),  # 16dt
+        PulseLibraryItem(
+            name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)
+        ),  # 32dt
+        PulseLibraryItem(
+            name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)
+        ),  # 64dt
+    ]
 
 
 class GenericBackendV2(BackendV2):
@@ -262,7 +678,7 @@ class GenericBackendV2(BackendV2):
         acting on qargs.
         """
 
-        pulse_library = _PULSE_LIBRARY
+        pulse_library = _pulse_library()
         # Note that the calibration pulses are different for
         # 1q gates vs 2q gates vs measurement instructions.
         if inst == "measure":
@@ -352,7 +768,7 @@ class GenericBackendV2(BackendV2):
             qubit_freq_est=qubit_freq_est,
             meas_freq_est=meas_freq_est,
             buffer=0,
-            pulse_library=_PULSE_LIBRARY,
+            pulse_library=_pulse_library(),
             cmd_def=cmd_def,
         )
 

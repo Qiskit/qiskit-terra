@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an error when calling the method :meth:`.UnitaryGate.repeat`. 
+    Refer to `#11990 <https://github.com/Qiskit/qiskit/issues/11990>`_ for more
+    details.

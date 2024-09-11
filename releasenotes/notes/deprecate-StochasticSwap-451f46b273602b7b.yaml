@@ -1,0 +1,50 @@
+---
+deprecations_transpiler:
+  - |
+    Deprecated :class:`.StochasticSwap` which has been superseded by :class:`.SabreSwap`. 
+    If the class is called from the transpile function, the change would be, for example:: 
+
+      from qiskit import transpile
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler import CouplingMap
+      from qiskit.providers.fake_provider import GenericBackendV2
+
+
+      qc = QuantumCircuit(4)
+      qc.h(0)
+      qc.cx(0, range(1, 4))
+      qc.measure_all()
+
+      cmap = CouplingMap.from_heavy_hex(3)
+      backend = GenericBackendV2(num_qubits=cmap.size(), coupling_map=cmap)
+
+      tqc = transpile(
+          qc,
+          routing_method="stochastic",
+          layout_method="dense",
+          seed_transpiler=12342,
+          target=backend.target
+      )
+    
+    to::
+
+      tqc = transpile(
+          qc,
+          routing_method="sabre",
+          layout_method="sabre",
+          seed_transpiler=12342,
+          target=backend.target
+      )
+
+    While for a pass manager, the change would be::
+
+      passmanager = PassManager(StochasticSwap(coupling, 20, 13))
+      new_qc = passmanager.run(qc)
+
+    to::
+
+      passmanager = PassManager(SabreSwap(backend.target, "basic"))
+      new_qc = passmanager.run(qc)
+      
+
+

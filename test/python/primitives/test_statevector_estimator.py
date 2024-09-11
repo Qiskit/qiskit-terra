@@ -13,17 +13,17 @@
 """Tests for Estimator."""
 
 import unittest
+from test import QiskitTestCase
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import StatevectorEstimator
+from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.quantum_info import SparsePauliOp
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStatevectorEstimator(QiskitTestCase):
@@ -306,6 +306,36 @@ class TestStatevectorEstimator(QiskitTestCase):
         self.assertEqual(
             result[1].metadata, {"target_precision": 0.1, "circuit_metadata": qc2.metadata}
         )
+
+    def test_reset(self):
+        """Test for circuits with reset."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.reset(0)
+        op = SparsePauliOp("ZI")
+
+        seed = 12
+        n = 1000
+        estimator = StatevectorEstimator(seed=seed)
+        with self.subTest("precision=0"):
+            result = estimator.run([(qc, [op] * n)]).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
+
+            result2 = estimator.run([(qc, [op] * n)]).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
+
+        with self.subTest("precision=0.01"):
+            precision = 0.01
+            result = estimator.run([(qc, [op] * n)], precision=precision).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
+
+            result2 = estimator.run([(qc, [op] * n)], precision=precision).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
 
 
 if __name__ == "__main__":

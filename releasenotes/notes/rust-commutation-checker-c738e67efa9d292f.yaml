@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    The the :class:`.CommutationChecker` class has been reimplemented in
+    Rust. This retains the same functionality as before but is now
+    significantly in most cases.

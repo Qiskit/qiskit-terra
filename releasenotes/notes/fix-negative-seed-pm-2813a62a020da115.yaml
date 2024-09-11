@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed the behavior of :meth:`.generate_preset_pass_manager` to raise a `ValueError` exception if not provided with a non-negative integer `seed_transpiler` argument.

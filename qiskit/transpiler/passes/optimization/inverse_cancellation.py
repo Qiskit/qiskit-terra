@@ -20,6 +20,8 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+from qiskit._accelerate.inverse_cancellation import inverse_cancellation
+
 
 class InverseCancellation(TransformationPass):
     """Cancel specific Gates which are inverses of each other when they occur back-to-
@@ -81,96 +83,11 @@ class InverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-        if self.self_inverse_gates:
-            dag = self._run_on_self_inverse(dag)
-        if self.inverse_gate_pairs:
-            dag = self._run_on_inverse_pairs(dag)
-        return dag
-
-    def _run_on_self_inverse(self, dag: DAGCircuit):
-        """
-        Run self-inverse gates on `dag`.
-
-        Args:
-            dag: the directed acyclic graph to run on.
-            self_inverse_gates: list of gates who cancel themeselves in pairs
-
-        Returns:
-            DAGCircuit: Transformed DAG.
-        """
-        op_counts = dag.count_ops()
-        if not self.self_inverse_gate_names.intersection(op_counts):
-            return dag
-        # Sets of gate runs by name, for instance: [{(H 0, H 0), (H 1, H 1)}, {(X 0, X 0}]
-        for gate in self.self_inverse_gates:
-            gate_name = gate.name
-            gate_count = op_counts.get(gate_name, 0)
-            if gate_count <= 1:
-                continue
-            gate_runs = dag.collect_runs([gate_name])
-            for gate_cancel_run in gate_runs:
-                partitions = []
-                chunk = []
-                max_index = len(gate_cancel_run) - 1
-                for i, cancel_gate in enumerate(gate_cancel_run):
-                    if cancel_gate.op == gate:
-                        chunk.append(cancel_gate)
-                    else:
-                        if chunk:
-                            partitions.append(chunk)
-                            chunk = []
-                        continue
-                    if i == max_index or cancel_gate.qargs != gate_cancel_run[i + 1].qargs:
-                        partitions.append(chunk)
-                        chunk = []
-                # Remove an even number of gates from each chunk
-                for chunk in partitions:
-                    if len(chunk) % 2 == 0:
-                        dag.remove_op_node(chunk[0])
-                    for node in chunk[1:]:
-                        dag.remove_op_node(node)
-        return dag
-
-    def _run_on_inverse_pairs(self, dag: DAGCircuit):
-        """
-        Run inverse gate pairs on `dag`.
-
-        Args:
-            dag: the directed acyclic graph to run on.
-            inverse_gate_pairs: list of gates with inverse angles that cancel each other.
-
-        Returns:
-            DAGCircuit: Transformed DAG.
-        """
-        op_counts = dag.count_ops()
-        if not self.inverse_gate_pairs_names.intersection(op_counts):
-            return dag
-
-        for pair in self.inverse_gate_pairs:
-            gate_0_name = pair[0].name
-            gate_1_name = pair[1].name
-            if gate_0_name not in op_counts or gate_1_name not in op_counts:
-                continue
-            gate_cancel_runs = dag.collect_runs([gate_0_name, gate_1_name])
-            for dag_nodes in gate_cancel_runs:
-                i = 0
-                while i < len(dag_nodes) - 1:
-                    if (
-                        dag_nodes[i].qargs == dag_nodes[i + 1].qargs
-                        and dag_nodes[i].op == pair[0]
-                        and dag_nodes[i + 1].op == pair[1]
-                    ):
-                        dag.remove_op_node(dag_nodes[i])
-                        dag.remove_op_node(dag_nodes[i + 1])
-                        i = i + 2
-                    elif (
-                        dag_nodes[i].qargs == dag_nodes[i + 1].qargs
-                        and dag_nodes[i].op == pair[1]
-                        and dag_nodes[i + 1].op == pair[0]
-                    ):
-                        dag.remove_op_node(dag_nodes[i])
-                        dag.remove_op_node(dag_nodes[i + 1])
-                        i = i + 2
-                    else:
-                        i = i + 1
+        inverse_cancellation(
+            dag,
+            self.inverse_gate_pairs,
+            self.self_inverse_gates,
+            self.inverse_gate_pairs_names,
+            self.self_inverse_gate_names,
+        )
         return dag

@@ -1,0 +1,45 @@
+---
+features_synthesis:
+  - |
+    Added synthesis functions :func:`.synth_mcx_gray_code` and :func:`.synth_mcx_noaux_v24`
+    that synthesize multi-controlled X gates. These functions do not require additional
+    ancilla qubits.
+  - |
+    Added synthesis functions :func:`.synth_c3x` and  :func:`.synth_c4x` that
+    synthesize 3-controlled and 4-controlled X-gates respectively.
+features_transpiler:
+  - |
+    Added multiple high-level-synthesis plugins for synthesizing an :class:`.MCXGate`:
+
+    * :class:`.MCXSynthesisNCleanM15`, based on :func:`.synth_mcx_n_clean_m15`.
+    * :class:`.MCXSynthesisNDirtyI15`, based on :func:`.synth_mcx_n_dirty_i15`.
+    * :class:`.MCXSynthesis1CleanB95`, based on :func:`.synth_mcx_1_clean_b95`.
+    * :class:`.MCXSynthesisNoAuxV24`, based on :func:`.synth_mcx_noaux_v24`.
+    * :class:`.MCXSynthesisGrayCode`, based on :func:`.synth_mcx_gray_code`.
+
+    As well:
+
+    * :class:`.MCXSynthesisDefault`, choosing the most efficient synthesis
+      method based on the number of clean and dirty ancilla qubits available.
+
+    As an example, consider how the transpilation of the following circuit::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.compiler import transpile
+
+      qc = QuantumCircuit(7)
+      qc.x(0)
+      qc.mcx([0, 1, 2, 3], [4])
+      qc.mcx([0, 1, 2, 3, 4], [5])
+      qc.mcx([0, 1, 2, 3, 4, 5], [6])
+
+      transpile(qc)
+
+    For the first MCX gate, qubits ``5`` and ``6`` can be used as clean
+    ancillas, and the best available synthesis method ``synth_mcx_n_clean_m15``
+    will get chosen.
+    For the second MCX gate, qubit ``6`` can be used as a clean ancilla,
+    the method ``synth_mcx_n_clean_m15`` no longer applies, so the method
+    ``synth_mcx_1_clean_b95`` will get chosen.
+    For the third MCX gate, there are no ancilla qubits, and the method
+    ``synth_mcx_noaux_v24`` will get chosen.

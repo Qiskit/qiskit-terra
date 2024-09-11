@@ -42,6 +42,10 @@ from qiskit.circuit.library import (
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.quantum_info import Operator
+from qiskit.exceptions import QiskitError
+
+from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -339,7 +343,7 @@ class TestNLocal(QiskitTestCase):
                     (2, 3, 4),
                 ]
             else:
-                circular = [(3, 4, 0), (0, 1, 2), (1, 2, 3), (2, 3, 4)]
+                circular = [(3, 4, 0), (4, 0, 1), (0, 1, 2), (1, 2, 3), (2, 3, 4)]
                 if mode == "circular":
                     return circular
                 sca = circular[-rep_num:] + circular[:-rep_num]
@@ -926,6 +930,157 @@ class TestTwoLocal(QiskitTestCase):
         reverse.assign_parameters(params, inplace=True)
 
         self.assertEqual(Operator(full), Operator(reverse))
+
+
+@ddt
+class TestEntanglement(QiskitTestCase):
+    """Test getting the entanglement structure."""
+
+    @data(
+        ("linear", [(0, 1), (1, 2), (2, 3)]),
+        ("reverse_linear", [(2, 3), (1, 2), (0, 1)]),
+        ("pairwise", [(0, 1), (2, 3), (1, 2)]),
+        ("circular", [(3, 0), (0, 1), (1, 2), (2, 3)]),
+        ("full", [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]),
+    )
+    @unpack
+    def test_2q_str(self, strategy, expected):
+        """Test getting by string."""
+        entanglement = fast_entangler_map(
+            num_qubits=4, block_size=2, entanglement=strategy, offset=0
+        )
+        self.assertEqual(expected, entanglement)
+
+    @data(
+        ("linear", [(0, 1, 2), (1, 2, 3)]),
+        ("reverse_linear", [(1, 2, 3), (0, 1, 2)]),
+        ("circular", [(2, 3, 0), (3, 0, 1), (0, 1, 2), (1, 2, 3)]),
+        ("full", [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]),
+    )
+    @unpack
+    def test_3q_str(self, strategy, expected):
+        """Test getting by string."""
+        entanglement = fast_entangler_map(
+            num_qubits=4, block_size=3, entanglement=strategy, offset=0
+        )
+        self.assertEqual(expected, entanglement)
+
+    def test_2q_sca(self):
+        """Test shift, circular, alternating on 2-qubit blocks."""
+        expected = {  # offset: result
+            0: [(3, 0), (0, 1), (1, 2), (2, 3)],
+            1: [(3, 2), (0, 3), (1, 0), (2, 1)],
+            2: [(1, 2), (2, 3), (3, 0), (0, 1)],
+            3: [(1, 0), (2, 1), (3, 2), (0, 3)],
+        }
+        for offset in range(8):
+            with self.subTest(offset=offset):
+                entanglement = fast_entangler_map(
+                    num_qubits=4, block_size=2, entanglement="sca", offset=offset
+                )
+                self.assertEqual(expected[offset % 4], entanglement)
+
+    def test_3q_sca(self):
+        """Test shift, circular, alternating on 3-qubit blocks."""
+        circular = [(2, 3, 0), (3, 0, 1), (0, 1, 2), (1, 2, 3)]
+        for offset in range(8):
+            expected = circular[-(offset % 4) :] + circular[: -(offset % 4)]
+            if offset % 2 == 1:
+                expected = [tuple(reversed(indices)) for indices in expected]
+            with self.subTest(offset=offset):
+                entanglement = fast_entangler_map(
+                    num_qubits=4, block_size=3, entanglement="sca", offset=offset
+                )
+                self.assertEqual(expected, entanglement)
+
+    @data("full", "reverse_linear", "linear", "circular", "sca", "pairwise")
+    def test_0q(self, entanglement):
+        """Test the corner case of a single qubit block."""
+        entanglement = fast_entangler_map(
+            num_qubits=3, block_size=0, entanglement=entanglement, offset=0
+        )
+        expect = []
+        self.assertEqual(entanglement, expect)
+
+    @data("full", "reverse_linear", "linear", "circular", "sca", "pairwise")
+    def test_1q(self, entanglement):
+        """Test the corner case of a single qubit block."""
+        entanglement = fast_entangler_map(
+            num_qubits=3, block_size=1, entanglement=entanglement, offset=0
+        )
+        expect = [(i,) for i in range(3)]
+
+        self.assertEqual(set(entanglement), set(expect))  # order does not matter for 1 qubit
+
+    @data("full", "reverse_linear", "linear", "circular", "sca")
+    def test_full_block(self, entanglement):
+        """Test the corner case of the block size equal the number of qubits."""
+        entanglement = fast_entangler_map(
+            num_qubits=5, block_size=5, entanglement=entanglement, offset=0
+        )
+        expect = [tuple(range(5))]
+
+        self.assertEqual(entanglement, expect)
+
+    def test_pairwise_limit(self):
+        """Test pairwise raises an error above 2 qubits."""
+        _ = fast_entangler_map(num_qubits=4, block_size=1, entanglement="pairwise", offset=0)
+        _ = fast_entangler_map(num_qubits=4, block_size=2, entanglement="pairwise", offset=0)
+        with self.assertRaises(QiskitError):
+            _ = fast_entangler_map(num_qubits=4, block_size=3, entanglement="pairwise", offset=0)
+
+    def test_invalid_blocksize(self):
+        """Test the block size being too large."""
+        with self.assertRaises(QiskitError):
+            _ = fast_entangler_map(num_qubits=2, block_size=3, entanglement="linear", offset=0)
+
+    def test_invalid_entanglement_str(self):
+        """Test invalid entanglement string."""
+        with self.assertRaises(QiskitError):
+            _ = fast_entangler_map(num_qubits=4, block_size=2, entanglement="lniaer", offset=0)
+
+    def test_as_list(self):
+        """Test passing a list just returns the list."""
+        expected = [(0, 1), (1, 10), (2, 10)]
+        out = fast_entangler_map(num_qubits=20, block_size=2, entanglement=expected, offset=0)
+        self.assertEqual(expected, out)
+
+    def test_invalid_list(self):
+        """Test passing a list that does not match the block size."""
+
+        # TODO this test fails, somehow the error is not propagated correctly!
+        expected = [(0, 1), (1, 2, 10)]
+        with self.assertRaises(QiskitError):
+            _ = fast_entangler_map(num_qubits=20, block_size=2, entanglement=expected, offset=0)
+
+    def test_callable_list(self):
+        """Test using a callable."""
+
+        def my_entanglement(offset):
+            return [(0, 1)] if offset % 2 == 0 else [(1, 2)]
+
+        for offset in range(3):
+            with self.subTest(offset=offset):
+                expect = my_entanglement(offset)
+                result = fast_entangler_map(
+                    num_qubits=3, block_size=2, entanglement=my_entanglement, offset=offset
+                )
+                self.assertEqual(expect, result)
+
+    def test_callable_str(self):
+        """Test using a callable."""
+
+        def my_entanglement(offset):
+            return "linear" if offset % 2 == 0 else "pairwise"
+
+        expected = {"linear": [(0, 1), (1, 2), (2, 3)], "pairwise": [(0, 1), (2, 3), (1, 2)]}
+
+        for offset in range(3):
+            with self.subTest(offset=offset):
+                result = fast_entangler_map(
+                    num_qubits=4, block_size=2, entanglement=my_entanglement, offset=offset
+                )
+                self.assertEqual(expected["linear" if offset % 2 == 0 else "pairwise"], result)
 
 
 if __name__ == "__main__":

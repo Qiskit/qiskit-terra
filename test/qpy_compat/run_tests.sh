@@ -20,7 +20,7 @@ export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 429
 echo "PYTHONHASHSEED=$PYTHONHASHSEED"
 
 python -m venv qiskit_venv
-qiskit_venv/bin/pip install ../..
+qiskit_venv/bin/pip install -c ../../constraints.txt ../..
 
 parallel bash ./process_version.sh ::: `git tag --sort=-creatordate`
 

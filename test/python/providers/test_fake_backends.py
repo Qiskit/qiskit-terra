@@ -37,8 +37,8 @@ from qiskit.providers.fake_provider import (
 )
 from qiskit.providers.backend_compat import BackendV2Converter, convert_to_target
 from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import GateConfig
 from qiskit.utils import optionals
 from qiskit.circuit.library import (
     SXGate,

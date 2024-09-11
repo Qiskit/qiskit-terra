@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ahash::RandomState;
 use indexmap::IndexSet;
 use ndarray::{s, ArrayView2};
 use smallvec::smallvec;
@@ -102,7 +103,7 @@ pub struct GreedyCliffordSynthesis<'a> {
     symplectic_matrix: SymplecticMatrix,
 
     /// Unprocessed qubits.
-    unprocessed_qubits: IndexSet<usize>,
+    unprocessed_qubits: IndexSet<usize, RandomState>,
 }
 
 impl GreedyCliffordSynthesis<'_> {
@@ -121,7 +122,7 @@ impl GreedyCliffordSynthesis<'_> {
             smat: tableau.slice(s![.., 0..2 * num_qubits]).to_owned(),
         };
 
-        let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
+        let unprocessed_qubits = (0..num_qubits).collect();
 
         Ok(GreedyCliffordSynthesis {
             tableau,

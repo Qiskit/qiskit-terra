@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The minimum supported version of Python is now 3.9, this has been raised
+    from the previous minimum support version of 3.8. This change was necessary
+    because the upstream cPython project no longer supports Python 3.8.

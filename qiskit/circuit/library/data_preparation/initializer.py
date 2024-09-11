@@ -21,6 +21,7 @@ import typing
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.library.generalized_gates import Isometry
 from .state_preparation import StatePreparation
 
 if typing.TYPE_CHECKING:
@@ -86,9 +87,11 @@ class Initialize(Instruction):
         """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
-            Circuit to take ``self.params`` vector to :math:`|{00\\ldots0}\\rangle`
+            QuantumCircuit: circuit to take ``self.params`` vector to :math:`|{00\\ldots0}\\rangle`
         """
-        return self._stateprep._gates_to_uncompute()
+
+        isom = Isometry(self.params, 0, 0)
+        return isom._gates_to_uncompute()
 
     @property
     def params(self):

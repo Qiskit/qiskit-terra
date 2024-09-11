@@ -3464,9 +3464,12 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
     def test_switch_rejects_reentering_case(self):
         """It shouldn't be possible to enter a case within another case."""
         circuit = QuantumCircuit(1, 1)
-        with circuit.switch(0) as case, case(0), self.assertRaisesRegex(
-            CircuitError, r"Cannot enter more than one case at once"
-        ), case(1):
+        with (
+            circuit.switch(0) as case,
+            case(0),
+            self.assertRaisesRegex(CircuitError, r"Cannot enter more than one case at once"),
+            case(1),
+        ):
             pass
 
     @ddt.data("1", 1.0, None, (1, 2))

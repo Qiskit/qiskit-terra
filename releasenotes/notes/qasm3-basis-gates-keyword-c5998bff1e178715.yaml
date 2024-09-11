@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The OpenQASM 3 exporter will now correctly error when asked to use a keyword or other invalid
+    identifier as a "basis gate", as it has no way of putting out correct output in these cases.

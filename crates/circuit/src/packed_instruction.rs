@@ -11,18 +11,25 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::RefCell;
+use std::cell::OnceCell;
 use std::ptr::NonNull;
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyType};
 
+use ndarray::Array2;
+use num_complex::Complex64;
 use smallvec::SmallVec;
 
+use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
-use crate::imports::DEEPCOPY;
-use crate::operations::{OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate};
+use crate::imports::{get_std_gate_class, DEEPCOPY};
+use crate::interner::Interned;
+use crate::operations::{
+    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+};
+use crate::{Clbit, Qubit};
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -331,6 +338,78 @@ impl PackedOperation {
             .into()),
         }
     }
+
+    /// Whether the Python class that we would use to represent the inner `Operation` object in
+    /// Python space would be an instance of the given Python type.  This does not construct the
+    /// Python-space `Operator` instance if it can be avoided (i.e. for standard gates).
+    pub fn py_op_is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
+        let py = py_type.py();
+        let py_op = match self.view() {
+            OperationRef::Standard(standard) => {
+                return get_std_gate_class(py, standard)?
+                    .bind(py)
+                    .downcast::<PyType>()?
+                    .is_subclass(py_type)
+            }
+            OperationRef::Gate(gate) => gate.gate.bind(py),
+            OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
+            OperationRef::Operation(operation) => operation.operation.bind(py),
+        };
+        py_op.is_instance(py_type)
+    }
+}
+
+impl Operation for PackedOperation {
+    fn name(&self) -> &str {
+        let view = self.view();
+        let name = match view {
+            OperationRef::Standard(ref standard) => standard.name(),
+            OperationRef::Gate(gate) => gate.name(),
+            OperationRef::Instruction(instruction) => instruction.name(),
+            OperationRef::Operation(operation) => operation.name(),
+        };
+        // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
+        // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
+        // just to avoid a further _potential_ unsafeness, were its implementation to start doing
+        // something weird with the lifetimes.  `str::from_utf8_unchecked` and
+        // `slice::from_raw_parts` are both trivially safe because they're being called on immediate
+        // values from a validated `str`.
+        unsafe {
+            ::std::str::from_utf8_unchecked(::std::slice::from_raw_parts(name.as_ptr(), name.len()))
+        }
+    }
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        self.view().num_qubits()
+    }
+    #[inline]
+    fn num_clbits(&self) -> u32 {
+        self.view().num_clbits()
+    }
+    #[inline]
+    fn num_params(&self) -> u32 {
+        self.view().num_params()
+    }
+    #[inline]
+    fn control_flow(&self) -> bool {
+        self.view().control_flow()
+    }
+    #[inline]
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+        self.view().matrix(params)
+    }
+    #[inline]
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        self.view().definition(params)
+    }
+    #[inline]
+    fn standard_gate(&self) -> Option<StandardGate> {
+        self.view().standard_gate()
+    }
+    #[inline]
+    fn directive(&self) -> bool {
+        self.view().directive()
+    }
 }
 
 impl From<StandardGate> for PackedOperation {
@@ -414,30 +493,27 @@ impl Drop for PackedOperation {
 pub struct PackedInstruction {
     pub op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
-    pub qubits: crate::interner::Index,
+    pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
-    pub clbits: crate::interner::Index,
+    pub clbits: Interned<[Clbit]>,
     pub params: Option<Box<SmallVec<[Param; 3]>>>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
 
     #[cfg(feature = "cache_pygates")]
-    /// This is hidden in a `RefCell` because, while that has additional memory-usage implications
-    /// while we're still building with the feature enabled, we intend to remove the feature in the
-    /// future, and hiding the cache within a `RefCell` lets us keep the cache transparently in our
-    /// interfaces, without needing various functions to unnecessarily take `&mut` references.
-    pub py_op: RefCell<Option<Py<PyAny>>>,
+    /// This is hidden in a `OnceCell` because it's just an on-demand cache; we don't create this
+    /// unless asked for it.  A `OnceCell` of a non-null pointer type (like `Py<T>`) is the same
+    /// size as a pointer and there are no runtime checks on access beyond the initialisation check,
+    /// which is a simple null-pointer check.
+    ///
+    /// WARNING: remember that `OnceCell`'s `get_or_init` method is no-reentrant, so the initialiser
+    /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
+    /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
+    /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
+    /// feature.
+    pub py_op: OnceCell<Py<PyAny>>,
 }
 
 impl PackedInstruction {
-    /// Immutably view the contained operation.
-    ///
-    /// If you only care whether the contained operation is a `StandardGate` or not, you can use
-    /// `PackedInstruction::standard_gate`, which is a bit cheaper than this function.
-    #[inline]
-    pub fn op(&self) -> OperationRef {
-        self.op.view()
-    }
-
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
     /// refers to a Python-space object, `None` is returned.
     #[inline]
@@ -463,6 +539,27 @@ impl PackedInstruction {
             .unwrap_or(&mut [])
     }
 
+    /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
+    pub fn is_parameterized(&self) -> bool {
+        self.params_view()
+            .iter()
+            .any(|x| matches!(x, Param::ParameterExpression(_)))
+    }
+
+    #[inline]
+    pub fn condition(&self) -> Option<&Py<PyAny>> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|extra| extra.condition.as_ref())
+    }
+
+    #[inline]
+    pub fn label(&self) -> Option<&str> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|extra| extra.label.as_deref())
+    }
+
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
     /// instruction.  This may construct the reference if the `PackedInstruction` is a standard
     /// gate with no already stored operation.
@@ -471,33 +568,63 @@ impl PackedInstruction {
     /// containing circuit; updates to its parameters, label, duration, unit and condition will not
     /// be propagated back.
     pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Ok(Some(cached_op)) = self.py_op.try_borrow().as_deref() {
-                return Ok(cached_op.clone_ref(py));
-            }
-        }
-
-        let out = match self.op.view() {
-            OperationRef::Standard(standard) => standard
-                .create_py_op(
+        let unpack = || -> PyResult<Py<PyAny>> {
+            match self.op.view() {
+                OperationRef::Standard(standard) => standard.create_py_op(
                     py,
                     self.params.as_deref().map(SmallVec::as_slice),
                     self.extra_attrs.as_deref(),
-                )?
-                .into_any(),
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+                ),
+                OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+                OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
+                OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+            }
         };
 
+        // `OnceCell::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
         #[cfg(feature = "cache_pygates")]
         {
-            if let Ok(mut cell) = self.py_op.try_borrow_mut() {
-                cell.get_or_insert_with(|| out.clone_ref(py));
+            if let Some(ob) = self.py_op.get() {
+                return Ok(ob.clone_ref(py));
             }
         }
-
+        let out = unpack()?;
+        #[cfg(feature = "cache_pygates")]
+        {
+            // The unpacking operation can cause a thread pause and concurrency, since it can call
+            // interpreted Python code for a standard gate, so we need to take care that some other
+            // Python thread might have populated the cache before we do.
+            let _ = self.py_op.set(out.clone_ref(py));
+        }
         Ok(out)
+    }
+
+    /// Check equality of the operation, including Python-space checks, if appropriate.
+    pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self.op.view(), other.op.view()) {
+            (OperationRef::Standard(left), OperationRef::Standard(right)) => Ok(left == right),
+            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                left.gate.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                left.instruction.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                left.operation.bind(py).eq(&right.operation)
+            }
+            // Handle the case we end up with a pygate for a standard gate
+            // this typically only happens if it's a ControlledGate in python
+            // and we have mutable state set.
+            (OperationRef::Standard(_left), OperationRef::Gate(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Gate(left), OperationRef::Standard(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+            }
+            _ => Ok(false),
+        }
     }
 }

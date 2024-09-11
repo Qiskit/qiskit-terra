@@ -20,17 +20,6 @@ from typing import List, Dict
 from qiskit.circuit.library.templates import rzx
 
 
-class RZXTemplateMap(Enum):
-    """Mapping of instruction name to decomposition template."""
-
-    ZZ1 = rzx.rzx_zz1()
-    ZZ2 = rzx.rzx_zz2()
-    ZZ3 = rzx.rzx_zz3()
-    YZ = rzx.rzx_yz()
-    XZ = rzx.rzx_xz()
-    CY = rzx.rzx_cy()
-
-
 def rzx_templates(template_list: List[str] = None) -> Dict:
     """Convenience function to get the cost_dict and templates for template matching.
 
@@ -40,6 +29,17 @@ def rzx_templates(template_list: List[str] = None) -> Dict:
     Returns:
         Decomposition templates and cost values.
     """
+
+    class RZXTemplateMap(Enum):
+        """Mapping of instruction name to decomposition template."""
+
+        ZZ1 = rzx.rzx_zz1()
+        ZZ2 = rzx.rzx_zz2()
+        ZZ3 = rzx.rzx_zz3()
+        YZ = rzx.rzx_yz()
+        XZ = rzx.rzx_xz()
+        CY = rzx.rzx_cy()
+
     if template_list is None:
         template_list = ["zz1", "zz2", "zz3", "yz", "xz", "cy"]
 

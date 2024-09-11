@@ -25,172 +25,195 @@ Available Testers
 Qiskit Components
 -----------------
 
-.. list-table::
-    :widths: 25 75
+.. py:data:: HAS_AER
 
-    * - .. py:data:: HAS_AER
-      - `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>` provides high-performance simulators for
-        the quantum circuits constructed within Qiskit.
+    `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>` provides high-performance simulators for
+    the quantum circuits constructed within Qiskit.
 
-    * - .. py:data:: HAS_IBMQ
-      - The :mod:`Qiskit IBMQ Provider <qiskit.providers.ibmq>` is used for accessing IBM Quantum
-        hardware in the IBM cloud.
+.. py:data:: HAS_IBMQ
 
-    * - .. py:data:: HAS_IGNIS
-      - :mod:`Qiskit Ignis <qiskit.ignis>` provides tools for quantum hardware verification, noise
-        characterization, and error correction.
+    The :mod:`Qiskit IBMQ Provider <qiskit.providers.ibmq>` is used for accessing IBM Quantum
+    hardware in the IBM cloud.
 
-    * - .. py:data:: HAS_TOQM
-      - `Qiskit TOQM <https://github.com/qiskit-toqm/qiskit-toqm>`__ provides transpiler passes
-        for the `Time-optimal Qubit mapping algorithm <https://doi.org/10.1145/3445814.3446706>`__.
+.. py:data:: HAS_IGNIS
+
+    :mod:`Qiskit Ignis <qiskit.ignis>` provides tools for quantum hardware verification, noise
+    characterization, and error correction.
+
+.. py:data:: HAS_TOQM
+
+    `Qiskit TOQM <https://github.com/qiskit-toqm/qiskit-toqm>`__ provides transpiler passes
+    for the `Time-optimal Qubit mapping algorithm <https://doi.org/10.1145/3445814.3446706>`__.
 
 
 External Python Libraries
 -------------------------
 
-.. list-table::
-    :widths: 25 75
+.. py:data:: HAS_CONSTRAINT
 
-    * - .. py:data:: HAS_CONSTRAINT
-      - `python-constraint <https://github.com/python-constraint/python-constraint>`__ is a
-        constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
+    `python-constraint <https://github.com/python-constraint/python-constraint>`__ is a
+    constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
 
-    * - .. py:data:: HAS_CPLEX
-      - The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
-        high-performance mathematical programming solver for linear, mixed-integer and quadratic
-        programming. This is no longer by Qiskit, but it weas historically and the optional
-        remains for backwards compatibility.
+.. py:data:: HAS_CPLEX
 
-    * - .. py:data:: HAS_CVXPY
-      - `CVXPY <https://www.cvxpy.org/>`__ is a Python package for solving convex optimization
-        problems.  It is required for calculating diamond norms with
-        :func:`.quantum_info.diamond_norm`.
+    The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
+    high-performance mathematical programming solver for linear, mixed-integer and quadratic
+    programming. This is no longer by Qiskit, but it weas historically and the optional
+    remains for backwards compatibility.
 
-    * - .. py:data:: HAS_DOCPLEX
-      - `IBM Decision Optimization CPLEX Modelling
-        <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-        analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
-        optional remains for backwards compatibility.
+.. py:data:: HAS_CVXPY
 
-    * - .. py:data:: HAS_FIXTURES
-      - The test suite has additional features that are available if the optional `fixtures
-        <https://launchpad.net/python-fixtures>`__ module is installed.  This generally also needs
-        :data:`HAS_TESTTOOLS` as well.  This is generally only needed for Qiskit developers.
+    `CVXPY <https://www.cvxpy.org/>`__ is a Python package for solving convex optimization
+    problems.  It is required for calculating diamond norms with
+    :func:`.quantum_info.diamond_norm`.
 
-    * - .. py:data:: HAS_IPYTHON
-      - If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
-        visualizations and line magics are made available.
+.. py:data:: HAS_DOCPLEX
 
-    * - .. py:data:: HAS_IPYWIDGETS
-      - Monitoring widgets for jobs running on external backends can be provided if `ipywidgets
-        <https://ipywidgets.readthedocs.io/en/latest/>`__ is available.
+    `IBM Decision Optimization CPLEX Modelling
+    <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
+    analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
+    optional remains for backwards compatibility.
 
-    * - .. py:data:: HAS_JAX
-      - Some methods of gradient calculation within :mod:`.opflow.gradients` require `JAX
-        <https://github.com/google/jax>`__ for autodifferentiation.
+.. py:data:: HAS_FIXTURES
 
-    * - .. py:data:: HAS_JUPYTER
-      - Some of the tests require a complete `Jupyter <https://jupyter.org/>`__ installation to test
-        interactivity features.
+    The test suite has additional features that are available if the optional `fixtures
+    <https://launchpad.net/python-fixtures>`__ module is installed.  This generally also needs
+    :data:`HAS_TESTTOOLS` as well.  This is generally only needed for Qiskit developers.
 
-    * - .. py:data:: HAS_MATPLOTLIB
-      - Qiskit provides several visualization tools in the :mod:`.visualization` module.
-        Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
-        be installed in order to use them.
+.. py:data:: HAS_IPYTHON
 
-    * - .. py:data:: HAS_NETWORKX
-      - No longer used by Qiskit.  Internally, Qiskit now uses the high-performance `rustworkx
-        <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
-        change-over period, it was sometimes convenient to convert things into the Python-only
-        `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
-        `Qiskit Nature <https://qiskit-community.github.io/qiskit-nature/>`__ still use NetworkX.
+    If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
+    visualizations and line magics are made available.
 
-    * - .. py:data:: HAS_NLOPT
-      - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
-        used by the global optimizers in the :mod:`.algorithms.optimizers` module.
+.. py:data:: HAS_IPYWIDGETS
 
-    * - .. py:data:: HAS_PIL
-      - PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow
-        <https://pillow.readthedocs.io/en/stable/>`__ fork of PIL if it is available when generating
-        certain visualizations, for example of both :class:`.QuantumCircuit` and
-        :class:`.DAGCircuit` in certain modes.
+    Monitoring widgets for jobs running on external backends can be provided if `ipywidgets
+    <https://ipywidgets.readthedocs.io/en/latest/>`__ is available.
 
-    * - .. py:data:: HAS_PYDOT
-      - For some graph visualizations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
-        interface to GraphViz (see :data:`HAS_GRAPHVIZ`).
+.. py:data:: HAS_JAX
 
-    * - .. py:data:: HAS_PYGMENTS
-      - Pygments is a code highlighter and formatter used by many environments that involve rich
-        display of code blocks, including Sphinx and Jupyter.  Qiskit uses this when producing rich
-        output for these environments.
+    Some methods of gradient calculation within :mod:`.opflow.gradients` require `JAX
+    <https://github.com/google/jax>`__ for autodifferentiation.
 
-    * - .. py:data:: HAS_PYLATEX
-      - Various LaTeX-based visualizations, especially the circuit drawers, need access to the
-        `pylatexenc <https://github.com/phfaist/pylatexenc>`__ project to work correctly.
+.. py:data:: HAS_JUPYTER
 
-    * - .. py:data:: HAS_QASM3_IMPORT
-      - The functions :func:`.qasm3.load` and :func:`.qasm3.loads` for importing OpenQASM 3 programs
-        into :class:`.QuantumCircuit` instances use `an external importer package
-        <https://qiskit.github.io/qiskit-qasm3-import>`__.
+    Some of the tests require a complete `Jupyter <https://jupyter.org/>`__ installation to test
+    interactivity features.
 
-    * - .. py:data:: HAS_SEABORN
-      - Qiskit provides several visualization tools in the :mod:`.visualization` module.  Some
-        of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
-        in order to use them.
+.. py:data:: HAS_MATPLOTLIB
 
-    * - .. py:data:: HAS_SKLEARN
-      - Some of the gradient functions in :mod:`.opflow.gradients` use regularisation methods from
-        `Scikit Learn <https://scikit-learn.org/stable/>`__.
+    Qiskit provides several visualization tools in the :mod:`.visualization` module.
+    Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
+    be installed in order to use them.
 
-    * - .. py:data:: HAS_SKQUANT
-      - Some of the optimisers in :mod:`.algorithms.optimizers` are based on those found in `Scikit
-        Quant <https://github.com/scikit-quant/scikit-quant>`__, which must be installed to use
-        them.
+.. py:data:: HAS_NETWORKX
 
-    * - .. py:data:: HAS_SQSNOBFIT
-      - `SQSnobFit <https://pypi.org/project/SQSnobFit/>`__ is a library for the "stable noisy
-        optimization by branch and fit" algorithm.  It is used by the :class:`.SNOBFIT` optimizer.
+    No longer used by Qiskit.  Internally, Qiskit now uses the high-performance `rustworkx
+    <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
+    change-over period, it was sometimes convenient to convert things into the Python-only
+    `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
+    `Qiskit Nature <https://qiskit-community.github.io/qiskit-nature/>`__ still use NetworkX.
 
-    * - .. py:data:: HAS_SYMENGINE
-      - `Symengine <https://github.com/symengine/symengine>`__ is a fast C++ backend for the
-        symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  Qiskit uses
-        special methods from Symengine to accelerate its handling of
-        :class:`~.circuit.Parameter`\\ s if available.
+.. py:data:: HAS_NLOPT
 
-    * - .. py:data:: HAS_TESTTOOLS
-      - Qiskit's test suite has more advanced functionality available if the optional
-        `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
-        only needed for Qiskit developers.
+    `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
+    used by the global optimizers in the :mod:`.algorithms.optimizers` module.
 
-    * - .. py:data:: HAS_TWEEDLEDUM
-      - `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
-        synthesis and optimization of circuits that may involve classical oracles.  Qiskit's
-        :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
-        the :class:`.AmplificationProblem`.
+.. py:data:: HAS_PIL
 
-    * - .. py:data:: HAS_Z3
-      - `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
-        :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
+    PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow
+    <https://pillow.readthedocs.io/en/stable/>`__ fork of PIL if it is available when generating
+    certain visualizations, for example of both :class:`.QuantumCircuit` and
+    :class:`.DAGCircuit` in certain modes.
+
+.. py:data:: HAS_PYDOT
+
+    For some graph visualizations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
+    interface to GraphViz (see :data:`HAS_GRAPHVIZ`).
+
+.. py:data:: HAS_PYGMENTS
+
+    Pygments is a code highlighter and formatter used by many environments that involve rich
+    display of code blocks, including Sphinx and Jupyter.  Qiskit uses this when producing rich
+    output for these environments.
+
+.. py:data:: HAS_PYLATEX
+
+    Various LaTeX-based visualizations, especially the circuit drawers, need access to the
+    `pylatexenc <https://github.com/phfaist/pylatexenc>`__ project to work correctly.
+
+.. py:data:: HAS_QASM3_IMPORT
+
+    The functions :func:`.qasm3.load` and :func:`.qasm3.loads` for importing OpenQASM 3 programs
+    into :class:`.QuantumCircuit` instances use `an external importer package
+    <https://qiskit.github.io/qiskit-qasm3-import>`__.
+
+.. py:data:: HAS_SEABORN
+
+    Qiskit provides several visualization tools in the :mod:`.visualization` module.  Some
+    of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
+    in order to use them.
+
+.. py:data:: HAS_SKLEARN
+
+    Some of the gradient functions in :mod:`.opflow.gradients` use regularisation methods from
+    `Scikit Learn <https://scikit-learn.org/stable/>`__.
+
+.. py:data:: HAS_SKQUANT
+
+    Some of the optimisers in :mod:`.algorithms.optimizers` are based on those found in `Scikit
+    Quant <https://github.com/scikit-quant/scikit-quant>`__, which must be installed to use
+    them.
+
+.. py:data:: HAS_SQSNOBFIT
+
+    `SQSnobFit <https://pypi.org/project/SQSnobFit/>`__ is a library for the "stable noisy
+    optimization by branch and fit" algorithm.  It is used by the :class:`.SNOBFIT` optimizer.
+
+.. py:data:: HAS_SYMENGINE
+
+    `Symengine <https://github.com/symengine/symengine>`__ is a fast C++ backend for the
+    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  Qiskit uses
+    special methods from Symengine to accelerate its handling of
+    :class:`~.circuit.Parameter`\\ s if available.
+
+.. py:data:: HAS_TESTTOOLS
+
+    Qiskit's test suite has more advanced functionality available if the optional
+    `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
+    only needed for Qiskit developers.
+
+.. py:data:: HAS_TWEEDLEDUM
+
+    `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
+    synthesis and optimization of circuits that may involve classical oracles.  Qiskit's
+    :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
+    the :class:`.AmplificationProblem`.
+
+.. py:data:: HAS_Z3
+
+    `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
+    :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
 
 External Command-Line Tools
 ---------------------------
 
-.. list-table::
-    :widths: 25 75
+.. py:data:: HAS_GRAPHVIZ
 
-    * - .. py:data:: HAS_GRAPHVIZ
-      - For some graph visualizations, Qiskit uses the `GraphViz <https://graphviz.org/>`__
-        visualization tool via its ``pydot`` interface (see :data:`HAS_PYDOT`).
+    For some graph visualizations, Qiskit uses the `GraphViz <https://graphviz.org/>`__
+    visualization tool via its ``pydot`` interface (see :data:`HAS_PYDOT`).
 
-    * - .. py:data:: HAS_PDFLATEX
-      - Visualization tools that use LaTeX in their output, such as the circuit drawers, require
-        ``pdflatex`` to be available.  You will generally need to ensure that you have a working
-        LaTeX installation available, and the ``qcircuit.tex`` package.
+.. py:data:: HAS_PDFLATEX
 
-    * - .. py:data:: HAS_PDFTOCAIRO
-      - Visualization tools that convert LaTeX-generated files into rasterized images use the
-        ``pdftocairo`` tool.  This is part of the `Poppler suite of PDF tools
-        <https://poppler.freedesktop.org/>`__.
+    Visualization tools that use LaTeX in their output, such as the circuit drawers, require
+    ``pdflatex`` to be available.  You will generally need to ensure that you have a working
+    LaTeX installation available, and the ``qcircuit.tex`` package.
+
+.. py:data:: HAS_PDFTOCAIRO
+
+    Visualization tools that convert LaTeX-generated files into rasterized images use the
+    ``pdftocairo`` tool.  This is part of the `Poppler suite of PDF tools
+    <https://poppler.freedesktop.org/>`__.
 
 
 Lazy Checker Classes

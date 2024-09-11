@@ -27,7 +27,7 @@ from qiskit.passmanager.flow_controllers import (
     DoWhileController,
 )
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass
-from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler.passes import RXCalibrationBuilder
 from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -97,7 +97,6 @@ class TestPassManager(QiskitTestCase):
 
         expected_end = QuantumCircuit(qr)
         expected_end.cx(qr[0], qr[2])
-        expected_end_dag = circuit_to_dag(expected_end)
 
         calls = []
 
@@ -107,20 +106,19 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(CommutativeCancellation(basis_gates=["u1", "u2", "u3", "cx"]))
+        passmanager.append(RXCalibrationBuilder())
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]["count"], 0)
-        self.assertEqual(calls[0]["pass_"].name(), "CommutationAnalysis")
+        self.assertEqual(calls[0]["pass_"].name(), "NormalizeRXAngle")
         self.assertEqual(expected_start_dag, calls[0]["dag"])
         self.assertIsInstance(calls[0]["time"], float)
         self.assertIsInstance(calls[0]["property_set"], PropertySet)
         self.assertEqual("MyCircuit", calls[0]["dag"].name)
         self.assertEqual(len(calls[1]), 5)
         self.assertEqual(calls[1]["count"], 1)
-        self.assertEqual(calls[1]["pass_"].name(), "CommutativeCancellation")
-        self.assertEqual(expected_end_dag, calls[1]["dag"])
+        self.assertEqual(calls[1]["pass_"].name(), "RXCalibrationBuilder")
         self.assertIsInstance(calls[0]["time"], float)
         self.assertIsInstance(calls[0]["property_set"], PropertySet)
         self.assertEqual("MyCircuit", calls[1]["dag"].name)

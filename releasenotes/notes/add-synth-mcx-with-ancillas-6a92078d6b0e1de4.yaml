@@ -1,0 +1,17 @@
+---
+features_synthesis:
+  - |
+    Add a synthesis function :func:`.synth_mcx_n_dirty_i15` that
+    synthesizes a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
+    dirty ancillary qubits producing a circuit with at most :math:`8 * k - 6` CX gates,
+    by Iten et. al. (arXiv:1501.06911).
+  - |
+    Add a synthesis function :func:`.synth_mcx_n_clean_m15` that
+    synthesizes a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
+    clean ancillary qubits producing a circuit with at most :math:`6 * k - 6` CX gates,
+    by Maslov (arXiv:1508.03273).
+  - |
+    Add a synthesis function :func:`.synth_mcx_1_clean_b95` that
+    synthesizes a multi-controlled X gate with :math:`k` controls using a single
+    clean ancillary qubit producing a circuit with at most :math:`16 * k - 8` CX gates,
+    by Barenco et al. (arXiv:quant-ph/9503016).

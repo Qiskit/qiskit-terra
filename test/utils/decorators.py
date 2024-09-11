@@ -33,7 +33,7 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        if "run_slow" in os.environ.get("QISKIT_TESTS", ""):
+        if "run_slow" not in os.environ.get("QISKIT_TESTS", ""):
             raise unittest.SkipTest("Skipping slow tests")
         return func(*args, **kwargs)
 

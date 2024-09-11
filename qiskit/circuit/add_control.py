@@ -137,7 +137,7 @@ def control(
                     gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
             elif gate.name == "ry":
                 controlled_circ.mcry(
@@ -146,14 +146,14 @@ def control(
                     q_target[bit_indices[qargs[0]]],
                     q_ancillae,
                     mode="noancilla",
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
             elif gate.name == "rz":
                 controlled_circ.mcrz(
                     gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
-                    use_basis_gates=True,
+                    use_basis_gates=False,
                 )
                 continue
             elif gate.name == "p":

@@ -2699,3 +2699,11 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             QASM3ExporterError, "cannot export an inner scope.*as a top-level program"
         ):
             dumps(qc)
+
+    def test_no_basis_gate_with_keyword(self):
+        """Test that keyword cannot be used as a basis gate."""
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(QASM3ExporterError, "Cannot use 'reset' as a basis gate") as cm:
+            dumps(qc, basis_gates=["U", "reset"])
+        self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
+        self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")

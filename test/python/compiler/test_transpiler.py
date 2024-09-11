@@ -84,7 +84,6 @@ from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
-from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -874,42 +873,6 @@ class TestTranspile(QiskitTestCase):
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
 
-    def tests_conditional_run_split_2q_unitaries(self):
-        """Tests running `Split2QUnitaries` when basis gate set is (non-) discrete"""
-        qc = QuantumCircuit(3)
-        qc.sx(0)
-        qc.t(0)
-        qc.cx(0, 1)
-        qc.cx(1, 2)
-
-        orig_pass = Split2QUnitaries()
-        with patch.object(Split2QUnitaries, "run", wraps=orig_pass.run) as mock_pass:
-            basis = ["t", "sx", "cx"]
-            backend = GenericBackendV2(3, basis_gates=basis)
-            transpile(qc, backend=backend)
-            transpile(qc, basis_gates=basis)
-            transpile(qc, target=backend.target)
-            self.assertFalse(mock_pass.called)
-
-        orig_pass = Split2QUnitaries()
-        with patch.object(Split2QUnitaries, "run", wraps=orig_pass.run) as mock_pass:
-            basis = ["rz", "sx", "cx"]
-            backend = GenericBackendV2(3, basis_gates=basis)
-            transpile(qc, backend=backend, optimization_level=2)
-            self.assertTrue(mock_pass.called)
-            mock_pass.called = False
-            transpile(qc, basis_gates=basis, optimization_level=2)
-            self.assertTrue(mock_pass.called)
-            mock_pass.called = False
-            transpile(qc, target=backend.target, optimization_level=2)
-            self.assertTrue(mock_pass.called)
-            mock_pass.called = False
-            transpile(qc, backend=backend, optimization_level=3)
-            self.assertTrue(mock_pass.called)
-            mock_pass.called = False
-            transpile(qc, basis_gates=basis, optimization_level=3)
-            self.assertTrue(mock_pass.called)
-
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035
@@ -965,7 +928,10 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic")
+        with self.assertWarns(DeprecationWarning):
+            out = transpile(
+                circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic"
+            )
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
@@ -3354,19 +3320,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
@@ -3428,19 +3394,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
@@ -3511,31 +3477,31 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         self.assertIsInstance(first_meas_node.op, Measure)
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
         self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
             self.assertIn(qubit_map[op_node.qargs[0]], components[2])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
         self.assertIn(qubit_map[op_node.qargs[0]], components[2])
 
-    @data("sabre", "stochastic", "basic", "lookahead")
+    @data("sabre", "basic", "lookahead")
     def test_basic_connected_circuit_dense_layout(self, routing_method):
         """Test basic connected circuit on disjoint backend"""
         qc = QuantumCircuit(5)
@@ -3559,8 +3525,34 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
+    @data("stochastic")
+    def test_basic_connected_circuit_dense_layout_stochastic(self, routing_method):
+        """Test basic connected circuit on disjoint backend for deprecated stochastic swap"""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
     # Lookahead swap skipped for performance
-    @data("sabre", "stochastic", "basic")
+    @data("sabre", "basic")
     def test_triple_circuit_dense_layout(self, routing_method):
         """Test a split circuit with one circuit component per chip."""
         qc = QuantumCircuit(30)
@@ -3609,7 +3601,58 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    @data("sabre", "stochastic", "basic", "lookahead")
+    @data("stochastic")
+    def test_triple_circuit_dense_layout_stochastic(self, routing_method):
+        """Test a split circuit with one circuit component per chip for deprecated StochasticSwap."""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(30)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    @data("sabre", "basic", "lookahead")
     def test_triple_circuit_invalid_layout(self, routing_method):
         """Test a split circuit with one circuit component per chip."""
         qc = QuantumCircuit(30)
@@ -3653,8 +3696,54 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 seed_transpiler=42,
             )
 
-    # Lookahead swap skipped for performance reasons
-    @data("sabre", "stochastic", "basic")
+    @data("stochastic")
+    def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
+        """Test a split circuit with one circuit component per chip for deprecated ``StochasticSwap``"""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(30)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(TranspilerError):
+                transpile(
+                    qc,
+                    self.backend,
+                    layout_method="trivial",
+                    routing_method=routing_method,
+                    seed_transpiler=42,
+                )
+
+    # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
+    @data("sabre", "basic")
     def test_six_component_circuit_dense_layout(self, routing_method):
         """Test input circuit with more than 1 component per backend component."""
         qc = QuantumCircuit(42)
@@ -3708,6 +3797,71 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             routing_method=routing_method,
             seed_transpiler=42,
         )
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    # Lookahead swap skipped for performance reasons
+    @data("stochastic")
+    def test_six_component_circuit_dense_layout_stochastic(self, routing_method):
+        """Test input circuit with more than 1 component per backend component
+        for deprecated ``StochasticSwap``."""
+        # TODO: Remove when StochasticSwap is removed
+        qc = QuantumCircuit(42)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.h(30)
+        qc.cx(30, 31)
+        qc.cx(30, 32)
+        qc.cx(30, 33)
+        qc.h(34)
+        qc.cx(34, 35)
+        qc.cx(34, 36)
+        qc.cx(34, 37)
+        qc.h(38)
+        qc.cx(38, 39)
+        qc.cx(39, 40)
+        qc.cx(39, 41)
+        qc.measure_all()
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
             op_name = inst.operation.name

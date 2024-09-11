@@ -54,6 +54,13 @@ def get_standard_gate_name_mapping():
     from qiskit.circuit.delay import Delay
     from qiskit.circuit.reset import Reset
 
+    lambda_ = Parameter("λ")
+    theta = Parameter("ϴ")
+    phi = Parameter("φ")
+    gamma = Parameter("γ")
+    beta = Parameter("β")
+    time = Parameter("t")
+
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
     gates = [
@@ -61,38 +68,37 @@ def get_standard_gate_name_mapping():
         SXGate(),
         XGate(),
         CXGate(),
-        RZGate(Parameter("λ")),
-        RGate(Parameter("ϴ"), Parameter("φ")),
-        Reset(),
+        RZGate(lambda_),
+        RGate(theta, phi),
         C3SXGate(),
         CCXGate(),
         DCXGate(),
         CHGate(),
-        CPhaseGate(Parameter("ϴ")),
-        CRXGate(Parameter("ϴ")),
-        CRYGate(Parameter("ϴ")),
-        CRZGate(Parameter("ϴ")),
+        CPhaseGate(theta),
+        CRXGate(theta),
+        CRYGate(theta),
+        CRZGate(theta),
         CSwapGate(),
         CSXGate(),
-        CUGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ"), Parameter("γ")),
-        CU1Gate(Parameter("λ")),
-        CU3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        CUGate(theta, phi, lambda_, gamma),
+        CU1Gate(lambda_),
+        CU3Gate(theta, phi, lambda_),
         CYGate(),
         CZGate(),
         CCZGate(),
-        GlobalPhaseGate(Parameter("ϴ")),
+        GlobalPhaseGate(theta),
         HGate(),
-        PhaseGate(Parameter("ϴ")),
+        PhaseGate(theta),
         RCCXGate(),
         RC3XGate(),
-        RXGate(Parameter("ϴ")),
-        RXXGate(Parameter("ϴ")),
-        RYGate(Parameter("ϴ")),
-        RYYGate(Parameter("ϴ")),
-        RZZGate(Parameter("ϴ")),
-        RZXGate(Parameter("ϴ")),
-        XXMinusYYGate(Parameter("ϴ"), Parameter("β")),
-        XXPlusYYGate(Parameter("ϴ"), Parameter("β")),
+        RXGate(theta),
+        RXXGate(theta),
+        RYGate(theta),
+        RYYGate(theta),
+        RZZGate(theta),
+        RZXGate(theta),
+        XXMinusYYGate(theta, beta),
+        XXPlusYYGate(theta, beta),
         ECRGate(),
         SGate(),
         SdgGate(),
@@ -103,13 +109,14 @@ def get_standard_gate_name_mapping():
         SXdgGate(),
         TGate(),
         TdgGate(),
-        UGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
-        U1Gate(Parameter("λ")),
-        U2Gate(Parameter("φ"), Parameter("λ")),
-        U3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        UGate(theta, phi, lambda_),
+        U1Gate(lambda_),
+        U2Gate(phi, lambda_),
+        U3Gate(theta, phi, lambda_),
         YGate(),
         ZGate(),
-        Delay(Parameter("t")),
+        Delay(time),
+        Reset(),
         Measure(),
     ]
     name_mapping = {gate.name: gate for gate in gates}

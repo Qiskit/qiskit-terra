@@ -83,6 +83,19 @@ class TestDiagonalGate(QiskitTestCase):
                 all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
             )
 
+    def test_repeat(self):
+        """Test the repeat() method."""
+        for phases in [
+            [0, 0],
+            np.array([0, 0.8, 1, 0]),
+            (2 * np.pi * np.random.rand(2**3)).tolist(),
+        ]:
+            with self.subTest(phases=phases):
+                diag = [np.exp(1j * ph) for ph in phases]
+                gate = DiagonalGate(diag)
+                operator = Operator(gate)
+                self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
 
 def _get_diag_gate_matrix(diag):
     return np.diagflat(diag)
