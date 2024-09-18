@@ -23,7 +23,7 @@ from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from ._utils import _ctrl_state_to_int
 
 
-def add_control(
+def _add_control(
     operation: Gate | ControlledGate,
     num_ctrl_qubits: int,
     label: str | None,

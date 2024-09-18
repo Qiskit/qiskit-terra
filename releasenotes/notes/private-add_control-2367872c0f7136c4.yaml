@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The internal function ``add_control`` was renamed to ``_add_control`` to emphasise
+    that is not part of the public API. If you need a controlled gate do ``SomeGate(...).control(...)`` instead of
+    ``add_control(SomeGate(...), ...)``.

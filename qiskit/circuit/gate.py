@@ -135,9 +135,9 @@ class Gate(Instruction):
         """
         if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
-            from .add_control import add_control
+            from .add_control import _add_control
 
-            return add_control(self, num_ctrl_qubits, label, ctrl_state)
+            return _add_control(self, num_ctrl_qubits, label, ctrl_state)
 
         else:
             return AnnotatedOperation(
