@@ -135,10 +135,15 @@ class Gate(Instruction):
         """
         if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
-            from .add_control import _add_control
+            from .add_control import control
 
-            return _add_control(self, num_ctrl_qubits, label, ctrl_state)
-
+            cgate = control(
+                self, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            )
+            if self.label is not None:
+                cgate.base_gate = cgate.base_gate.to_mutable()
+                cgate.base_gate.label = self.label
+            return cgate
         else:
             return AnnotatedOperation(
                 self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
