@@ -1,6 +1,6 @@
 ---
 upgrade_circuits:
   - |
-    The internal function ``add_control`` was renamed to ``_add_control`` to emphasise
-    that is not part of the public API. If you need a controlled gate do ``SomeGate(...).control(...)`` instead of
-    ``add_control(SomeGate(...), ...)``.
+    The internal function ``qiskit.circuit.add_control.add_control`` was removed and inlined, as it is not part of the
+    public API. User that had been wrongly using it as ``add_control(SomeGate(...), ...)`` should change their code to
+    ``SomeGate(...).control(...)`` instead.
