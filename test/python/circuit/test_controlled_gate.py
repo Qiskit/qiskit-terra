@@ -27,7 +27,6 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
-import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -1527,10 +1526,10 @@ class TestSingleControlledRotationGates(QiskitTestCase):
     gry = ry.RYGate(theta)
     grz = rz.RZGate(theta)
 
-    ugu1 = ac._unroll_gate(gu1, ["p", "u", "cx"])
-    ugrx = ac._unroll_gate(grx, ["p", "u", "cx"])
-    ugry = ac._unroll_gate(gry, ["p", "u", "cx"])
-    ugrz = ac._unroll_gate(grz, ["p", "u", "cx"])
+    ugu1 = gu1._unroll_gate(["p", "u", "cx"])
+    ugrx = grx._unroll_gate(["p", "u", "cx"])
+    ugry = gry._unroll_gate(["p", "u", "cx"])
+    ugrz = grz._unroll_gate(["p", "u", "cx"])
     ugrz.params = grz.params
 
     cgu1 = ugu1.control(num_ctrl)
