@@ -340,6 +340,7 @@ class Gate(Instruction):
 
     def _unroll_gate(self, basis_gates):
         """Unrolls a gate, possibly composite, to the target basis"""
+        # pylint: disable=cyclic-import
         from qiskit.transpiler import PassManager
         from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
         from qiskit import QuantumCircuit, QuantumRegister
