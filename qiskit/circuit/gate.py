@@ -136,8 +136,8 @@ class Gate(Instruction):
         if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
 
-            cgate = self._control(
-                num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            cgate = Gate._control(
+                self, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
             )
             if self.label is not None:
                 cgate.base_gate = cgate.base_gate.to_mutable()
@@ -148,8 +148,9 @@ class Gate(Instruction):
                 self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
             )
 
+    @staticmethod
     def _control(
-        self: Gate,
+        operation: Gate,
         num_ctrl_qubits: int | None = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
@@ -161,7 +162,7 @@ class Gate(Instruction):
         and `cx` gates.
 
         Args:
-            self: The gate used to create the ControlledGate.
+            operation: The gate used to create the ControlledGate.
             num_ctrl_qubits: The number of controls to add to gate (default=1).
             label: An optional gate label.
             ctrl_state: The control state in decimal or as
@@ -185,24 +186,24 @@ class Gate(Instruction):
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
         q_control = QuantumRegister(num_ctrl_qubits, name="control")
-        q_target = QuantumRegister(self.num_qubits, name="target")
+        q_target = QuantumRegister(operation.num_qubits, name="target")
         q_ancillae = None  # TODO: add
-        controlled_circ = QuantumCircuit(q_control, q_target, name=f"c_{self.name}")
-        if isinstance(self, controlledgate.ControlledGate):
-            original_ctrl_state = self.ctrl_state
+        controlled_circ = QuantumCircuit(q_control, q_target, name=f"c_{operation.name}")
+        if isinstance(operation, controlledgate.ControlledGate):
+            original_ctrl_state = operation.ctrl_state
         global_phase = 0
-        if self.name == "x" or (
-            isinstance(self, controlledgate.ControlledGate) and self.base_gate.name == "x"
+        if operation.name == "x" or (
+            isinstance(operation, controlledgate.ControlledGate) and operation.base_gate.name == "x"
         ):
             controlled_circ.mcx(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
-            if self.definition is not None and self.definition.global_phase:
-                global_phase += self.definition.global_phase
+            if operation.definition is not None and operation.definition.global_phase:
+                global_phase += operation.definition.global_phase
         else:
             basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
-            if isinstance(self, controlledgate.ControlledGate):
-                self = self.to_mutable()
-                self.ctrl_state = None
-            unrolled_gate = self._unroll_gate(basis_gates=basis)
+            if isinstance(operation, controlledgate.ControlledGate):
+                operation = operation.to_mutable()
+                operation.ctrl_state = None
+            unrolled_gate = operation._unroll_gate(basis_gates=basis)
             if unrolled_gate.definition.global_phase:
                 global_phase += unrolled_gate.definition.global_phase
 
@@ -305,17 +306,17 @@ class Gate(Instruction):
                 controlled_circ.p(global_phase, q_control)
             else:
                 controlled_circ.mcp(global_phase, q_control[:-1], q_control[-1])
-        if isinstance(self, controlledgate.ControlledGate):
-            self.ctrl_state = original_ctrl_state
-            new_num_ctrl_qubits = num_ctrl_qubits + self.num_ctrl_qubits
-            new_ctrl_state = self.ctrl_state << num_ctrl_qubits | ctrl_state
-            base_name = self.base_gate.name
-            base_gate = self.base_gate
+        if isinstance(operation, controlledgate.ControlledGate):
+            operation.ctrl_state = original_ctrl_state
+            new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
+            new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
+            base_name = operation.base_gate.name
+            base_gate = operation.base_gate
         else:
             new_num_ctrl_qubits = num_ctrl_qubits
             new_ctrl_state = ctrl_state
-            base_name = self.name
-            base_gate = self
+            base_name = operation.name
+            base_gate = operation
         # In order to maintain some backward compatibility with gate names this
         # uses a naming convention where if the number of controls is <=2 the gate
         # is named like "cc<base_gate.name>", else it is named like
@@ -328,7 +329,7 @@ class Gate(Instruction):
         cgate = controlledgate.ControlledGate(
             new_name,
             controlled_circ.num_qubits,
-            self.params,
+            operation.params,
             label=label,
             num_ctrl_qubits=new_num_ctrl_qubits,
             definition=controlled_circ,
@@ -341,10 +342,16 @@ class Gate(Instruction):
         """Unrolls a gate, possibly composite, to the target basis"""
         from qiskit.transpiler import PassManager
         from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-        from .add_control import _gate_to_circuit
+        from qiskit import QuantumCircuit, QuantumRegister
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
-        circ = _gate_to_circuit(self)
+        if hasattr(self, "definition") and self.definition is not None:
+            circ = self.definition
+        else:
+            qr = QuantumRegister(self.num_qubits)
+            circ = QuantumCircuit(qr, name=self.name)
+            circ.append(self, qr)
+
         pm = PassManager(
             [
                 UnrollCustomDefinitions(sel, basis_gates=basis_gates),
