@@ -359,14 +359,12 @@ def generate_preset_pass_manager(
     initial_layout = _parse_initial_layout(initial_layout)
     approximation_degree = _parse_approximation_degree(approximation_degree)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler)
-
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,
         "inst_map": inst_map,
         "coupling_map": coupling_map,
         "instruction_durations": instruction_durations,
-        "backend_properties": backend_properties,
         "timing_constraints": timing_constraints,
         "layout_method": layout_method,
         "routing_method": routing_method,

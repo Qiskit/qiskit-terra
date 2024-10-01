@@ -17,11 +17,20 @@ import warnings
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.utils import deprecate_arg
 
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
+    @deprecate_arg(
+        "backend_properties",
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Because `qiskit.providers.models.BackendProperties` is deprecated, it wont be"
+        "accepted anymore as a parameter.",
+        predicate=lambda x: x is not None,
+    )
     def __init__(
         self,
         initial_layout=None,

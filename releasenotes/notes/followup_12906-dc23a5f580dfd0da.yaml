@@ -1,0 +1,20 @@
+---
+deprecations_providers:
+  - |
+    With the deprecation of the classes in ``qiskit.providers.models`` from 1.2 on, several methods taking or returning
+    instances of these classes need to be deprecated too. The following methods, functions and parameters
+    are deprecated:
+
+      - :meth:`.BasicSimulator.configuration`: returns deprecated :class:`.BackendConfiguration`.
+      - The function :func:`.convert_to_target` since it takes deprecated classes such as
+          :class:`.BackendConfiguration` and :class:`.BackendProperties`.
+      - The parameter ``backend_properties`` (of the deprecated type :class:`BackendProperties`) in function
+          :func:`.transpile`.
+      - The parameter ``backend_props`` (of the deprecated type :class:`BackendProperties`) in the
+          :class:`.UnitarySynthesis` constructor.
+      - The parameter ``backend_properties`` (of the deprecated type :class:`BackendProperties`) in the method
+          :meth:`.Target.from_configuration`.
+      - The parameter ``backend_props`` (of the deprecated type :class:`BackendProperties`) in the function
+          :func:`.generate_translation_passmanager`.
+      - The parameter ``backend_properties`` (of the deprecated type :class:`BackendProperties`) in the
+          :class:`.PassManagerConfig` constructor.

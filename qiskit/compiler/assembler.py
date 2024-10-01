@@ -251,14 +251,22 @@ def _assemble(
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
-        run_config = _parse_circuit_args(
-            parameter_binds,
-            backend,
-            meas_level,
-            meas_return,
-            parametric_pulses,
-            **run_config_common_dict,
-        )
+        with warnings.catch_warnings():
+            # Internally calls deprecated BasicSimulator.configuration()`
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+\.basic_provider\.basic_simulator\.BasicSimulator\.configuration.+",
+                module="qiskit",
+            )
+            run_config = _parse_circuit_args(
+                parameter_binds,
+                backend,
+                meas_level,
+                meas_return,
+                parametric_pulses,
+                **run_config_common_dict,
+            )
 
         # If circuits are parameterized, bind parameters and remove from run_config
         bound_experiments, run_config = _expand_parameters(
