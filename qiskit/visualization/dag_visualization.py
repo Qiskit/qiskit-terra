@@ -18,6 +18,7 @@ Visualization function for DAG circuit representation.
 
 import io
 import subprocess
+from collections.abc import Callable
 
 from rustworkx.visualization import graphviz_draw
 
@@ -74,9 +75,9 @@ IMAGE_TYPES = {
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PIL.require_in_call
 def dag_drawer(dag, scale=0.7, filename=None, style="color",
-               node_attr_fn=None,
-               edge_attr_fn=None,
-               graph_attr=None):
+               node_attr_fn: Callable[[DAGOpNode | DAGInNode | DAGOutNode], dict[str, str]] | None = None,
+               edge_attr_fn: Callable[[DAGOpNode | DAGInNode | DAGOutNode], dict[str, str]] | None = None,
+               graph_attr: dict[str, str] | None = None):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -89,6 +90,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
+                     'custom': input custom colors with any of node_attr_fn, edge_attr_fn, graph_attr
+
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
