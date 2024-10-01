@@ -65,20 +65,18 @@ class TestDagDrawer(QiskitVisualizationTestCase):
 
         def node_attr_fn(n):
             self.assertTrue(
-                any((
-                    isinstance(n, DAGOpNode),
-                    isinstance(n, DAGInNode),
-                    isinstance(n, DAGOutNode)
-                ))
+                any((isinstance(n, DAGOpNode), isinstance(n, DAGInNode), isinstance(n, DAGOutNode)))
             )
             return {"style": "filled", "fillcolor": "red"}
 
         def edge_attr_fn(e):
             self.assertTrue(
-                any((
-                    isinstance(e, Qubit),
-                    isinstance(e, Clbit),
-                ))
+                any(
+                    (
+                        isinstance(e, Qubit),
+                        isinstance(e, Clbit),
+                    )
+                )
             )
             return {"arrowsize": "2"}
 
@@ -106,21 +104,22 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             {"fillcolor": 0.0},
         ]
 
+        bad_func_attrs = [lambda _: attr for attr in bad_attrs]
+
         # Test bad node attribute functions
-        for attr in bad_attrs:
+        for attr_func in bad_func_attrs:
             with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", node_attr_fn=lambda _: attr)
+                dag_drawer(self.dag, style="custom", node_attr_fn=attr_func)
 
         # Test bad edge attribute functions
-        for attr in bad_attrs:
+        for attr_func in bad_func_attrs:
             with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", edge_attr_fn=lambda _: attr)
+                dag_drawer(self.dag, style="custom", edge_attr_fn=attr_func)
 
         # Test bad graph attributes
         for attr in bad_attrs:
             with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
                 dag_drawer(self.dag, style="custom", graph_attr=attr)
-
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")

@@ -18,7 +18,7 @@ Visualization function for DAG circuit representation.
 
 import io
 import subprocess
-from collections.abc import Callable
+from typing import Union, Callable
 
 from rustworkx.visualization import graphviz_draw
 
@@ -74,10 +74,17 @@ IMAGE_TYPES = {
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PIL.require_in_call
-def dag_drawer(dag, scale=0.7, filename=None, style="color",
-               node_attr_fn: Callable[[DAGOpNode | DAGInNode | DAGOutNode], dict[str, str]] | None = None,
-               edge_attr_fn: Callable[[DAGOpNode | DAGInNode | DAGOutNode], dict[str, str]] | None = None,
-               graph_attr: dict[str, str] | None = None):
+def dag_drawer(
+    dag,
+    scale=0.7,
+    filename=None,
+    style="color",
+    node_attr_fn: Union[
+        Callable[[Union[DAGOpNode, DAGInNode, DAGOutNode]], dict[str, str]], None
+    ] = None,
+    edge_attr_fn: Union[Callable[[Union[Qubit, Clbit]], dict[str, str]], None] = None,
+    graph_attr: Union[dict[str, str], None] = None,
+):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -107,7 +114,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
 
     Example:
         .. plot::
-           :include-source:
+            :include-source:
+            :nofigs:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
@@ -115,7 +123,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
             from qiskit.visualization import dag_drawer
             from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
             from qiskit.circuit import Qubit, Clbit
-
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
