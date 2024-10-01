@@ -91,7 +91,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
                      'custom': input custom colors with any of node_attr_fn, edge_attr_fn, graph_attr
-
+        node_attr_fn: function to customize node style, inputs a node of the DAG. MUST return a dictionary where all entries are strings.
+        edge_attr_fn: function to customize edge style, inputs an edge of the DAG. MUST return a dictionary where all entries are strings.
+        graph_attr: dict to customize graph style
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -111,6 +113,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
             from qiskit.visualization import dag_drawer
+            from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
+            from qiskit.circuit import Qubit, Clbit
+
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -121,8 +126,25 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
             circ.rz(0.5, q[1]).c_if(c, 2)
 
             dag = circuit_to_dag(circ)
-            dag_drawer(dag)
+            dag_drawer(
+                dag,
+
+                # node_attr_fn and edge_attr_fn will only work if style="custom" is specified
+                style="custom",
+
+                # Using functions for the node and edge attributes allows you to dynamically color your graphs
+                # For more node style options, see https://graphviz.org/docs/nodes/
+                node_attr_fn=lambda n: {"style": "filled", "fillcolor": "black", "fontcolor": "white"} if isinstance(n, DAGInNode) else {"style": "filled", "fillcolor": "grey"},
+
+                # For more edge style options, see https://graphviz.org/docs/edges/
+                edge_attr_fn=lambda n: {"arrowsize": "2"} if isinstance(n, Qubit) else {"arrowsize": "0.5"},
+
+                # For more graph style options, see https://graphviz.org/docs/graph/
+                # NOTE: node_attr_fn is NOT a function, it is a dict
+                graph_attr={"bgcolor": "beige"}
+            )
     """
+
     from PIL import Image
 
     # NOTE: use type str checking to avoid potential cyclical import
