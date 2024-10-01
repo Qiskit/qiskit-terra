@@ -73,7 +73,10 @@ IMAGE_TYPES = {
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PIL.require_in_call
-def dag_drawer(dag, scale=0.7, filename=None, style="color"):
+def dag_drawer(dag, scale=0.7, filename=None, style="color",
+               node_attr_fn=None,
+               edge_attr_fn=None,
+               graph_attr=None):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -128,13 +131,19 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         for reg in list(dag.qregs.values()) + list(dag.cregs.values())
         for (idx, bit) in enumerate(reg)
     }
+
+    graph_attrs = {}
+    if style == "custom" and graph_attr:
+        graph_attrs = graph_attr
+
     if "DAGDependency" in type_str:
         # pylint: disable=cyclic-import
         from qiskit.visualization.circuit._utils import get_bit_reg_index
 
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
-        graph_attrs = {"dpi": str(100 * scale)}
+        graph_attrs.update({"dpi": str(100 * scale)})
+
         dag_dep_circ = dagdependency_to_circuit(dag)
 
         def node_attr_func(node):
@@ -200,13 +209,15 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 return n
+            if style == "custom" and node_attr_fn:
+                return node_attr_fn(node)
             else:
                 raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
         edge_attr_func = None
 
     else:
-        graph_attrs = {"dpi": str(100 * scale)}
+        graph_attrs.update({"dpi": str(100 * scale)})
 
         def node_attr_func(node):
             if style == "plain":
@@ -250,11 +261,17 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 return n
+            if style == "custom" and node_attr_fn:
+                return node_attr_fn(node)
             else:
                 raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}
+
+            if style == "custom" and edge_attr_fn:
+                return edge_attr_fn(edge)
+
             if isinstance(edge, Qubit):
                 label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")
             elif isinstance(edge, Clbit):
@@ -305,6 +322,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                 text=True,
             )
             return None
+
     else:
         return graphviz_draw(
             dag._multi_graph,
