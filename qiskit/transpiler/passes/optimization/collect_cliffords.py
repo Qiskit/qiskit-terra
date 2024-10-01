@@ -15,6 +15,7 @@
 
 from functools import partial
 
+from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes.optimization.collect_and_collapse import (
     CollectAndCollapse,
     collect_using_filter_function,
@@ -37,6 +38,7 @@ class CollectCliffords(CollectAndCollapse):
         min_block_size=2,
         split_layers=False,
         collect_from_back=False,
+        matrix_based=False,
     ):
         """CollectCliffords initializer.
 
@@ -51,11 +53,13 @@ class CollectCliffords(CollectAndCollapse):
                 over disjoint qubit subsets.
             collect_from_back (bool): specifies if blocks should be collected started
                 from the end of the circuit.
+            matrix_based (bool): specifies whether to collect unitary gates
+               which are Clifford gates only for certain parameters (based on their unitary matrix).
         """
 
         collect_function = partial(
             collect_using_filter_function,
-            filter_function=_is_clifford_gate,
+            filter_function=partial(_is_clifford_gate, matrix_based=matrix_based),
             split_blocks=split_blocks,
             min_block_size=min_block_size,
             split_layers=split_layers,
@@ -77,9 +81,21 @@ clifford_gate_names = (
 )
 
 
-def _is_clifford_gate(node):
+def _is_clifford_gate(node, matrix_based=False):
     """Specifies whether a node holds a clifford gate."""
-    return node.op.name in clifford_gate_names and getattr(node.op, "condition", None) is None
+    if getattr(node.op, "condition", None) is not None:
+        return False
+    if node.op.name in clifford_gate_names:
+        return True
+
+    if not matrix_based:
+        return False
+
+    try:
+        Clifford(node.op)
+        return True
+    except QiskitError:
+        return False
 
 
 def _collapse_to_clifford(circuit):

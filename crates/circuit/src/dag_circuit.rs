@@ -1001,7 +1001,7 @@ def _format(operand):
     }
 
     /// Add all wires in a quantum register.
-    fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
+    pub fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
         if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
             return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
         }
@@ -1684,7 +1684,7 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: if a leaf node is connected to multiple outputs
     #[pyo3(name = "apply_operation_back", signature = (op, qargs=None, cargs=None, *, check=true))]
-    fn py_apply_operation_back(
+    pub fn py_apply_operation_back(
         &mut self,
         py: Python,
         op: Bound<PyAny>,
@@ -2873,8 +2873,8 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(signature = (node, input_dag, wires=None, propagate_condition=true))]
-    fn substitute_node_with_dag(
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=true))]
+    pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,
@@ -4388,27 +4388,18 @@ def _format(operand):
         for name in namelist.iter() {
             name_list_set.insert(name.extract::<String>()?);
         }
-        match self.collect_runs(name_list_set) {
-            Some(runs) => {
-                let run_iter = runs.map(|node_indices| {
-                    PyTuple::new_bound(
-                        py,
-                        node_indices
-                            .into_iter()
-                            .map(|node_index| self.get_node(py, node_index).unwrap()),
-                    )
-                    .unbind()
-                });
-                let out_set = PySet::empty_bound(py)?;
-                for run_tuple in run_iter {
-                    out_set.add(run_tuple)?;
-                }
-                Ok(out_set.unbind())
-            }
-            None => Err(PyRuntimeError::new_err(
-                "Invalid DAGCircuit, cycle encountered",
-            )),
+
+        let out_set = PySet::empty_bound(py)?;
+
+        for run in self.collect_runs(name_list_set) {
+            let run_tuple = PyTuple::new_bound(
+                py,
+                run.into_iter()
+                    .map(|node_index| self.get_node(py, node_index).unwrap()),
+            );
+            out_set.add(run_tuple)?;
         }
+        Ok(out_set.unbind())
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
@@ -4970,7 +4961,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
@@ -4980,8 +4971,11 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
-        rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn)
-            .map(|node_iter| node_iter.map(|x| x.unwrap()))
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("invalid DAG: cycle(s) detected!"),
+        }
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.

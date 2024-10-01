@@ -59,7 +59,7 @@ fn run_on_self_inverse(
         }
         let mut collect_set: HashSet<String> = HashSet::with_capacity(1);
         collect_set.insert(gate.operation.name().to_string());
-        let gate_runs: Vec<Vec<NodeIndex>> = dag.collect_runs(collect_set).unwrap().collect();
+        let gate_runs: Vec<Vec<NodeIndex>> = dag.collect_runs(collect_set).collect();
         for gate_cancel_run in gate_runs {
             let mut partitions: Vec<Vec<NodeIndex>> = Vec::new();
             let mut chunk: Vec<NodeIndex> = Vec::new();
@@ -128,7 +128,7 @@ fn run_on_inverse_pairs(
             .iter()
             .map(|x| x.operation.name().to_string())
             .collect();
-        let runs: Vec<Vec<NodeIndex>> = dag.collect_runs(names).unwrap().collect();
+        let runs: Vec<Vec<NodeIndex>> = dag.collect_runs(names).collect();
         for nodes in runs {
             let mut i = 0;
             while i < nodes.len() - 1 {

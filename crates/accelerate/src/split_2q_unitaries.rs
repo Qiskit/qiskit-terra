@@ -45,8 +45,12 @@ pub fn split_2q_unitaries(
             if matches!(decomp.specialization, Specialization::IdEquiv) {
                 let k1r_arr = decomp.K1r(py);
                 let k1l_arr = decomp.K1l(py);
-                let k1r_gate = UNITARY_GATE.get_bound(py).call1((k1r_arr,))?;
-                let k1l_gate = UNITARY_GATE.get_bound(py).call1((k1l_arr,))?;
+                let k1r_gate = UNITARY_GATE
+                    .get_bound(py)
+                    .call1((k1r_arr, py.None(), false))?;
+                let k1l_gate = UNITARY_GATE
+                    .get_bound(py)
+                    .call1((k1l_arr, py.None(), false))?;
                 let insert_fn = |edge: &Wire| -> PyResult<OperationFromPython> {
                     if let Wire::Qubit(qubit) = edge {
                         if *qubit == qubits[0] {

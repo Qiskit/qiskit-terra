@@ -130,14 +130,14 @@ pub struct Equivalence {
     #[pyo3(get)]
     pub params: SmallVec<[Param; 3]>,
     #[pyo3(get)]
-    pub circuit: CircuitRep,
+    pub circuit: CircuitFromPython,
 }
 
 #[pymethods]
 impl Equivalence {
     #[new]
     #[pyo3(signature = (params, circuit))]
-    fn new(params: SmallVec<[Param; 3]>, circuit: CircuitRep) -> Self {
+    fn new(params: SmallVec<[Param; 3]>, circuit: CircuitFromPython) -> Self {
         Self { circuit, params }
     }
 
@@ -295,15 +295,17 @@ impl<'py> FromPyObject<'py> for GateOper {
     }
 }
 
-/// Representation of QuantumCircuit by using an instance of `CircuitData`.]
+/// Used to extract an instance of [CircuitData] from a `QuantumCircuit`.
+/// It also ensures seamless conversion back to `QuantumCircuit` once sent
+/// back to Python.
 ///
 /// TODO: Remove this implementation once the `EquivalenceLibrary` is no longer
 /// called from Python, or once the API is able to seamlessly accept instances
-/// of `CircuitData`.
+/// of [CircuitData].
 #[derive(Debug, Clone)]
-pub struct CircuitRep(pub CircuitData);
+pub struct CircuitFromPython(pub CircuitData);
 
-impl FromPyObject<'_> for CircuitRep {
+impl FromPyObject<'_> for CircuitFromPython {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
@@ -318,7 +320,7 @@ impl FromPyObject<'_> for CircuitRep {
     }
 }
 
-impl IntoPy<PyObject> for CircuitRep {
+impl IntoPy<PyObject> for CircuitFromPython {
     fn into_py(self, py: Python<'_>) -> PyObject {
         QUANTUM_CIRCUIT
             .get_bound(py)
@@ -328,7 +330,7 @@ impl IntoPy<PyObject> for CircuitRep {
     }
 }
 
-impl ToPyObject for CircuitRep {
+impl ToPyObject for CircuitFromPython {
     fn to_object(&self, py: Python<'_>) -> PyObject {
         self.clone().into_py(py)
     }
@@ -395,7 +397,7 @@ impl EquivalenceLibrary {
         &mut self,
         py: Python,
         gate: GateOper,
-        equivalent_circuit: CircuitRep,
+        equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
         self.add_equivalence(py, &gate.operation, &gate.params, equivalent_circuit)
     }
@@ -425,7 +427,12 @@ impl EquivalenceLibrary {
     ///     entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
     ///         equivalently implementing the given Gate.
     #[pyo3(name = "set_entry")]
-    fn py_set_entry(&mut self, py: Python, gate: GateOper, entry: Vec<CircuitRep>) -> PyResult<()> {
+    fn py_set_entry(
+        &mut self,
+        py: Python,
+        gate: GateOper,
+        entry: Vec<CircuitFromPython>,
+    ) -> PyResult<()> {
         self.set_entry(py, &gate.operation, &gate.params, entry)
     }
 
@@ -567,7 +574,7 @@ impl EquivalenceLibrary {
         py: Python,
         gate: &PackedOperation,
         params: &[Param],
-        equivalent_circuit: CircuitRep,
+        equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
         raise_if_param_mismatch(py, params, equivalent_circuit.0.unsorted_parameters(py)?)?;
@@ -614,7 +621,7 @@ impl EquivalenceLibrary {
         py: Python,
         gate: &PackedOperation,
         params: &[Param],
-        entry: Vec<CircuitRep>,
+        entry: Vec<CircuitFromPython>,
     ) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
@@ -714,7 +721,7 @@ fn raise_if_param_mismatch(
     Ok(())
 }
 
-fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitRep) -> PyResult<()> {
+fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitFromPython) -> PyResult<()> {
     let op_ref = gate.view();
     if op_ref.num_qubits() != circuit.0.num_qubits() as u32
         || op_ref.num_clbits() != circuit.0.num_clbits() as u32
@@ -732,7 +739,11 @@ fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitRep) -> PyRe
     Ok(())
 }
 
-fn rebind_equiv(py: Python, equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitRep> {
+fn rebind_equiv(
+    py: Python,
+    equiv: Equivalence,
+    query_params: &[Param],
+) -> PyResult<CircuitFromPython> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
     let param_mapping: PyResult<IndexMap<ParameterUuid, &Param>> = equiv_params
         .iter()

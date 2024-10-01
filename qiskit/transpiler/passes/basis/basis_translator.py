@@ -18,15 +18,11 @@ import time
 import logging
 
 from functools import singledispatchmethod
-from itertools import zip_longest
 from collections import defaultdict
 
 import rustworkx
 
 from qiskit.circuit import (
-    Gate,
-    ParameterVector,
-    QuantumRegister,
     ControlFlowOp,
     QuantumCircuit,
     ParameterExpression,
@@ -37,6 +33,7 @@ from qiskit.circuit.equivalence import Key, NodeData, Equivalence
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit._accelerate.basis.basis_translator import compose_transforms
 
 logger = logging.getLogger(__name__)
 
@@ -235,9 +232,9 @@ class BasisTranslator(TransformationPass):
         # Compose found path into a set of instruction substitution rules.
 
         compose_start_time = time.time()
-        instr_map = _compose_transforms(basis_transforms, source_basis, dag)
+        instr_map = compose_transforms(basis_transforms, source_basis, dag)
         extra_instr_map = {
-            qarg: _compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
+            qarg: compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
             for qarg, transforms in qarg_local_basis_transforms.items()
         }
 
@@ -486,7 +483,9 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
                 rule.circuit,
                 score,
             )
-            self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
+            self._basis_transforms.append(
+                ((gate.name, gate.num_qubits), (rule.params, rule.circuit))
+            )
         # we can stop the search if we have found all gates in the original circuit.
         if not self._source_gates_remain:
             # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
@@ -596,104 +595,10 @@ def _basis_search(equiv_lib, source_basis, target_basis):
             rtn = vis.basis_transforms
 
             logger.debug("Transformation path:")
-            for gate_name, gate_num_qubits, params, equiv in rtn:
+            for (gate_name, gate_num_qubits), (params, equiv) in rtn:
                 logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
     finally:
         # Remove dummy node in order to return graph to original state
         graph.remove_node(dummy)
 
     return rtn
-
-
-def _compose_transforms(basis_transforms, source_basis, source_dag):
-    """Compose a set of basis transforms into a set of replacements.
-
-    Args:
-        basis_transforms (List[Tuple[gate_name, params, equiv]]): List of
-            transforms to compose.
-        source_basis (Set[Tuple[gate_name: str, gate_num_qubits: int]]): Names
-            of gates which need to be translated.
-        source_dag (DAGCircuit): DAG with example gates from source_basis.
-            (Used to determine num_params for gate in source_basis.)
-
-    Returns:
-        Dict[gate_name, Tuple(params, dag)]: Dictionary mapping between each gate
-            in source_basis and a DAGCircuit instance to replace it. Gates in
-            source_basis but not affected by basis_transforms will be included
-            as a key mapping to itself.
-    """
-    example_gates = _get_example_gates(source_dag)
-    mapped_instrs = {}
-
-    for gate_name, gate_num_qubits in source_basis:
-        # Need to grab a gate instance to find num_qubits and num_params.
-        # Can be removed following https://github.com/Qiskit/qiskit-terra/pull/3947 .
-        example_gate = example_gates[gate_name, gate_num_qubits]
-        num_params = len(example_gate.params)
-
-        placeholder_params = ParameterVector(gate_name, num_params)
-        placeholder_gate = Gate(gate_name, gate_num_qubits, list(placeholder_params))
-        placeholder_gate.params = list(placeholder_params)
-
-        dag = DAGCircuit()
-        qr = QuantumRegister(gate_num_qubits)
-        dag.add_qreg(qr)
-        dag.apply_operation_back(placeholder_gate, qr, (), check=False)
-        mapped_instrs[gate_name, gate_num_qubits] = placeholder_params, dag
-
-    for gate_name, gate_num_qubits, equiv_params, equiv in basis_transforms:
-        logger.debug(
-            "Composing transform step: %s/%s %s =>\n%s",
-            gate_name,
-            gate_num_qubits,
-            equiv_params,
-            equiv,
-        )
-
-        for mapped_instr_name, (dag_params, dag) in mapped_instrs.items():
-            doomed_nodes = [
-                node
-                for node in dag.op_nodes()
-                if (node.name, node.num_qubits) == (gate_name, gate_num_qubits)
-            ]
-
-            if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-
-                logger.debug(
-                    "Updating transform for mapped instr %s %s from \n%s",
-                    mapped_instr_name,
-                    dag_params,
-                    dag_to_circuit(dag, copy_operations=False),
-                )
-
-            for node in doomed_nodes:
-
-                replacement = equiv.assign_parameters(dict(zip_longest(equiv_params, node.params)))
-
-                replacement_dag = circuit_to_dag(replacement)
-
-                dag.substitute_node_with_dag(node, replacement_dag)
-
-            if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-
-                logger.debug(
-                    "Updated transform for mapped instr %s %s to\n%s",
-                    mapped_instr_name,
-                    dag_params,
-                    dag_to_circuit(dag, copy_operations=False),
-                )
-
-    return mapped_instrs
-
-
-def _get_example_gates(source_dag):
-    def recurse(dag, example_gates=None):
-        example_gates = example_gates or {}
-        for node in dag.op_nodes():
-            example_gates[(node.name, node.num_qubits)] = node
-            if node.name in CONTROL_FLOW_OP_NAMES:
-                for block in node.op.blocks:
-                    example_gates = recurse(circuit_to_dag(block), example_gates)
-        return example_gates
-
-    return recurse(source_dag)
