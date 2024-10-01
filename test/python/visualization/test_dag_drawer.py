@@ -109,7 +109,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         # Test bad node attribute functions
         for attr in bad_attrs:
             with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", node_attr_fn=lambda: attr)
+                dag_drawer(self.dag, style="custom", node_attr_fn=lambda _: attr)
 
         # Test bad edge attribute functions
         for attr in bad_attrs:
