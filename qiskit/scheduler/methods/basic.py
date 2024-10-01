@@ -13,8 +13,9 @@
 """
 The most straightforward scheduling methods: scheduling **as early** or **as late** as possible.
 """
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
@@ -28,7 +29,7 @@ from qiskit.providers import BackendV1, BackendV2
 def as_soon_as_possible(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: BackendV1 | BackendV2 | None = None,
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as soon as possible"
@@ -51,7 +52,7 @@ def as_soon_as_possible(
     """
     qubit_time_available = defaultdict(int)
 
-    def update_times(inst_qubits: List[int], time: int = 0) -> None:
+    def update_times(inst_qubits: list[int], time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
             qubit_time_available[q] = time
@@ -81,7 +82,7 @@ def as_soon_as_possible(
 def as_late_as_possible(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: BackendV1 | BackendV2 | None = None,
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as late as possible"
@@ -107,7 +108,7 @@ def as_late_as_possible(
     """
     qubit_time_available = defaultdict(int)
 
-    def update_times(inst_qubits: List[int], time: int = 0) -> None:
+    def update_times(inst_qubits: list[int], time: int = 0) -> None:
         """Update the time tracker for all inst_qubits to the given time."""
         for q in inst_qubits:
             qubit_time_available[q] = time

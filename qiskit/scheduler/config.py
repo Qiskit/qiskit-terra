@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Scheduling container classes."""
-
-from typing import List
+from __future__ import annotations
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.utils import format_meas_map
@@ -21,7 +20,7 @@ from qiskit.pulse.utils import format_meas_map
 class ScheduleConfig:
     """Configuration for pulse scheduling."""
 
-    def __init__(self, inst_map: InstructionScheduleMap, meas_map: List[List[int]], dt: float):
+    def __init__(self, inst_map: InstructionScheduleMap, meas_map: list[list[int]], dt: float):
         """
         Container for information needed to schedule a QuantumCircuit into a pulse Schedule.
 

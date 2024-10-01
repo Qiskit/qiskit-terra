@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """QuantumCircuit to Pulse scheduler."""
-from typing import Optional, Union
+from __future__ import annotations
+
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -25,8 +26,8 @@ from qiskit.providers import BackendV1, BackendV2
 def schedule_circuit(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    method: Optional[str] = None,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    method: str | None = None,
+    backend: BackendV1 | BackendV2 | None = None,
 ) -> Schedule:
     """
     Basic scheduling pass from a circuit to a pulse Schedule, using the backend. If no method is

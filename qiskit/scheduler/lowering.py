@@ -13,8 +13,9 @@
 """Lower gates to schedules. The relative timing within gates is respected. This
 module handles the translation, but does not handle timing.
 """
+from __future__ import annotations
+
 from collections import namedtuple
-from typing import Dict, List, Optional, Union
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
@@ -39,8 +40,8 @@ CircuitPulseDef = namedtuple(
 def lower_gates(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
-) -> List[CircuitPulseDef]:
+    backend: BackendV1 | BackendV2 | None = None,
+) -> list[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
     input circuit.
@@ -67,18 +68,18 @@ def lower_gates(
     circ_pulse_defs = []
 
     inst_map = schedule_config.inst_map
-    qubit_mem_slots = {}  # Map measured qubit index to classical bit index
+    qubit_mem_slots: dict[int, int] = {}  # Map measured qubit index to classical bit index
 
     # convert the unit of durations from SI to dt before lowering
     circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
 
-    def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
+    def get_measure_schedule(qubit_mem_slots: dict[int, int]) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
         # Exclude acquisition on these qubits, since they are handled by the user calibrations
         acquire_excludes = {}
         if Measure().name in circuit.calibrations.keys():
-            qubits = tuple(sorted(qubit_mem_slots.keys()))
+            qubits: tuple[int, ...] | list[int] = tuple(sorted(qubit_mem_slots.keys()))
             params = ()
             for qubit in qubits:
                 try:

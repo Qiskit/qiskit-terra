@@ -13,9 +13,12 @@
 """
 Mapping a scheduled QuantumCircuit to a pulse Schedule.
 """
+from __future__ import annotations
+
 from collections import defaultdict
 
-from typing import Optional, Union
+from qiskit.circuit import Qubit
+
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -30,7 +33,7 @@ from qiskit.providers import BackendV1, BackendV2
 def sequence(
     scheduled_circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
-    backend: Optional[Union[BackendV1, BackendV2]] = None,
+    backend: BackendV1 | BackendV2 | None = None,
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input scheduled circuit.
@@ -54,7 +57,7 @@ def sequence(
 
     # find the measurement start time (assume measurement once)
     def _meas_start_time():
-        _qubit_time_available = defaultdict(int)
+        _qubit_time_available: dict[Qubit, int] = defaultdict(int)
         for instruction in scheduled_circuit.data:
             if isinstance(instruction.operation, Measure):
                 return _qubit_time_available[instruction.qubits[0]]
@@ -65,7 +68,7 @@ def sequence(
     meas_time = _meas_start_time()
 
     # restore start times
-    qubit_time_available = {}
+    qubit_time_available: dict[int, int] = {}
     start_times = []
     out_circ_pulse_defs = []
     for circ_pulse_def in circ_pulse_defs:
