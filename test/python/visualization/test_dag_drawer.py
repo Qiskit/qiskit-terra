@@ -23,6 +23,7 @@ from qiskit.visualization import VisualizationError
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.utils import optionals as _optionals
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.classical import expr, types
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
@@ -44,6 +45,82 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         """Test dag draw with invalid style."""
         with self.assertRaisesRegex(VisualizationError, "Invalid style multicolor"):
             dag_drawer(self.dag, style="multicolor")
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_custom_style_no_input(self):
+        """
+        Test dag with custom style, no invocation of customization does not
+        throw an error
+        """
+        self.assertTrue(dag_drawer(self.dag, style="custom"))
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_custom_style(self):
+        """
+        Test dag with custom style, assert that function is called with the
+        correct parameters
+        """
+
+        def node_attr_fn(n):
+            self.assertTrue(
+                any((
+                    isinstance(n, DAGOpNode),
+                    isinstance(n, DAGInNode),
+                    isinstance(n, DAGOutNode)
+                ))
+            )
+            return {"style": "filled", "fillcolor": "red"}
+
+        def edge_attr_fn(e):
+            self.assertTrue(
+                any((
+                    isinstance(e, Qubit),
+                    isinstance(e, Clbit),
+                ))
+            )
+            return {"arrowsize": "2"}
+
+        graph_attr = {"bgcolor": "beige"}
+
+        dag_drawer(
+            self.dag,
+            style="custom",
+            node_attr_fn=node_attr_fn,
+            edge_attr_fn=edge_attr_fn,
+            graph_attr=graph_attr,
+        )
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_custom_style_invalid_attr_fn(self):
+        """
+        Test dag with custom style, assert that invalid return types for attr
+        functions raise a TypeError
+        """
+
+        bad_attrs = [
+            {0: 0},
+            {"fillcolor": 0},
+            {"fillcolor": 0.0},
+        ]
+
+        # Test bad node attribute functions
+        for attr in bad_attrs:
+            with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
+                dag_drawer(self.dag, style="custom", node_attr_fn=lambda: attr)
+
+        # Test bad edge attribute functions
+        for attr in bad_attrs:
+            with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
+                dag_drawer(self.dag, style="custom", edge_attr_fn=lambda _: attr)
+
+        # Test bad graph attributes
+        for attr in bad_attrs:
+            with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
+                dag_drawer(self.dag, style="custom", graph_attr=attr)
+
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
