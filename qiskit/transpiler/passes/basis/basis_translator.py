@@ -462,6 +462,9 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
         self._num_gates_remain_for_rule = {}
         save_index = -1
         for edata in self.graph.edges():
+            # We only care about edges with data.
+            if edata is None:
+                continue
             if save_index == edata.index:
                 continue
             self._num_gates_remain_for_rule[edata.index] = edata.num_gates
@@ -572,7 +575,10 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     # their names and we need to have in addition the number of qubits they act on.
     target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
 
-    graph = equiv_lib.graph
+    # Copy the equivalence library graph and add edges for the target basis gates.
+    # We copy the graph since we'll be modifying it in-place, and we don't want to modify
+    # the original graph, accessible throughout multiple threads.
+    graph = equiv_lib.graph.copy()
     vis = BasisSearchVisitor(graph, source_basis, target_basis_keys)
 
     # we add a dummy node and connect it with gates in the target basis.
