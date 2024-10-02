@@ -53,8 +53,6 @@ from system-wide packages. This way, we avoid inadvertently becoming dependent o
 particular system configuration. For developers, this also makes it easy to maintain multiple
 environments (e.g. one per supported Python version, for older versions of Qiskit, etc.).
 
-
-
 ### Set up a Python venv
 
 All Python versions supported by Qiskit include built-in virtual environment module
@@ -107,17 +105,17 @@ pip install -e .
 Qiskit is primarily written in Python but there are some core routines
 that are written in the [Rust](https://www.rust-lang.org/) programming
 language to improve the runtime performance. For the released versions of
-qiskit we publish precompiled binaries on the
+Qiskit we publish precompiled binaries on the
 [Python Package Index](https://pypi.org/) for all the supported platforms
 which only requires a functional Python environment to install. However, when
-building and installing from source you will need a rust compiler installed. You can do this very easily
+building and installing from source you will need a Rust compiler installed. You can do this very easily
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
 exist too. For Windows users, besides rustup, you will also need install
 the Visual C++ build tools so that Rust can link against the system c/c++
 libraries. You can see more details on this in the
-[rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
+[rustup documentation](https://rust-lang.github.io/rustup/installation/windows-msvc.html).
 
 If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
@@ -145,7 +143,7 @@ Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
 This makes a tradeoff between runtime performance for Python access and memory
 overhead. Caching gates will result in better runtime for users of Python at
 the cost of increased memory consumption. If you're working with any custom
-transpiler passes written in python or are otherwise using a workflow that
+transpiler passes written in Python or are otherwise using a workflow that
 repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
 attribute of `DAGOpNode` enabling caching is recommended.
 
@@ -187,8 +185,8 @@ please ensure that:
    which will run these checks and report any issues.
 
    If your code fails the local style checks (specifically the black
-   code formatting check) you can use `tox -eblack` to automatically
-   fix update the code formatting.
+   or Rust code formatting check) you can use `tox -eblack` and
+   `cargo fmt` to automatically fix the code formatting.
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -396,11 +394,6 @@ it has been tagged:
 
     reno report --version 0.9.0
 
-At release time ``reno report`` is used to generate the release notes for the
-release and the output will be submitted as a pull request to the documentation
-repository's [release notes file](
-https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
-
 #### Building release notes locally
 
 Building The release notes are part of the standard qiskit documentation
@@ -572,10 +565,11 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ### Testing Rust components
 
-Rust-accelerated functions are generally tested from Python space, but in cases
-where there is Rust-specific internal details to be tested, `#[test]` functions
-can be included inline.  Typically it's most convenient to place these in a
-separate inline module that is only conditionally compiled in, such as
+Many Rust-accelerated functions are generally tested from Python space, but in cases
+where new Rust-native APIs are being added, or there are Rust-specific internal details
+to be tested, `#[test]` functions can be included inline. It's typically most
+convenient to place these in a separate inline module that is only conditionally
+compiled in, such as
 
 ```rust
 #[cfg(test)]
@@ -586,6 +580,9 @@ mod tests {
     }
 }
 ```
+
+For more detailed guidance on how to add Rust testing you can refer to the Rust
+documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
 
 To run the Rust-space tests, do
 
@@ -651,6 +648,15 @@ Because they are so fast, it is sometimes convenient to run the tools `black` an
 rather than via `tox`. If you have installed the development packages in your python environment via
 `pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
 the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
+
+### Rust style and lint
+
+For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
+code formatting. You can simply run `cargo fmt` (if you installed Rust with the
+default settings using `rustup`), and it will update the code formatting automatically to
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
+
+Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
 
 ## Building API docs locally
@@ -733,7 +739,7 @@ developers to test the release ahead of time. When the pre-release is tagged the
 automation will publish the pre-release to PyPI (but only get installed on user request),
 create the `stable/*` branch, and generate a pre-release changelog/release page. At
 this point the `main` opens up for development of the next release. The `stable/*`
-branches should only  receive changes in the form of bug fixes at this point. If there
+branches should only receive changes in the form of bug fixes at this point. If there
 is a need additional release candidates can be published from `stable/*` and when the
 release is ready a full release will be tagged and published from `stable/*`.
 

@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    Add an argument ``matrix_based`` to the :class:`.CollectCliffords()` transpiler pass.
+    If the new parameter ``matrix_based=True``, the :class:`.CollectCliffords()` transpiler pass
+    can collect :class:`.RZGate(np.pi/2)` gates and other unitary gates that are :class:`.Clifford()`
+    gates for certain parameters.
+

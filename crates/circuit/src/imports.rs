@@ -72,6 +72,8 @@ pub static CLASSICAL_REGISTER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classicalregister", "ClassicalRegister");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
+pub static PARAMETER_VECTOR: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVector");
 pub static QUANTUM_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 pub static SINGLETON_GATE: ImportOnceCell =

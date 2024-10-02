@@ -186,6 +186,23 @@ class CU3Gate(ControlledGate):
     It is restricted to 3 parameters, and so cannot cover generic two-qubit
     controlled gates).
 
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CUGate` should be used
+
+       .. math::
+
+           CU3(\theta, \phi, \lambda) = CU(\theta, \phi, \lambda, 0)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          gamma = 0
+          circuit.cu(theta, phi, lambda, gamma, 0, 1)
+
+
+
+
     **Circuit symbol:**
 
     .. parsed-literal::
