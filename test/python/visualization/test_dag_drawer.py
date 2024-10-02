@@ -98,28 +98,21 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         functions raise a TypeError
         """
 
-        bad_attrs = [
-            {0: 0},
-            {"fillcolor": 0},
-            {"fillcolor": 0.0},
-        ]
-
-        bad_func_attrs = [lambda _: attr for attr in bad_attrs]
-
-        # Test bad node attribute functions
-        for attr_func in bad_func_attrs:
+        def assert_bad_attr_fails(**kwargs):
             with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", node_attr_fn=attr_func)
+                dag_drawer(self.dag, style="custom", **kwargs)
 
-        # Test bad edge attribute functions
-        for attr_func in bad_func_attrs:
-            with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", edge_attr_fn=attr_func)
+        assert_bad_attr_fails(node_attr_fn=lambda _: {0: 0})
+        assert_bad_attr_fails(node_attr_fn=lambda _: {"fillcolor": 0})
+        assert_bad_attr_fails(node_attr_fn=lambda _: {"fillcolor": 0.0})
 
-        # Test bad graph attributes
-        for attr in bad_attrs:
-            with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", graph_attr=attr)
+        assert_bad_attr_fails(edge_attr_fn=lambda _: {0: 0})
+        assert_bad_attr_fails(edge_attr_fn=lambda _: {"arrowsize": 0})
+        assert_bad_attr_fails(edge_attr_fn=lambda _: {"arrowsize": 0.0})
+
+        assert_bad_attr_fails(graph_attr={0: 0})
+        assert_bad_attr_fails(graph_attr={"bgcolor": 0})
+        assert_bad_attr_fails(graph_attr={"bgcolor": 0.0})
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")

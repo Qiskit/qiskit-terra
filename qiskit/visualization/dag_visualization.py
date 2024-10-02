@@ -97,9 +97,9 @@ def dag_drawer(
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
-                     'custom': input custom colors with any of node_attr_fn, edge_attr_fn, graph_attr
-        node_attr_fn: function to customize node style, inputs a node of the DAG. MUST return a dictionary where all entries are strings.
-        edge_attr_fn: function to customize edge style, inputs an edge of the DAG. MUST return a dictionary where all entries are strings.
+                     'custom': custom style
+        node_attr_fn: function to customize node style
+        edge_attr_fn: function to customize edge style
         graph_attr: dict to customize graph style
 
     Returns:
@@ -136,15 +136,21 @@ def dag_drawer(
             dag_drawer(
                 dag,
 
-                # node_attr_fn and edge_attr_fn will only work if style="custom" is specified
+                # node_attr_fn and edge_attr_fn will only work if
+                # style="custom" is specified
                 style="custom",
 
-                # Using functions for the node and edge attributes allows you to dynamically color your graphs
+                # Using functions for the node and edge attributes allows you
+                # to dynamically color your graphs
                 # For more node style options, see https://graphviz.org/docs/nodes/
-                node_attr_fn=lambda n: {"style": "filled", "fillcolor": "black", "fontcolor": "white"} if isinstance(n, DAGInNode) else {"style": "filled", "fillcolor": "grey"},
+                node_attr_fn=lambda n: {"style": "filled", \
+                    "fillcolor": "black", "fontcolor": "white"} \
+                    if isinstance(n, DAGInNode) \
+                    else {"style": "filled", "fillcolor": "grey"},
 
                 # For more edge style options, see https://graphviz.org/docs/edges/
-                edge_attr_fn=lambda n: {"arrowsize": "2"} if isinstance(n, Qubit) else {"arrowsize": "0.5"},
+                edge_attr_fn=lambda n: {"arrowsize": "2"} if isinstance(n, Qubit) \
+                    else {"arrowsize": "0.5"},
 
                 # For more graph style options, see https://graphviz.org/docs/graph/
                 # NOTE: node_attr_fn is NOT a function, it is a dict
