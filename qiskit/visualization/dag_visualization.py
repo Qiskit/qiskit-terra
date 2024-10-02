@@ -153,7 +153,7 @@ def dag_drawer(
                     else {"arrowsize": "0.5"},
 
                 # For more graph style options, see https://graphviz.org/docs/graph/
-                # NOTE: node_attr_fn is NOT a function, it is a dict
+                # NOTE: graph_attr is NOT a function, it is a dict
                 graph_attr={"bgcolor": "beige"}
             )
     """
