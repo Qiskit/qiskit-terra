@@ -19,7 +19,7 @@ import os
 from typing import Any
 from pathlib import Path
 from warnings import warn
-import qiskit.visualization.exceptions as exceptions
+from qiskit.visualization import exceptions
 
 
 class StyleDict(dict):
