@@ -31,6 +31,8 @@ from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
+from .dag.dagstyle import load_style
+
 
 IMAGE_TYPES = {
     "canon",
@@ -78,12 +80,7 @@ def dag_drawer(
     dag,
     scale=0.7,
     filename=None,
-    style="color",
-    node_attr_fn: Union[
-        Callable[[Union[DAGOpNode, DAGInNode, DAGOutNode]], dict[str, str]], None
-    ] = None,
-    edge_attr_fn: Union[Callable[[Union[Qubit, Clbit]], dict[str, str]], None] = None,
-    graph_attr: Union[dict[str, str], None] = None,
+    style=None,
 ):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -95,12 +92,18 @@ def dag_drawer(
         dag (DAGCircuit): The dag to draw.
         scale (float): scaling factor
         filename (str): file path to save image to (format inferred from name)
-        style (str): 'plain': B&W graph
-                     'color' (default): color input/output/op nodes
-                     'custom': custom style
-        node_attr_fn: function to customize node style
-        edge_attr_fn: function to customize edge style
-        graph_attr: dict to customize graph style
+        style (dict or str): Style name, file name of style JSON file, or a dictionary specifying the style.
+
+            * The supported style names are 'plain': B&W graph, 'color' (default):
+                (color input/output/op nodes)
+            * If given a JSON file, e.g. ``my_style.json`` or ``my_style`` (the ``.json``
+                extension may be omitted), this function attempts to load the style dictionary
+                from that location. Note, that the JSON file must completely specify the
+                visualization specifications. The file is searched for in
+                ``qiskit/visualization/circuit/styles``, the current working directory, and
+                the location specified in ``~/.qiskit/settings.conf``.
+            * If ``None`` the default style ``"color"`` is used or, if given, the default style
+                specified in ``~/.qiskit/settings.conf``.
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -160,6 +163,9 @@ def dag_drawer(
 
     from PIL import Image
 
+    if not style:
+        style = "color"
+
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -171,8 +177,11 @@ def dag_drawer(
     }
 
     graph_attrs = {}
-    if style == "custom" and graph_attr:
-        graph_attrs = graph_attr
+    if isinstance(style, dict):
+        graph_attrs["fontsize"] = style["fontsize"]
+        graph_attrs["bgcolor"] = style["bgcolor"]
+        graph_attrs["dpi"] = style["dpi"]
+        graph_attrs["pad"] = style["pad"]
 
     if "DAGDependency" in type_str:
         # pylint: disable=cyclic-import
@@ -247,10 +256,23 @@ def dag_drawer(
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 return n
-            if style == "custom":
-                if node_attr_fn:
-                    return node_attr_fn(node)
-                return {}
+            if isinstance(style, dict):
+                n_style = {
+                    "style": "filled",
+                    "color": style["nodecolor"],
+                    "fontsize": style["fontsize"]
+                }
+                if isinstance(node, DAGInNode):
+                    n_style["color"] = style["inputnodecolor"],
+                    n_style["fontcolor"] = style["inputnodefontcolor"]
+                if isinstance(node, DAGOutNode):
+                    n_style["color"] = style["outputnodecolor"],
+                    n_style["fontcolor"] = style["outputnodefontcolor"]
+                if isinstance(node, DAGOpNode):
+                    n_style["color"] = style["opnodecolor"],
+                    n_style["fontcolor"] = style["opnodefontcolor"]
+
+                return n_style
             else:
                 raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
@@ -301,18 +323,38 @@ def dag_drawer(
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 return n
-            if style == "custom":
-                if node_attr_fn:
-                    return node_attr_fn(node)
-                return {}
+            if isinstance(style, dict):
+                n = {
+                    "style": "filled",
+                    "color": style["nodecolor"],
+                    "fontsize": style["fontsize"]
+                }
+                if isinstance(node, DAGInNode):
+                    n["color"] = style["inputnodecolor"],
+                    n["fontcolor"] = style["inputnodefontcolor"]
+                if isinstance(node, DAGOutNode):
+                    n["color"] = style["outputnodecolor"],
+                    n["fontcolor"] = style["outputnodefontcolor"]
+                if isinstance(node, DAGOpNode):
+                    n["color"] = style["opnodecolor"],
+                    n["fontcolor"] = style["opnodefontcolor"]
+
+                return n
             else:
                 raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}
 
-            if style == "custom" and edge_attr_fn:
-                return edge_attr_fn(edge)
+            if isinstance(style, dict):
+                e["color"] = style["edgecolor"],
+                e["fontsize"] = style["fontsize"]
+
+                if isinstance(edge, Qubit):
+                    e["color"] = style["qubitedgecolor"],
+                if isinstance(edge, Clbit):
+                    e["color"] = style["outputnodecolor"],
+                return e
 
             if isinstance(edge, Qubit):
                 label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")

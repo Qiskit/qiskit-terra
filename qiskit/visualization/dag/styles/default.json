@@ -1,0 +1,10 @@
+{
+  "name": "default",
+  "fontcolor": "black",
+  "fontsize": 13,
+  "bgcolor": "white",
+  "dpi": 150,
+  "margin": "2",
+  "nodecolor": "white",
+  "edgecolor": "black"
+}
