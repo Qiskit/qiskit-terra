@@ -15,6 +15,7 @@
 import os
 import tempfile
 import unittest
+import itertools
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Store
 from qiskit.visualization import dag_drawer
@@ -48,71 +49,43 @@ class TestDagDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
-    def test_dag_drawer_custom_style_no_input(self):
+    def test_dag_drawer_empty_style(self):
         """
-        Test dag with custom style, no invocation of customization does not
-        throw an error
+        Test that dag_drawer() with an empty dict returns a plain DAG
         """
-        self.assertTrue(dag_drawer(self.dag, style="custom"))
+        dag_drawer(self.dag, style={})
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_custom_style(self):
         """
-        Test dag with custom style, assert that function is called with the
-        correct parameters
+        Test dag with various custom styles
         """
 
-        def node_attr_fn(n):
-            self.assertTrue(
-                any((isinstance(n, DAGOpNode), isinstance(n, DAGInNode), isinstance(n, DAGOutNode)))
-            )
-            return {"style": "filled", "fillcolor": "red"}
+        style = {
+            "fontsize": 12,
+            "bgcolor": "white",
+            "dpi": 10,
+            "pad": 0,
+            "nodecolor": "green",
+            "inputnodecolor": "blue",
+            "inputnodefontcolor": "white",
+            "outputnodecolor": "red",
+            "outputnodefontcolor": "white",
+            "opnodecolor": "black",
+            "opnodefontcolor": "white",
+            "edgecolor": "black",
+            "qubitedgecolor": "black",
+            "clbitedgecolor": "black",
+        }
 
-        def edge_attr_fn(e):
-            self.assertTrue(
-                any(
-                    (
-                        isinstance(e, Qubit),
-                        isinstance(e, Clbit),
-                    )
-                )
-            )
-            return {"arrowsize": "2"}
+        for r in range(2):
+            combinations = itertools.combinations(style, r)
+            for c in combinations:
+                curr_style = {x: style[x] for x in c}
+                dag_drawer(self.dag, style=curr_style)
 
-        graph_attr = {"bgcolor": "beige"}
-
-        dag_drawer(
-            self.dag,
-            style="custom",
-            node_attr_fn=node_attr_fn,
-            edge_attr_fn=edge_attr_fn,
-            graph_attr=graph_attr,
-        )
-
-    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
-    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
-    def test_dag_drawer_custom_style_invalid_attr_fn(self):
-        """
-        Test dag with custom style, assert that invalid return types for attr
-        functions raise a TypeError
-        """
-
-        def assert_bad_attr_fails(**kwargs):
-            with self.assertRaisesRegex(TypeError, "cannot be converted to 'PyString'"):
-                dag_drawer(self.dag, style="custom", **kwargs)
-
-        assert_bad_attr_fails(node_attr_fn=lambda _: {0: 0})
-        assert_bad_attr_fails(node_attr_fn=lambda _: {"fillcolor": 0})
-        assert_bad_attr_fails(node_attr_fn=lambda _: {"fillcolor": 0.0})
-
-        assert_bad_attr_fails(edge_attr_fn=lambda _: {0: 0})
-        assert_bad_attr_fails(edge_attr_fn=lambda _: {"arrowsize": 0})
-        assert_bad_attr_fails(edge_attr_fn=lambda _: {"arrowsize": 0.0})
-
-        assert_bad_attr_fails(graph_attr={0: 0})
-        assert_bad_attr_fails(graph_attr={"bgcolor": 0})
-        assert_bad_attr_fails(graph_attr={"bgcolor": 0.0})
+        dag_drawer(self.dag, style=style)
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
