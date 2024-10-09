@@ -24,7 +24,6 @@ from qiskit.visualization import VisualizationError
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.utils import optionals as _optionals
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.classical import expr, types
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 

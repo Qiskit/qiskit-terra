@@ -79,7 +79,7 @@ def dag_drawer(
     dag,
     scale=0.7,
     filename=None,
-    style: dict | str = "color",
+    style="color",
 ):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -91,7 +91,8 @@ def dag_drawer(
         dag (DAGCircuit): The dag to draw.
         scale (float): scaling factor
         filename (str): file path to save image to (format inferred from name)
-        style (dict or str): Style name, file name of style JSON file, or a dictionary specifying the style.
+        style (dict or str): Style name, file name of style JSON file, or a
+            dictionary specifying the style.
 
             * The supported style names are 'plain': B&W graph, 'color' (default):
                 (color input/output/op nodes)
