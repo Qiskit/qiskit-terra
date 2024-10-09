@@ -116,7 +116,7 @@ class DefaultStyle:
     """
 
     def __init__(self):
-        default_style_dict = "default.json"
+        default_style_dict = "color.json"
         path = Path(__file__).parent / "styles" / default_style_dict
 
         with open(path, "r") as infile:
@@ -126,7 +126,7 @@ class DefaultStyle:
         self.style = StyleDict(**default_style)
 
 
-def load_style(style: dict | str | None) -> StyleDict:
+def load_style(style: dict | str = "color") -> StyleDict:
     """Utility function to load style from json files.
 
     Args:
@@ -150,7 +150,7 @@ def load_style(style: dict | str | None) -> StyleDict:
     # determine the style name which could also be inside a dictionary, like
     # style={"name": "clifford", <other settings...>}
     if isinstance(style, dict):
-        style_name = style.get("name", "default")
+        style_name = style.get("name", "color")
     elif isinstance(style, str):
         if style.endswith(".json"):
             style_name = style[:-5]
@@ -163,9 +163,9 @@ def load_style(style: dict | str | None) -> StyleDict:
             UserWarning,
             2,
         )
-        style_name = "default"
+        style_name = "color"
 
-    if style_name in ["default"]:
+    if style_name in ["color"]:
         current_style = DefaultStyle().style
     else:
         # Search for file in 'styles' dir, and then the current directory

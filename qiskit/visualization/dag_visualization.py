@@ -178,6 +178,8 @@ def dag_drawer(
             if attr in style:
                 graph_attrs[attr] = str(style[attr])
 
+    style = load_style(style)
+
     if "DAGDependency" in type_str:
         # pylint: disable=cyclic-import
         from qiskit.visualization.circuit._utils import get_bit_reg_index
@@ -193,69 +195,55 @@ def dag_drawer(
                 nid_str = str(node._node_id)
             else:
                 nid_str = str(node.node_id)
-            if style == "plain":
-                return {}
-            if style == "color":
-                n = {}
-                args = []
-                for count, arg in enumerate(node.qargs + node.cargs):
-                    if count > 4:
-                        args.append("...")
-                        break
-                    if isinstance(arg, Qubit):
-                        f_str = f"q_{qubit_indices[arg]}"
-                    elif isinstance(arg, Clbit):
-                        f_str = f"c_{clbit_indices[arg]}"
-                    else:
-                        f_str = f"{arg.index}"
-                    arg_str = register_bit_labels.get(arg, f_str)
-                    args.append(arg_str)
 
-                n["color"] = "black"
-                n["label"] = (
-                    nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
-                )
-                if node.name == "barrier":
-                    n["style"] = "filled"
-                    n["fillcolor"] = "grey"
-                elif getattr(node.op, "_directive", False):
-                    n["style"] = "filled"
-                    n["fillcolor"] = "red"
-                elif getattr(node.op, "condition", None):
-                    condition = node.op.condition
-                    if isinstance(condition, expr.Expr):
-                        cond_txt = " (cond: [Expr]) ("
-                    elif isinstance(condition[0], ClassicalRegister):
-                        cond_txt = f" (cond: {condition[0].name}, {int(condition[1])}) ("
-                    else:
-                        register, bit_index, reg_index = get_bit_reg_index(
-                            dag_dep_circ, condition[0]
-                        )
-                        if register is not None:
-                            cond_txt = (
-                                f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
-                            )
-                        else:
-                            cond_txt = f" (cond: {bit_index}, {int(condition[1])}) ("
-                    n["style"] = "filled"
-                    n["fillcolor"] = "green"
-                    n["label"] = (
-                        nid_str
-                        + ": "
-                        + str(node.name)
-                        + cond_txt
-                        + str(args)[1:-1].replace("'", "")
-                        + ")"
+            n = {}
+            args = []
+            for count, arg in enumerate(node.qargs + node.cargs):
+                if count > 4:
+                    args.append("...")
+                    break
+                if isinstance(arg, Qubit):
+                    f_str = f"q_{qubit_indices[arg]}"
+                elif isinstance(arg, Clbit):
+                    f_str = f"c_{clbit_indices[arg]}"
+                else:
+                    f_str = f"{arg.index}"
+                arg_str = register_bit_labels.get(arg, f_str)
+                args.append(arg_str)
+
+            n["label"] = (
+                nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
+            )
+            if getattr(node.op, "condition", None):
+                condition = node.op.condition
+                if isinstance(condition, expr.Expr):
+                    cond_txt = " (cond: [Expr]) ("
+                elif isinstance(condition[0], ClassicalRegister):
+                    cond_txt = f" (cond: {condition[0].name}, {int(condition[1])}) ("
+                else:
+                    register, bit_index, reg_index = get_bit_reg_index(
+                        dag_dep_circ, condition[0]
                     )
-                elif node.name != "measure":  # measure is unfilled
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightblue"
-                return n
+                    if register is not None:
+                        cond_txt = (
+                            f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
+                        )
+                    else:
+                        cond_txt = f" (cond: {bit_index}, {int(condition[1])}) ("
+                n["label"] = (
+                    nid_str
+                    + ": "
+                    + str(node.name)
+                    + cond_txt
+                    + str(args)[1:-1].replace("'", "")
+                    + ")"
+                )
+
             if isinstance(style, dict):
-                n = {}
+                n["style"] = "filled"
 
                 if "nodecolor" in style:
-                    n["color"] = style["nodecolor"]
+                    n["nodecolor"] = style["nodecolor"]
                     n["style"] = "filled"
 
                 if "fontsize" in style:
@@ -263,17 +251,17 @@ def dag_drawer(
 
                 if isinstance(node, DAGInNode):
                     if "inputnodecolor" in style:
-                        n["color"] = style["inputnodecolor"]
+                        n["fillcolor"] = style["inputnodecolor"]
                     if "inputnodefontcolor" in style:
                         n["fontcolor"] = style["inputnodefontcolor"]
                 if isinstance(node, DAGOutNode):
                     if "outputnodecolor" in style:
-                        n["color"] = style["outputnodecolor"]
+                        n["fillcolor"] = style["outputnodecolor"]
                     if "outputnodefontcolor" in style:
                         n["fontcolor"] = style["outputnodefontcolor"]
                 if isinstance(node, DAGOpNode):
                     if "opnodecolor" in style:
-                        n["color"] = style["opnodecolor"]
+                        n["fillcolor"] = style["opnodecolor"]
                     if "opnodefontcolor" in style:
                         n["fontcolor"] = style["opnodefontcolor"]
 
@@ -287,70 +275,57 @@ def dag_drawer(
         graph_attrs.update({"dpi": str(100 * scale)})
 
         def node_attr_func(node):
-            if style == "plain":
-                return {}
-            if style == "color":
-                n = {}
-                if isinstance(node, DAGOpNode):
-                    n["label"] = node.name
-                    n["color"] = "blue"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightblue"
-                if isinstance(node, DAGInNode):
-                    if isinstance(node.wire, Qubit):
-                        label = register_bit_labels.get(
-                            node.wire, f"q_{dag.find_bit(node.wire).index}"
-                        )
-                    elif isinstance(node.wire, Clbit):
-                        label = register_bit_labels.get(
-                            node.wire, f"c_{dag.find_bit(node.wire).index}"
-                        )
-                    else:
-                        label = str(node.wire.name)
+            n = {}
+            if isinstance(node, DAGOpNode):
+                n["label"] = node.name
+            if isinstance(node, DAGInNode):
+                if isinstance(node.wire, Qubit):
+                    label = register_bit_labels.get(
+                        node.wire, f"q_{dag.find_bit(node.wire).index}"
+                    )
+                elif isinstance(node.wire, Clbit):
+                    label = register_bit_labels.get(
+                        node.wire, f"c_{dag.find_bit(node.wire).index}"
+                    )
+                else:
+                    label = str(node.wire.name)
 
-                    n["label"] = label
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "green"
-                if isinstance(node, DAGOutNode):
-                    if isinstance(node.wire, Qubit):
-                        label = register_bit_labels.get(
-                            node.wire, f"q[{dag.find_bit(node.wire).index}]"
-                        )
-                    elif isinstance(node.wire, Clbit):
-                        label = register_bit_labels.get(
-                            node.wire, f"c[{dag.find_bit(node.wire).index}]"
-                        )
-                    else:
-                        label = str(node.wire.name)
-                    n["label"] = label
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "red"
-                return n
+                n["label"] = label
+            if isinstance(node, DAGOutNode):
+                if isinstance(node.wire, Qubit):
+                    label = register_bit_labels.get(
+                        node.wire, f"q[{dag.find_bit(node.wire).index}]"
+                    )
+                elif isinstance(node.wire, Clbit):
+                    label = register_bit_labels.get(
+                        node.wire, f"c[{dag.find_bit(node.wire).index}]"
+                    )
+                else:
+                    label = str(node.wire.name)
+                n["label"] = label
+
             if isinstance(style, dict):
-                n = {}
+                n["style"] = "filled"
 
                 if "nodecolor" in style:
-                    n["color"] = style["nodecolor"]
-                    n["style"] = "filled"
+                    n["fillcolor"] = style["nodecolor"]
 
                 if "fontsize" in style:
                     n["fontsize"] = str(style["fontsize"])
 
                 if isinstance(node, DAGInNode):
                     if "inputnodecolor" in style:
-                        n["color"] = style["inputnodecolor"]
+                        n["fillcolor"] = style["inputnodecolor"]
                     if "inputnodefontcolor" in style:
                         n["fontcolor"] = style["inputnodefontcolor"]
                 if isinstance(node, DAGOutNode):
                     if "outputnodecolor" in style:
-                        n["color"] = style["outputnodecolor"]
+                        n["fillcolor"] = style["outputnodecolor"]
                     if "outputnodefontcolor" in style:
                         n["fontcolor"] = style["outputnodefontcolor"]
                 if isinstance(node, DAGOpNode):
                     if "opnodecolor" in style:
-                        n["color"] = style["opnodecolor"]
+                        n["fillcolor"] = style["opnodecolor"]
                     if "opnodefontcolor" in style:
                         n["fontcolor"] = style["opnodefontcolor"]
 
