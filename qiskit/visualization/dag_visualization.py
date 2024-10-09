@@ -120,11 +120,8 @@ def dag_drawer(
             :nofigs:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-            from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
             from qiskit.visualization import dag_drawer
-            from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-            from qiskit.circuit import Qubit, Clbit
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -135,29 +132,14 @@ def dag_drawer(
             circ.rz(0.5, q[1]).c_if(c, 2)
 
             dag = circuit_to_dag(circ)
-            dag_drawer(
-                dag,
 
-                # node_attr_fn and edge_attr_fn will only work if
-                # style="custom" is specified
-                style="custom",
+            style = {
+                "inputnodecolor": "pink",
+                "outputnodecolor": "lightblue",
+                "opnodecolor": "red",
+            }
 
-                # Using functions for the node and edge attributes allows you
-                # to dynamically color your graphs
-                # For more node style options, see https://graphviz.org/docs/nodes/
-                node_attr_fn=lambda n: {"style": "filled", \
-                    "fillcolor": "black", "fontcolor": "white"} \
-                    if isinstance(n, DAGInNode) \
-                    else {"style": "filled", "fillcolor": "grey"},
-
-                # For more edge style options, see https://graphviz.org/docs/edges/
-                edge_attr_fn=lambda n: {"arrowsize": "2"} if isinstance(n, Qubit) \
-                    else {"arrowsize": "0.5"},
-
-                # For more graph style options, see https://graphviz.org/docs/graph/
-                # NOTE: graph_attr is NOT a function, it is a dict
-                graph_attr={"bgcolor": "beige"}
-            )
+            dag_drawer(dag, style=style)
     """
 
     from PIL import Image
