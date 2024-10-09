@@ -18,7 +18,6 @@ Visualization function for DAG circuit representation.
 
 import io
 import subprocess
-from typing import Union, Callable
 
 from rustworkx.visualization import graphviz_draw
 
@@ -80,7 +79,7 @@ def dag_drawer(
     dag,
     scale=0.7,
     filename=None,
-    style=None,
+    style: dict | str = "color",
 ):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -163,9 +162,6 @@ def dag_drawer(
 
     from PIL import Image
 
-    if not style:
-        style = "color"
-
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -178,10 +174,9 @@ def dag_drawer(
 
     graph_attrs = {}
     if isinstance(style, dict):
-        graph_attrs["fontsize"] = style["fontsize"]
-        graph_attrs["bgcolor"] = style["bgcolor"]
-        graph_attrs["dpi"] = style["dpi"]
-        graph_attrs["pad"] = style["pad"]
+        for attr in ["fontsize", "bgcolor", "dpi", "pad"]:
+            if attr in style:
+                graph_attrs[attr] = str(style[attr])
 
     if "DAGDependency" in type_str:
         # pylint: disable=cyclic-import
@@ -257,22 +252,32 @@ def dag_drawer(
                     n["fillcolor"] = "lightblue"
                 return n
             if isinstance(style, dict):
-                n_style = {
-                    "style": "filled",
-                    "color": style["nodecolor"],
-                    "fontsize": style["fontsize"]
-                }
-                if isinstance(node, DAGInNode):
-                    n_style["color"] = style["inputnodecolor"],
-                    n_style["fontcolor"] = style["inputnodefontcolor"]
-                if isinstance(node, DAGOutNode):
-                    n_style["color"] = style["outputnodecolor"],
-                    n_style["fontcolor"] = style["outputnodefontcolor"]
-                if isinstance(node, DAGOpNode):
-                    n_style["color"] = style["opnodecolor"],
-                    n_style["fontcolor"] = style["opnodefontcolor"]
+                n = {}
 
-                return n_style
+                if "nodecolor" in style:
+                    n["color"] = style["nodecolor"]
+                    n["style"] = "filled"
+
+                if "fontsize" in style:
+                    n["fontsize"] = str(style["fontsize"])
+
+                if isinstance(node, DAGInNode):
+                    if "inputnodecolor" in style:
+                        n["color"] = style["inputnodecolor"]
+                    if "inputnodefontcolor" in style:
+                        n["fontcolor"] = style["inputnodefontcolor"]
+                if isinstance(node, DAGOutNode):
+                    if "outputnodecolor" in style:
+                        n["color"] = style["outputnodecolor"]
+                    if "outputnodefontcolor" in style:
+                        n["fontcolor"] = style["outputnodefontcolor"]
+                if isinstance(node, DAGOpNode):
+                    if "opnodecolor" in style:
+                        n["color"] = style["opnodecolor"]
+                    if "opnodefontcolor" in style:
+                        n["fontcolor"] = style["opnodefontcolor"]
+
+                return n
             else:
                 raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
@@ -324,20 +329,30 @@ def dag_drawer(
                     n["fillcolor"] = "red"
                 return n
             if isinstance(style, dict):
-                n = {
-                    "style": "filled",
-                    "color": style["nodecolor"],
-                    "fontsize": style["fontsize"]
-                }
+                n = {}
+
+                if "nodecolor" in style:
+                    n["color"] = style["nodecolor"]
+                    n["style"] = "filled"
+
+                if "fontsize" in style:
+                    n["fontsize"] = str(style["fontsize"])
+
                 if isinstance(node, DAGInNode):
-                    n["color"] = style["inputnodecolor"],
-                    n["fontcolor"] = style["inputnodefontcolor"]
+                    if "inputnodecolor" in style:
+                        n["color"] = style["inputnodecolor"]
+                    if "inputnodefontcolor" in style:
+                        n["fontcolor"] = style["inputnodefontcolor"]
                 if isinstance(node, DAGOutNode):
-                    n["color"] = style["outputnodecolor"],
-                    n["fontcolor"] = style["outputnodefontcolor"]
+                    if "outputnodecolor" in style:
+                        n["color"] = style["outputnodecolor"]
+                    if "outputnodefontcolor" in style:
+                        n["fontcolor"] = style["outputnodefontcolor"]
                 if isinstance(node, DAGOpNode):
-                    n["color"] = style["opnodecolor"],
-                    n["fontcolor"] = style["opnodefontcolor"]
+                    if "opnodecolor" in style:
+                        n["color"] = style["opnodecolor"]
+                    if "opnodefontcolor" in style:
+                        n["fontcolor"] = style["opnodefontcolor"]
 
                 return n
             else:
@@ -346,16 +361,6 @@ def dag_drawer(
         def edge_attr_func(edge):
             e = {}
 
-            if isinstance(style, dict):
-                e["color"] = style["edgecolor"],
-                e["fontsize"] = style["fontsize"]
-
-                if isinstance(edge, Qubit):
-                    e["color"] = style["qubitedgecolor"],
-                if isinstance(edge, Clbit):
-                    e["color"] = style["outputnodecolor"],
-                return e
-
             if isinstance(edge, Qubit):
                 label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")
             elif isinstance(edge, Clbit):
@@ -363,6 +368,21 @@ def dag_drawer(
             else:
                 label = str(edge.name)
             e["label"] = label
+
+            if isinstance(style, dict):
+                if "edgecolor" in style:
+                    e["color"] = style["edgecolor"]
+                if "fontsize" in style:
+                    e["fontsize"] = str(style["fontsize"])
+
+                if isinstance(edge, Qubit):
+                    if "qubitedgecolor" in style:
+                        e["color"] = style["qubitedgecolor"]
+                if isinstance(edge, Clbit):
+                    if "clbitedgecolor" in style:
+                        e["color"] = style["clbitedgecolor"]
+                return e
+
             return e
 
     image_type = "png"
