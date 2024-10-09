@@ -203,13 +203,9 @@ def dag_drawer(
                 elif isinstance(condition[0], ClassicalRegister):
                     cond_txt = f" (cond: {condition[0].name}, {int(condition[1])}) ("
                 else:
-                    register, bit_index, reg_index = get_bit_reg_index(
-                        dag_dep_circ, condition[0]
-                    )
+                    register, bit_index, reg_index = get_bit_reg_index(dag_dep_circ, condition[0])
                     if register is not None:
-                        cond_txt = (
-                            f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
-                        )
+                        cond_txt = f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
                     else:
                         cond_txt = f" (cond: {bit_index}, {int(condition[1])}) ("
                 n["label"] = (
@@ -262,13 +258,9 @@ def dag_drawer(
                 n["label"] = node.name
             if isinstance(node, DAGInNode):
                 if isinstance(node.wire, Qubit):
-                    label = register_bit_labels.get(
-                        node.wire, f"q_{dag.find_bit(node.wire).index}"
-                    )
+                    label = register_bit_labels.get(node.wire, f"q_{dag.find_bit(node.wire).index}")
                 elif isinstance(node.wire, Clbit):
-                    label = register_bit_labels.get(
-                        node.wire, f"c_{dag.find_bit(node.wire).index}"
-                    )
+                    label = register_bit_labels.get(node.wire, f"c_{dag.find_bit(node.wire).index}")
                 else:
                     label = str(node.wire.name)
 
