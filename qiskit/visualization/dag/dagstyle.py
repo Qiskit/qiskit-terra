@@ -19,6 +19,7 @@ import os
 from typing import Any
 from pathlib import Path
 from warnings import warn
+import qiskit.visualization.exceptions as exceptions
 
 
 class StyleDict(dict):
@@ -157,13 +158,7 @@ def load_style(style: dict | str = "color") -> StyleDict:
         else:
             style_name = style
     else:
-        warn(
-            f'Unsupported style parameter "{style}" of type {type(style)}. '
-            "Will use the default style.",
-            UserWarning,
-            2,
-        )
-        style_name = "color"
+        raise exceptions.VisualizationError("Invalid style {style}")
 
     if style_name in ["color"]:
         current_style = DefaultStyle().style
@@ -205,14 +200,7 @@ def load_style(style: dict | str = "color") -> StyleDict:
                     )
                     break
         else:
-            warn(
-                f"Style JSON file '{style_name}' not found in any of these locations: "
-                f"{', '.join(map(str, style_paths))}. "
-                "Will use default style.",
-                UserWarning,
-                2,
-            )
-            current_style = DefaultStyle().style
+            raise exceptions.VisualizationError(f"Invalid style {style}")
 
     # if the style is a dictionary, update the defaults with the new values
     # this _needs_ to happen after loading by name to cover cases like
