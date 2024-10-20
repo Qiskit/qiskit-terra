@@ -331,6 +331,8 @@ class ParameterManager:
     Instruction data and its location are not directly associated with this object.
     """
 
+    disable_parameter_validation = False
+
     def __init__(self):
         """Create new parameter table for pulse programs."""
         self._parameters = set()
@@ -431,15 +433,41 @@ class ParameterManager:
 
         for parameter, value in parameter_binds.items():
             if isinstance(parameter, ParameterVector):
-                _validate_parameter_vector(parameter, value)
+                if not self.disable_parameter_validation:
+                    _validate_parameter_vector(parameter, value)
                 out.update(zip(parameter, value))
             elif isinstance(parameter, str):
                 for param in param_name_dict[parameter]:
-                    is_vec = _validate_parameter_value(param, value)
+                    if not self.disable_parameter_validation:
+                        is_vec = _validate_parameter_value(param, value)
+                    else:
+                        is_vec = isinstance(param, ParameterVector)
                     if is_vec:
                         out.update(zip(param, value))
                     else:
                         out[param] = value
+            elif isinstance(parameter, Sequence):
+                for param, val in zip(parameter, value):
+                    if isinstance(param, str):
+                        # BindingsArray case
+                        for p in param_name_dict[param]:
+                            if not self.disable_parameter_validation:
+                                is_vec = _validate_parameter_value(p, val)
+                            else:
+                                is_vec = isinstance(p, ParameterVector)
+                            if is_vec:
+                                out.update(zip(p, val))
+                            else:
+                                out[p] = val
+                    elif isinstance(param, ParameterVector):
+                        if not self.disable_parameter_validation:
+                            _validate_parameter_vector(param, val)
+                        out.update(zip(param, val))
+                    elif isinstance(param, Parameter):
+                        if not self.disable_parameter_validation:
+                            _validate_parameter_value(param, val)
+                        out[param] = val
+
             else:
                 out[parameter] = value
         return out

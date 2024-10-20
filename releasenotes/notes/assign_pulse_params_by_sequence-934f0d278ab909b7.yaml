@@ -1,0 +1,13 @@
+---
+
+features_pulse:
+  - |
+    It is now possible to assign pulse parameters to a pulse schedule using a sequence
+    of parameter names or parameters as keys to the value_dict argument of the `assign_parameters` method.
+    This allows for more flexible assignment of parameters to pulse schedules. Notably, it is possible to directly
+    assign parameters through slices of a `BindingsArray` class, used in the primitives interface for assigning
+    parameters. This could be useful for future implementations custom pulse-based primitives implementations (e.g.
+    Qiskit Dynamics custom primitive implementation).
+    Moreover, we have a new class attribute for `Schedule` and `ScheduleBlock` enabling the disabling of parameter
+    validation when assigning parameters to a schedule. This is useful for advanced users who want to integrate Qiskit
+    Pulse schedule creations within a JIT compiled function (notably to accelerate simulations in Qiskit Dynamics).

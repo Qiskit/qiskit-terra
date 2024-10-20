@@ -553,6 +553,58 @@ class TestAssignFromProgram(QiskitTestCase):
         self.assertEqual(sched1.instructions[2][1].phase, 3.14)
         self.assertEqual(sched1.instructions[3][1].phase, 1.57)
 
+    def test_pulse_assignment_with_parameter_sequence(self):
+        """
+        Test pulse assignment with parameter sequence. Sequence can be a list or tuple of parameters,
+        parameter names, or parameter vectors. This is useful when using BindingsArray in
+        conjunction with Pulse.
+        """
+
+        sigma = Parameter("sigma")
+        amp = Parameter("amp")
+        param_vec = ParameterVector("param_vec", 2)
+
+        waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
+        waveform2 = pulse.library.Gaussian(duration=128, sigma=40, amp=amp)
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform2, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        block1 = block.assign_parameters(
+            {("amp", "sigma", "param_vec[0]", "param_vec[1]"): [0.2, 4, 3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[2].phase, 3.14)
+        self.assertEqual(block1.blocks[3].phase, 1.57)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.Play(waveform2, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters(
+            {("amp", "sigma", "param_vec[0]", "param_vec[1]"): [0.2, 4, 3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[2][1].phase, 3.14)
+        self.assertEqual(sched1.instructions[3][1].phase, 1.57)
+
+        sched2 = sched.assign_parameters(
+            {("amp", "sigma", "param_vec"): [0.2, 4, [3.14, 1.57]]}, inplace=False
+        )
+        self.assertEqual(sched2.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched2.instructions[1][1].pulse.amp, 0.2)
+        self.assertEqual(sched2.instructions[2][1].phase, 3.14)
+        self.assertEqual(sched2.instructions[3][1].phase, 1.57)
+
 
 class TestScheduleTimeslots(QiskitTestCase):
     """Test for edge cases of timing overlap on parametrized channels.

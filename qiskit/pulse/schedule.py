@@ -121,6 +121,11 @@ class Schedule:
     # Counter to count instance number.
     instances_counter = itertools.count()
 
+    # Disable parameter validation. If set to True, there will not be any validation of
+    # parameters in the schedule. This is useful if schedule is used within a jit-compiled
+    # function.
+    disable_parameter_validation = False
+
     def __init__(
         self,
         *schedules: "ScheduleComponent" | tuple[int, "ScheduleComponent"],
@@ -148,6 +153,7 @@ class Schedule:
                 name += f"-{mp.current_process().pid}"
 
         self._name = name
+        ParameterManager.disable_parameter_validation = self.disable_parameter_validation
         self._parameter_manager = ParameterManager()
 
         if not isinstance(metadata, dict) and metadata is not None:
@@ -705,8 +711,8 @@ class Schedule:
     def assign_parameters(
         self,
         value_dict: dict[
-            ParameterExpression | ParameterVector | str,
-            ParameterValueType | Sequence[ParameterValueType],
+            Parameter | ParameterVector | str | Sequence[str | Parameter | ParameterVector],
+            ParameterValueType | Sequence[ParameterValueType | Sequence[ParameterValueType]],
         ],
         inplace: bool = True,
     ) -> "Schedule":
@@ -982,6 +988,11 @@ class ScheduleBlock:
     # Counter to count instance number.
     instances_counter = itertools.count()
 
+    # Disable parameter validation. If set to True, there will not be any validation of
+    # parameters in the schedule. This is useful if schedule is used within a jit-compiled
+    # function.
+    disable_parameter_validation = False
+
     def __init__(
         self, name: str | None = None, metadata: dict | None = None, alignment_context=None
     ):
@@ -1016,6 +1027,7 @@ class ScheduleBlock:
         self._parent: ScheduleBlock | None = None
 
         self._name = name
+        ParameterManager.disable_parameter_validation = self.disable_parameter_validation
         self._parameter_manager = ParameterManager()
         self._reference_manager = ReferenceManager()
         self._alignment_context = alignment_context or AlignLeft()
@@ -1404,8 +1416,8 @@ class ScheduleBlock:
     def assign_parameters(
         self,
         value_dict: dict[
-            ParameterExpression | ParameterVector | str,
-            ParameterValueType | Sequence[ParameterValueType],
+            Parameter | ParameterVector | str | Sequence[str | Parameter | ParameterVector],
+            ParameterValueType | Sequence[ParameterValueType | Sequence[ParameterValueType]],
         ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
