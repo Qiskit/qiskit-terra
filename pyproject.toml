@@ -101,6 +101,9 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "qft.line" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisLine"
 "qft.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull"
 "permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.hls_plugins:TokenSwapperSynthesisPermutation"
+"IntComp.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisDefault"
+"IntComp.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisNoAux"
+"IntComp.twos" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesis2s"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"

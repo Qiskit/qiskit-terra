@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from itertools import product
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -253,42 +253,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         return valid
 
-    def _get_rotation_coefficients(self) -> dict[tuple[int, ...], float]:
-        """Compute the coefficient of each monomial.
-
-        Returns:
-            A dictionary with pairs ``{control_state: rotation angle}`` where ``control_state``
-            is a tuple of ``0`` or ``1`` bits.
-        """
-        # determine the control states
-        all_combinations = list(product([0, 1], repeat=self.num_state_qubits))
-        valid_combinations = []
-        for combination in all_combinations:
-            if 0 < sum(combination) <= self.degree:
-                valid_combinations += [combination]
-
-        rotation_coeffs = {control_state: 0.0 for control_state in valid_combinations}
-
-        # compute the coefficients for the control states
-        for i, coeff in enumerate(self.coeffs[1:]):
-            i += 1  # since we skip the first element we need to increase i by one
-
-            # iterate over the multinomial coefficients
-            for comb, num_combs in _multinomial_coefficients(self.num_state_qubits, i).items():
-                control_state: tuple[int, ...] = ()
-                power = 1
-                for j, qubit in enumerate(comb):
-                    if qubit > 0:  # means we control on qubit i
-                        control_state += (1,)
-                        power *= 2 ** (j * qubit)
-                    else:
-                        control_state += (0,)
-
-                # Add angle
-                rotation_coeffs[control_state] += coeff * num_combs * power
-
-        return rotation_coeffs
-
     def _build(self):
         """If not already built, build the circuit."""
         if self._is_built:
@@ -296,9 +260,61 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         super()._build()
 
-        circuit = QuantumCircuit(*self.qregs, name=self.name)
-        qr_state = circuit.qubits[: self.num_state_qubits]
-        qr_target = circuit.qubits[self.num_state_qubits]
+        gate = PolynomialPauliRotationsGate(self.num_state_qubits, self.coeffs, self.basis)
+        self.append(gate, self.qubits)
+
+
+class PolynomialPauliRotationsGate(Gate):
+    r"""A gate implementing polynomial Pauli rotations.
+
+    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    :math:`|0\rangle` this operator acts as:
+
+    .. math::
+
+        |i\rangle |0\rangle \mapsto \cos\left(\frac{p(i)}{2}\right) |i\rangle |0\rangle
+        + \sin\left(\frac{p(i)}{2}\right) |i\rangle |1\rangle
+
+    Let n be the number of qubits representing the state, d the degree of p(x) and q_i the qubits,
+    where q_0 is the least significant qubit. Then for
+
+    .. math::
+
+        x = \sum_{i=0}^{n-1} 2^i q_i,
+
+    we can write
+
+    .. math::
+
+        p(x) = \sum_{j=0}^{j=d} c_j x^j
+
+    where :math:`c` are the input coefficients, ``coeffs``.
+    """
+
+    def __init__(
+        self,
+        num_state_qubits: int,
+        coeffs: list[float] | None = None,
+        basis: str = "Y",
+        label: str | None = None,
+    ) -> None:
+        """Prepare an approximation to a state with amplitudes specified by a polynomial.
+
+        Args:
+            num_state_qubits: The number of qubits representing the state.
+            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
+                i-th power of x. Defaults to linear: [0, 1].
+            basis: The type of Pauli rotation ('X', 'Y', 'Z').
+            label: A label for the circuit.
+        """
+        self.coeffs = coeffs or [0, 1]
+        self.basis = basis.lower()
+        super().__init__("PolyPauli", num_state_qubits + 1, [], label=label)
+
+    def _define(self):
+        circuit = QuantumCircuit(self.num_qubits)
+        qr_state = circuit.qubits[: self.num_qubits - 1]
+        qr_target = circuit.qubits[-1]
 
         rotation_coeffs = self._get_rotation_coefficients()
 
@@ -332,4 +348,42 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
                 else:
                     circuit.crz(rotation_coeffs[c], qr_control[0], qr_target)
 
-        self.append(circuit.to_gate(), self.qubits)
+        self.definition = circuit
+
+    def _get_rotation_coefficients(self) -> dict[tuple[int, ...], float]:
+        """Compute the coefficient of each monomial.
+
+        Returns:
+            A dictionary with pairs ``{control_state: rotation angle}`` where ``control_state``
+            is a tuple of ``0`` or ``1`` bits.
+        """
+        # determine the control states
+        num_state_qubits = self.num_qubits - 1
+        degree = len(self.coeffs) - 1
+        all_combinations = list(product([0, 1], repeat=num_state_qubits))
+        valid_combinations = []
+        for combination in all_combinations:
+            if 0 < sum(combination) <= degree:
+                valid_combinations += [combination]
+
+        rotation_coeffs = {control_state: 0.0 for control_state in valid_combinations}
+
+        # compute the coefficients for the control states
+        for i, coeff in enumerate(self.coeffs[1:]):
+            i += 1  # since we skip the first element we need to increase i by one
+
+            # iterate over the multinomial coefficients
+            for comb, num_combs in _multinomial_coefficients(num_state_qubits, i).items():
+                control_state: tuple[int, ...] = ()
+                power = 1
+                for j, qubit in enumerate(comb):
+                    if qubit > 0:  # means we control on qubit i
+                        control_state += (1,)
+                        power *= 2 ** (j * qubit)
+                    else:
+                        control_state += (0,)
+
+                # Add angle
+                rotation_coeffs[control_state] += coeff * num_combs * power
+
+        return rotation_coeffs

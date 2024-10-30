@@ -17,7 +17,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ParameterVector
-from qiskit.circuit.library import QuadraticForm
+from qiskit.circuit.library import QuadraticForm, QuadraticFormGate
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -68,32 +68,38 @@ class TestQuadraticForm(QiskitTestCase):
 
         self.assertTrue(Statevector.from_instruction(circuit).equiv(ref))
 
-    def test_required_result_qubits(self):
+    @data(True, False)
+    def test_required_result_qubits(self, use_gate):
         """Test getting the number of required result qubits."""
+
+        constructor = QuadraticFormGate if use_gate else QuadraticForm
 
         with self.subTest("positive bound"):
             quadratic = [[1, -50], [100, 0]]
             linear = [-5, 5]
             offset = 0
-            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            num_result_qubits = constructor.required_result_qubits(quadratic, linear, offset)
             self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(106 + 1))))
 
         with self.subTest("negative bound"):
             quadratic = [[1, -50], [10, 0]]
             linear = [-5, 5]
             offset = 0
-            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            num_result_qubits = constructor.required_result_qubits(quadratic, linear, offset)
             self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(55))))
 
         with self.subTest("empty"):
-            num_result_qubits = QuadraticForm.required_result_qubits([[]], [], 0)
+            num_result_qubits = constructor.required_result_qubits([[]], [], 0)
             self.assertEqual(num_result_qubits, 1)
 
-    def test_quadratic_form(self):
+    @data(True, False)
+    def test_quadratic_form(self, use_gate):
         """Test the quadratic form circuit."""
 
+        constructor = QuadraticFormGate if use_gate else QuadraticForm
+
         with self.subTest("empty"):
-            circuit = QuadraticForm()
+            circuit = constructor()
             self.assertQuadraticFormIsCorrect(1, [[0]], [0], 0, circuit)
 
         with self.subTest("1d case"):
@@ -101,7 +107,7 @@ class TestQuadraticForm(QiskitTestCase):
             linear = np.array([2])
             offset = -1
 
-            circuit = QuadraticForm(quadratic=quadratic, linear=linear, offset=offset)
+            circuit = constructor(quadratic=quadratic, linear=linear, offset=offset)
 
             self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
 
@@ -111,7 +117,7 @@ class TestQuadraticForm(QiskitTestCase):
             offset = -1
             m = 2
 
-            circuit = QuadraticForm(m, quadratic, linear, offset)
+            circuit = constructor(m, quadratic, linear, offset)
 
             self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
@@ -120,7 +126,7 @@ class TestQuadraticForm(QiskitTestCase):
             linear = np.array([-2, 0, 1])
             offset = -1
 
-            circuit = QuadraticForm(linear=linear, offset=offset)
+            circuit = constructor(linear=linear, offset=offset)
             self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
 
         with self.subTest("missing linear"):
@@ -129,7 +135,7 @@ class TestQuadraticForm(QiskitTestCase):
             offset = -1
             m = 2
 
-            circuit = QuadraticForm(m, quadratic, None, offset)
+            circuit = constructor(m, quadratic, None, offset)
             self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
         with self.subTest("missing offset"):
@@ -138,11 +144,12 @@ class TestQuadraticForm(QiskitTestCase):
             offset = 0
             m = 2
 
-            circuit = QuadraticForm(m, quadratic, linear)
+            circuit = constructor(m, quadratic, linear)
             self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
     def test_quadratic_form_parameterized(self):
         """Test the quadratic form circuit with parameters."""
+
         theta = ParameterVector("th", 7)
 
         p_quadratic = [[theta[0], theta[1]], [theta[2], theta[3]]]
@@ -156,6 +163,7 @@ class TestQuadraticForm(QiskitTestCase):
 
         circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
         param_dict = dict(zip(theta, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
+
         circuit.assign_parameters(param_dict, inplace=True)
 
         self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)

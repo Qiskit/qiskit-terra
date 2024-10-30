@@ -17,11 +17,14 @@ from typing import Callable
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, Gate
 from qiskit.circuit.library.blueprintcircuit import BlueprintCircuit
 from qiskit.circuit.exceptions import CircuitError
 
-from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
+from .piecewise_polynomial_pauli_rotations import (
+    PiecewisePolynomialPauliRotations,
+    PiecewisePolynomialPauliRotationsGate,
+)
 
 
 class PiecewiseChebyshev(BlueprintCircuit):
@@ -345,9 +348,127 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
         )
 
-        # qr_state = self.qubits[: self.num_state_qubits]
-        # qr_target = [self.qubits[self.num_state_qubits]]
-        # qr_ancillas = self.qubits[self.num_state_qubits + 1 :]
-
         # Apply polynomial approximation
         self.append(poly_r.to_gate(), self.qubits)
+
+
+class PiecewiseChebyshevGate(Gate):
+    r"""Piecewise Chebyshev approximation to an input function.
+
+    For a given function :math:`f(x)` and degree :math:`d`, this class implements a piecewise
+    polynomial Chebyshev approximation on :math:`n` qubits to :math:`f(x)` on the given intervals.
+    All the polynomials in the approximation are of degree :math:`d`.
+
+    The values of the parameters are calculated according to [1] and see [2] for a more
+    detailed explanation of the circuit construction and how it acts on the qubits.
+
+    Examples:
+
+        .. plot::
+           :include-source:
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+            from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+            f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
+            pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
+            pw_approximation._build()
+            qc = QuantumCircuit(pw_approximation.num_qubits)
+            qc.h(list(range(num_state_qubits)))
+            qc.append(pw_approximation.to_instruction(), qc.qubits)
+            qc.draw(output='mpl')
+
+    References:
+
+        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
+             Optimizing Quantum Circuits for Arithmetic.
+             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+        [2]: Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
+             Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
+             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    """
+
+    def __init__(
+        self,
+        f_x: float | Callable[[int], float],
+        num_state_qubits: int,
+        degree: int | None = None,
+        breakpoints: list[int] | None = None,
+        label: str | None = None,
+    ) -> None:
+        r"""
+        Args:
+            f_x: the function to be approximated. Constant functions should be specified
+             as f_x = constant.
+            degree: the degree of the polynomials.
+                Defaults to ``1``.
+            breakpoints: the breakpoints to define the piecewise-linear function.
+                Defaults to the full interval.
+            num_state_qubits: number of qubits representing the state.
+            label: A label for the gate.
+        """
+        # Store parameters
+        self.f_x = f_x
+        self.degree = degree if degree is not None else 1
+        self.breakpoints = breakpoints if breakpoints is not None else [0]
+
+        # TODO need an additional comparison qubit like Pw Pauli Rot
+        num_compare = 0 if breakpoints is None else int(len(breakpoints) > 1)
+        super().__init__("PiecewiseChebychev", num_state_qubits + num_compare + 1, [], label)
+
+    @property
+    def polynomials(self):
+        # note this must be the private attribute since we handle missing breakpoints at
+        # 0 and 2 ^ num_qubits here (e.g. if the function we approximate is not defined at 0
+        # and the user takes that into account we just add an identity)
+        breakpoints = self.breakpoints
+
+        # Need to take into account the case in which no breakpoints were provided in first place
+        num_state_qubits = self.num_qubits - 1
+        if breakpoints == [0]:
+            breakpoints = [0, 2**num_state_qubits]
+
+        num_intervals = len(breakpoints)
+
+        # Calculate the polynomials
+        polynomials = []
+        for i in range(0, num_intervals - 1):
+            # Calculate the polynomial approximating the function on the current interval
+            try:
+                # If the function is constant don't call Chebyshev (not necessary and gives errors)
+                if isinstance(self.f_x, (float, int)):
+                    # Append directly to list of polynomials
+                    polynomials.append([self.f_x])
+                else:
+                    poly = Chebyshev.interpolate(
+                        self.f_x, self.degree, domain=[breakpoints[i], breakpoints[i + 1]]
+                    )
+                    # Convert polynomial to the standard basis and rescale it for the rotation gates
+                    poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
+                    # Convert to list and append
+                    polynomials.append(poly.tolist())
+            except ValueError as err:
+                raise TypeError(
+                    " <lambda>() missing 1 required positional argument: '"
+                    + self.f_x.__code__.co_varnames[0]
+                    + "'."
+                    + " Constant functions should be specified as 'f_x = constant'."
+                ) from err
+
+        # If the last breakpoint is < 2 ** num_qubits, add the identity polynomial
+        if breakpoints[-1] < 2**num_state_qubits:
+            polynomials = polynomials + [[2 * np.arcsin(1)]]
+
+        # If the first breakpoint is > 0, add the identity polynomial
+        if breakpoints[0] > 0:
+            polynomials = [[2 * np.arcsin(1)]] + polynomials
+
+        return polynomials
+
+    def _define(self):
+        poly_r = PiecewisePolynomialPauliRotationsGate(
+            self.num_qubits - 1, self.breakpoints, self.polynomials
+        )
+
+        self.definition = QuantumCircuit(poly_r.num_qubits)
+        self.definition.append(poly_r, self.definition.qubits)

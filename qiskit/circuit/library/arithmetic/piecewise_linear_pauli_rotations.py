@@ -14,14 +14,15 @@
 """Piecewise-linearly-controlled rotation."""
 
 from __future__ import annotations
+from collections.abc import Sequence
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
-from .linear_pauli_rotations import LinearPauliRotations
-from .integer_comparator import IntegerComparator
+from .linear_pauli_rotations import LinearPauliRotations, LinearPauliRotationsGate
+from .integer_comparator import IntegerComparator, IntegerComparatorGate
 
 
 class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
@@ -272,6 +273,115 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 circuit.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
 
                 # uncompute comparator
-                circuit.append(comp.to_gate().inverse(), qr[:] + qr_helper[: comp.num_ancillas])
+                circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
 
         self.append(circuit.to_gate(), self.qubits)
+
+
+class PiecewiseLinearPauliRotationsGate(Gate):
+    r"""Piecewise-linearly-controlled Pauli rotations.
+
+    For a piecewise linear (not necessarily continuous) function :math:`f(x)`, which is defined
+    through breakpoints, slopes and offsets as follows.
+    Suppose the breakpoints :math:`(x_0, ..., x_J)` are a subset of :math:`[0, 2^n-1]`, where
+    :math:`n` is the number of state qubits. Further on, denote the corresponding slopes and
+    offsets by :math:`a_j` and :math:`b_j` respectively.
+    Then f(x) is defined as:
+
+    .. math::
+
+        f(x) = \begin{cases}
+            0, x < x_0 \\
+            a_j (x - x_j) + b_j, x_j \leq x < x_{j+1}
+            \end{cases}
+
+    where we implicitly assume :math:`x_{J+1} = 2^n`.
+    """
+
+    def __init__(
+        self,
+        num_state_qubits: int | None = None,
+        breakpoints: list[int] | None = None,
+        slopes: Sequence[float] | None = None,
+        offsets: Sequence[float] | None = None,
+        basis: str = "Y",
+        label: str | None = None,
+    ) -> None:
+        """Construct piecewise-linearly-controlled Pauli rotations.
+
+        Args:
+            num_state_qubits: The number of qubits representing the state.
+            breakpoints: The breakpoints to define the piecewise-linear function.
+                Defaults to ``[0]``.
+            slopes: The slopes for different segments of the piecewise-linear function.
+                Defaults to ``[1]``.
+            offsets: The offsets for different segments of the piecewise-linear function.
+                Defaults to ``[0]``.
+            basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
+            label: The label of the gate.
+        """
+        self.breakpoints = breakpoints if breakpoints is not None else [0]
+        self.slopes = slopes if slopes is not None else [1]
+        self.offsets = offsets if offsets is not None else [0]
+        self.basis = basis
+
+        num_compare_bits = 1 if len(self.breakpoints) > 1 else 0
+        super().__init__("PwLinPauliRot", num_state_qubits + 1 + num_compare_bits, [], label=label)
+
+    def _define(self):
+        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+
+        if len(self.breakpoints) == 1:
+            qr_state = circuit.qubits[: self.num_qubits - 1]
+            qr_target = [circuit.qubits[-1]]
+            qr_compare = []
+        else:
+            qr_state = circuit.qubits[: self.num_qubits - 2]
+            qr_target = [circuit.qubits[-2]]
+            qr_compare = [circuit.qubits[-1]]
+
+        num_state_qubits = len(qr_state)
+
+        mapped_slopes = np.zeros_like(self.slopes)
+        for i, slope in enumerate(self.slopes):
+            mapped_slopes[i] = slope - sum(mapped_slopes[:i])
+
+        mapped_offsets = np.zeros_like(self.offsets)
+        for i, (offset, slope, point) in enumerate(
+            zip(self.offsets, self.slopes, self.breakpoints)
+        ):
+            mapped_offsets[i] = offset - slope * point - sum(mapped_offsets[:i])
+
+        # apply comparators and controlled linear rotations
+        contains_zero_breakpoint = np.isclose(self.breakpoints[0], 0)
+        for i, point in enumerate(self.breakpoints):
+            if i == 0 and contains_zero_breakpoint:
+                # apply rotation
+                lin_r = LinearPauliRotationsGate(
+                    num_state_qubits=num_state_qubits,
+                    slope=mapped_slopes[i],
+                    offset=mapped_offsets[i],
+                    basis=self.basis,
+                )
+                circuit.append(lin_r, qr_state[:] + qr_target)
+
+            else:
+                # apply Comparator
+                comp = IntegerComparatorGate(num_state_qubits=num_state_qubits, value=point)
+                qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
+
+                circuit.append(comp, qr[:])
+
+                # apply controlled rotation
+                lin_r = LinearPauliRotationsGate(
+                    num_state_qubits=num_state_qubits,
+                    slope=mapped_slopes[i],
+                    offset=mapped_offsets[i],
+                    basis=self.basis,
+                )
+                circuit.append(lin_r.control(), qr_compare[:] + qr_state[:] + qr_target)
+
+                # uncompute comparator (which is its self-inverse)
+                circuit.append(comp, qr[:])
+
+        self.definition = circuit

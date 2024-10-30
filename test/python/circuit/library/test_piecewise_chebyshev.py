@@ -17,8 +17,12 @@ from collections import defaultdict
 import numpy as np
 from ddt import ddt, data, unpack
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+from qiskit.circuit.library.arithmetic.piecewise_chebyshev import (
+    PiecewiseChebyshev,
+    PiecewiseChebyshevGate,
+)
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -27,18 +31,21 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestPiecewiseChebyshev(QiskitTestCase):
     """Test the piecewise Chebyshev approximation."""
 
-    def assertFunctionIsCorrect(self, function_circuit, reference):
+    def assertFunctionIsCorrect(self, function_circuit, reference, num_ancillas=None):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
         function_circuit._build()
-        num_state_qubits = function_circuit.num_state_qubits
-        num_ancilla_qubits = function_circuit.num_ancillas
-        circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
+        num_ancillas = function_circuit.num_ancillas if num_ancillas is None else num_ancillas
+        num_state_qubits = function_circuit.num_qubits - num_ancillas - 1
+
+        circuit = QuantumCircuit(num_state_qubits + 1 + num_ancillas)
         circuit.h(list(range(num_state_qubits)))
-        circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
-        statevector = Statevector(circuit)
+        circuit.compose(function_circuit, inplace=True)
+
+        tqc = transpile(circuit, basis_gates=["u", "cx"])
+        statevector = Statevector(tqc)
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
-            i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:]
+            i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancillas:]
             probabilities[i] += np.real(np.abs(statevector_amplitude) ** 2)
 
         unrolled_probabilities = []
@@ -81,9 +88,20 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                 return f_x(x)
             return np.arcsin(1)
 
-        pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
+        for use_gate in [True, False]:
+            with self.subTest(use_gate=use_gate):
+                if use_gate:
+                    pw_approximation = PiecewiseChebyshevGate(
+                        f_x, num_state_qubits, degree, breakpoints
+                    )
+                    num_ancillas = 0 if breakpoints is None else int(len(breakpoints) > 1)
+                else:
+                    pw_approximation = PiecewiseChebyshev(
+                        f_x, degree, breakpoints, num_state_qubits
+                    )
+                    num_ancillas = None
 
-        self.assertFunctionIsCorrect(pw_approximation, pw_poly)
+        self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
 
     def test_piecewise_chebyshev_mutability(self):
         """Test the mutability of the piecewise Chebyshev approximation."""

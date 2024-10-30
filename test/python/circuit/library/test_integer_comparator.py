@@ -16,8 +16,10 @@ import unittest
 import numpy as np
 from ddt import ddt, data, unpack
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
+from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -28,12 +30,13 @@ class TestIntegerComparator(QiskitTestCase):
 
     def assertComparisonIsCorrect(self, comp, num_state_qubits, value, geq):
         """Assert that the comparator output is correct."""
-        qc = QuantumCircuit(comp.num_qubits)  # initialize circuit
+        qc = QuantumCircuit(2 * num_state_qubits)  # initialize circuit
         qc.h(list(range(num_state_qubits)))  # set equal superposition state
         qc.append(comp, list(range(comp.num_qubits)))  # add comparator
 
         # run simulation
-        statevector = Statevector(qc)
+        tqc = transpile(qc)  # trigger the HLS if necessary
+        statevector = Statevector(tqc)
         for i, amplitude in enumerate(statevector):
             prob = np.abs(amplitude) ** 2
             if prob > 1e-6:
@@ -60,8 +63,14 @@ class TestIntegerComparator(QiskitTestCase):
     def test_fixed_value_comparator(self, num_state_qubits, value, geq):
         """Test the fixed value comparator circuit."""
         # build the circuit with the comparator
-        comp = IntegerComparator(num_state_qubits, value, geq=geq)
-        self.assertComparisonIsCorrect(comp, num_state_qubits, value, geq)
+        for constructor in [
+            IntegerComparator,
+            synth_integer_comparator_2s,
+            synth_integer_comparator_greedy,
+        ]:
+            with self.subTest(constructor=constructor):
+                comp = constructor(num_state_qubits, value, geq=geq)
+                self.assertComparisonIsCorrect(comp, num_state_qubits, value, geq)
 
     def test_mutability(self):
         """Test changing the arguments of the comparator."""

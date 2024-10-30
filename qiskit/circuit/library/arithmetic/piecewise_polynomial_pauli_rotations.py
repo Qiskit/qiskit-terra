@@ -16,12 +16,12 @@ from __future__ import annotations
 from typing import List, Optional
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
-from .polynomial_pauli_rotations import PolynomialPauliRotations
-from .integer_comparator import IntegerComparator
+from .polynomial_pauli_rotations import PolynomialPauliRotations, PolynomialPauliRotationsGate
+from .integer_comparator import IntegerComparator, IntegerComparatorGate
 
 
 class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
@@ -187,16 +187,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         Returns:
             The mapped coefficients.
         """
-        mapped_coeffs = []
-
-        # First polynomial
-        mapped_coeffs.append(self._hom_coeffs[0])
-        for i in range(1, len(self._hom_coeffs)):
-            mapped_coeffs.append([])
-            for j in range(0, self._degree + 1):
-                mapped_coeffs[i].append(self._hom_coeffs[i][j] - self._hom_coeffs[i - 1][j])
-
-        return mapped_coeffs
+        print("valled")
+        return _map_coeffs(self._hom_coeffs)
 
     @property
     def contains_zero_breakpoint(self) -> bool | np.bool_:
@@ -315,3 +307,183 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 )
 
         self.append(circuit.to_gate(), self.qubits)
+
+
+class PiecewisePolynomialPauliRotationsGate(Gate):
+    r"""Piecewise-polynomially-controlled Pauli rotations.
+
+    This class implements a piecewise polynomial (not necessarily continuous) function,
+    :math:`f(x)`, on qubit amplitudes, which is defined through breakpoints and coefficients as
+    follows.
+    Suppose the breakpoints :math:`(x_0, ..., x_J)` are a subset of :math:`[0, 2^n-1]`, where
+    :math:`n` is the number of state qubits. Further on, denote the corresponding coefficients by
+    :math:`[a_{j,1},...,a_{j,d}]`, where :math:`d` is the highest degree among all polynomials.
+
+    Then :math:`f(x)` is defined as:
+
+    .. math::
+
+        f(x) = \begin{cases}
+            0, x < x_0 \\
+            \sum_{i=0}^{i=d}a_{j,i}/2 x^i, x_j \leq x < x_{j+1}
+            \end{cases}
+
+    where if given the same number of breakpoints as polynomials, we implicitly assume
+    :math:`x_{J+1} = 2^n`.
+
+    .. note::
+
+        Note the :math:`1/2` factor in the coefficients of :math:`f(x)`, this is consistent with
+        Qiskit's Pauli rotations.
+
+    Examples:
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import\
+        ... PiecewisePolynomialPauliRotations
+        >>> qubits, breakpoints, coeffs = (2, [0, 2], [[0, -1.2],[-1, 1, 3]])
+        >>> poly_r = PiecewisePolynomialPauliRotations(num_state_qubits=qubits,
+        ...breakpoints=breakpoints, coeffs=coeffs)
+        >>>
+        >>> qc = QuantumCircuit(poly_r.num_qubits)
+        >>> qc.h(list(range(qubits)));
+        >>> qc.append(poly_r.to_instruction(), list(range(qc.num_qubits)));
+        >>> qc.draw()
+             ┌───┐┌──────────┐
+        q_0: ┤ H ├┤0         ├
+             ├───┤│          │
+        q_1: ┤ H ├┤1         ├
+             └───┘│          │
+        q_2: ─────┤2         ├
+                  │  pw_poly │
+        q_3: ─────┤3         ├
+                  │          │
+        q_4: ─────┤4         ├
+                  │          │
+        q_5: ─────┤5         ├
+                  └──────────┘
+
+    References:
+        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
+             Optimizing Quantum Circuits for Arithmetic.
+             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+
+        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
+             Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
+             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    """
+
+    def __init__(
+        self,
+        num_state_qubits: int,
+        breakpoints: list[int] | None = None,
+        coeffs: list[list[float]] | None = None,
+        basis: str = "Y",
+        label: str | None = None,
+    ) -> None:
+        """
+        Args:
+            num_state_qubits: The number of qubits representing the state.
+            breakpoints: The breakpoints to define the piecewise-linear function.
+                Defaults to ``[0]``.
+            coeffs: The coefficients of the polynomials for different segments of the
+                piecewise-linear function. ``coeffs[j][i]`` is the coefficient of the i-th power of x
+                for the j-th polynomial.
+                Defaults to linear: ``[[1]]``.
+            basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
+            name: The name of the circuit.
+        """
+
+        if coeffs is None:
+            degree = 0
+            coeffs = [[1]]
+        else:
+            # store a list of coefficients as homogeneous polynomials adding 0's where necessary
+            degree = len(max(coeffs, key=len)) - 1
+            coeffs = [poly + [0] * (degree + 1 - len(poly)) for poly in coeffs]
+
+        # ensure the breakpoint contains 2 ** num_state_qubits
+        if breakpoints is None:
+            breakpoints = [0, 2**num_state_qubits]
+        elif breakpoints[-1] < 2**num_state_qubits:
+            breakpoints.append(2**num_state_qubits)
+
+        self.coeffs = coeffs
+        self.breakpoints = breakpoints
+        self.basis = basis
+
+        num_compare = int(len(self.breakpoints) > 2)
+        super().__init__("PiecewisePolyPauli", num_state_qubits + num_compare + 1, [], label=label)
+
+    def evaluate(self, x: float) -> float:
+        """Classically evaluate the piecewise polynomial rotation.
+
+        Args:
+            x: Value to be evaluated at.
+
+        Returns:
+            Value of piecewise polynomial function at x.
+        """
+        mapped_coeffs = _map_coeffs(self.coeffs)
+
+        y = 0
+        for i, breakpt in enumerate(self.breakpoints):
+            y = y + (x >= breakpt) * (np.poly1d(mapped_coeffs[i][::-1])(x))
+
+        return y
+
+    def _define(self):
+        num_state_qubits = self.num_qubits - 1
+        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        qr_state = circuit.qubits[:num_state_qubits]
+
+        if len(self.breakpoints) > 2:
+            qr_target = [circuit.qubits[-2]]
+            qr_compare = [circuit.qubits[-1]]
+        else:
+            qr_target = [circuit.qubits[-1]]
+            qr_compare = []
+
+        # apply comparators and controlled linear rotations
+        contains_zero_breakpoint = np.isclose(self.breakpoints[0], 0)
+        mapped_coeffs = _map_coeffs(self.coeffs)
+
+        for i, point in enumerate(self.breakpoints[:-1]):
+            if i == 0 and contains_zero_breakpoint:
+                # apply rotation
+                poly_r = PolynomialPauliRotationsGate(
+                    num_state_qubits=num_state_qubits,
+                    coeffs=mapped_coeffs[i],
+                    basis=self.basis,
+                )
+                circuit.append(poly_r.to_gate(), qr_state[:] + qr_target)
+
+            else:
+                # apply Comparator
+                comp = IntegerComparatorGate(num_state_qubits=num_state_qubits, value=point)
+                qr_state_full = qr_state[:] + qr_compare  # add compare qubit
+
+                circuit.append(comp, qr_state_full[:])
+
+                # apply controlled rotation
+                poly_r = PolynomialPauliRotationsGate(
+                    num_state_qubits=num_state_qubits,
+                    coeffs=mapped_coeffs[i],
+                    basis=self.basis,
+                )
+                circuit.append(poly_r.control(), qr_compare + qr_state[:] + qr_target)
+
+                # uncompute comparator
+                circuit.append(comp, qr_state_full[:])
+
+
+def _map_coeffs(coeffs):
+    mapped_coeffs = []
+    mapped_coeffs.append(coeffs[0])
+
+    degree = len(coeffs[0]) - 1  # all coeffs should have the same length by now
+    for i in range(1, len(coeffs)):
+        mapped_coeffs.append([])
+        for j in range(0, degree + 1):
+            mapped_coeffs[i].append(coeffs[i][j] - coeffs[i - 1][j])
+
+    return mapped_coeffs

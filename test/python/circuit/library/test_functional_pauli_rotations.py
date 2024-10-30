@@ -17,11 +17,13 @@ from collections import defaultdict
 import numpy as np
 from ddt import ddt, data, unpack
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
     LinearPauliRotations,
     PolynomialPauliRotations,
     PiecewiseLinearPauliRotations,
+    PiecewiseLinearPauliRotationsGate,
 )
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -31,14 +33,19 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestFunctionalPauliRotations(QiskitTestCase):
     """Test the functional Pauli rotations."""
 
-    def assertFunctionIsCorrect(self, function_circuit, reference):
+    def assertFunctionIsCorrect(self, function_circuit, reference, num_ancilla_qubits=None):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
-        num_state_qubits = function_circuit.num_qubits - function_circuit.num_ancillas - 1
-        num_ancilla_qubits = function_circuit.num_ancillas
+        if isinstance(function_circuit, QuantumCircuit):
+            num_ancilla_qubits = function_circuit.num_ancillas
+
+        num_state_qubits = function_circuit.num_qubits - 1 - num_ancilla_qubits
+
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
         circuit.h(list(range(num_state_qubits)))
-        circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
-        statevector = Statevector(circuit)
+        circuit.compose(function_circuit, list(range(function_circuit.num_qubits)), inplace=True)
+
+        tqc = transpile(circuit, basis_gates=["u", "cx"])
+        statevector = Statevector(tqc)
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
             i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:]
@@ -152,14 +159,27 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                     return offsets[-(i + 1)] + slopes[-(i + 1)] * (x - point)
             return 0
 
-        pw_linear_rotations = PiecewiseLinearPauliRotations(
-            num_state_qubits,
-            breakpoints,
-            [2 * slope for slope in slopes],
-            [2 * offset for offset in offsets],
-        )
+        for use_gate in [False, True]:
+            constructor = (
+                PiecewiseLinearPauliRotationsGate if use_gate else PiecewiseLinearPauliRotations
+            )
 
-        self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
+            if use_gate:
+                # ancilla for the comparator bit and the integer comparator itself
+                num_ancillas = int(len(breakpoints) > 1)  # + num_state_qubits - 1
+                # num_ancillas = 0
+            else:
+                num_ancillas = None  # automatically deducted
+
+            with self.subTest(use_gate=use_gate):
+                pw_linear_rotations = constructor(
+                    num_state_qubits,
+                    breakpoints,
+                    [2 * slope for slope in slopes],
+                    [2 * offset for offset in offsets],
+                )
+
+                self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear, num_ancillas)
 
     def test_piecewise_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
