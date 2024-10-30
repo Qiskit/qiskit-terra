@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    Added :class:`.QubitProperties` in :class:`.Target`.
+    One can access :class:`.QubitProperties` for a particular :class:`.Target` object by calling it's
+    method :meth:`.Target.qubit_properties`.
+    
+    If no mapping is available for a specified :code:`basis_gate`, this raises :class:`.TranspilerError`.
+
+fixes:
+  - |
+    Fixed an issue with :meth:`.Target.form_configuration` method in :class:`.Target` when attempting to get
+    the :code:`Target` object, the measure instruction was missing.
+    Refer to `#10168 <https://github.com/Qiskit/qiskit/issues/10168>` for more information.
