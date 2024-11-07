@@ -27,7 +27,7 @@ def deprecate_func(
     additional_msg: str | None = None,
     pending: bool = False,
     package_name: str = "qiskit",
-    removal_timeline: str = "no earlier than 3 months after the release date",
+    removal_timeline: str | None = None,
     is_property: bool = False,
     stacklevel: int = 2,
 ):
@@ -47,7 +47,8 @@ def deprecate_func(
         pending: Set to ``True`` if the deprecation is still pending.
         package_name: The PyPI package name, e.g. "qiskit-nature".
         removal_timeline: How soon can this deprecation be removed? Expects a value
-            like "no sooner than 6 months after the latest release" or "in release 9.99".
+            like "in two major releases" or "in release 9.99". Default:
+            "in the next major release {since_major + 1}".
         is_property: If the deprecated function is a `@property`, set this to True so that the
             generated message correctly describes it as such. (This isn't necessary for
             property setters, as their docstring is ignored by Python.)
@@ -112,7 +113,7 @@ def deprecate_arg(
     package_name: str = "qiskit",
     new_alias: str | None = None,
     predicate: Callable[[Any], bool] | None = None,
-    removal_timeline: str = "no earlier than 3 months after the release date",
+    removal_timeline: str | None = None,
 ):
     """Decorator to indicate an argument has been deprecated in some way.
 
@@ -139,7 +140,8 @@ def deprecate_arg(
             `lambda my_arg: isinstance(my_arg, dict)`. Regardless of if a predicate is set, the
             runtime warning will only log when the user specifies the argument.
         removal_timeline: How soon can this deprecation be removed? Expects a value
-            like "no sooner than 6 months after the latest release" or "in release 9.99".
+            like "in two major releases" or "in release 9.99". Default:
+            "in the next major release {since_major + 1}".
 
     Returns:
         Callable: The decorated callable.
@@ -354,8 +356,12 @@ def _write_deprecation_msg(
     since: str,
     pending: bool,
     additional_msg: str,
-    removal_timeline: str,
+    removal_timeline: str | None,
 ) -> tuple[str, Type[DeprecationWarning] | Type[PendingDeprecationWarning]]:
+    if not removal_timeline:
+        removal_major = int(since.split(".")[0]) + 1
+        removal_timeline = f"in the next major release {removal_major}.0"
+
     if pending:
         category: Type[DeprecationWarning] | Type[PendingDeprecationWarning] = (
             PendingDeprecationWarning

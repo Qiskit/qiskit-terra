@@ -85,8 +85,7 @@ class TestDeprecationDecorators(QiskitTestCase):
 
                 .. deprecated:: 9.99_pending
                   The class ``{__name__}._Foo`` is pending deprecation as of qiskit 9.99. It \
-will be marked deprecated in a future release, and then removed no earlier than 3 months after \
-the release date.
+will be marked deprecated in a future release, and then removed in the next major release 10.0.
                 """
             ),
         )
@@ -98,7 +97,7 @@ the release date.
 
                 .. deprecated:: 9.99
                   The method ``{__name__}._Foo.my_method()`` is deprecated as of qiskit \
-9.99. It will be removed no earlier than 3 months after the release date. Stop using this!
+9.99. It will be removed in the next major release 10.0. Stop using this!
                 """
             ),
         )
@@ -110,7 +109,7 @@ the release date.
 
                 .. deprecated:: 9.99
                   The property ``{__name__}._Foo.my_property`` is deprecated as of qiskit \
-9.99. It will be removed no earlier than 3 months after the release date.
+9.99. It will be removed in the next major release 10.0.
                 """
             ),
         )
@@ -144,18 +143,18 @@ the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg4`` is deprecated as of \
-qiskit 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
+qiskit 9.99. It will be removed in the next major release 10.0. Instead, \
 use foo.
 
                 .. deprecated:: 9.99
                   Using the argument arg3 is deprecated as of qiskit 9.99. It will be \
-removed no earlier than 3 months after the release date. Instead, use the argument ``new_arg3``, \
+removed in the next major release 10.0. Instead, use the argument ``new_arg3``, \
 which behaves identically.
 
                 .. deprecated:: 9.99_pending
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg2`` is pending \
 deprecation as of qiskit 9.99. It will be marked deprecated in a future release, and then \
-removed no earlier than 3 months after the release date.
+removed in the next major release 10.0.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg1`` is deprecated as of \
