@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use numpy::IntoPyArray;
 use pyo3::basic::CompareOp;
@@ -236,7 +236,7 @@ pub struct CircuitInstruction {
     pub params: SmallVec<[Param; 3]>,
     pub extra_attrs: ExtraInstructionAttributes,
     #[cfg(feature = "cache_pygates")]
-    pub py_op: OnceCell<Py<PyAny>>,
+    pub py_op: OnceLock<Py<PyAny>>,
 }
 
 impl CircuitInstruction {
@@ -301,7 +301,7 @@ impl CircuitInstruction {
             params,
             extra_attrs: ExtraInstructionAttributes::new(label, None, None, None),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         })
     }
 

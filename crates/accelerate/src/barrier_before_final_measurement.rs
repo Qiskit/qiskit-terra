@@ -12,6 +12,7 @@
 
 use hashbrown::HashSet;
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
@@ -30,8 +31,8 @@ pub fn barrier_before_final_measurements(
     dag: &mut DAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
-    let final_ops: HashSet<NodeIndex> = dag
-        .op_nodes(true)
+    let node_indices: Vec<NodeIndex> = dag.op_nodes(true).collect();
+    let final_ops: HashSet<NodeIndex> = node_indices.into_par_iter()
         .filter(|node| {
             let NodeType::Operation(ref inst) = dag.dag()[*node] else {
                 unreachable!();

@@ -12,7 +12,7 @@
 #![allow(clippy::too_many_arguments)]
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 use std::f64::consts::PI;
 
 use approx::relative_eq;
@@ -149,7 +149,7 @@ fn apply_synth_sequence(
             params: new_params,
             extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         };
         instructions.push(instruction);
     }

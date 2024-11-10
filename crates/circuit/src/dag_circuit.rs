@@ -68,7 +68,7 @@ use std::convert::Infallible;
 use std::f64::consts::PI;
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
@@ -5147,7 +5147,7 @@ impl DAGCircuit {
         let py_op = if let Some(py_op) = py_op {
             py_op.into()
         } else {
-            OnceCell::new()
+            OnceLock::new()
         };
         let packed_instruction = PackedInstruction {
             op,
@@ -6193,7 +6193,7 @@ impl DAGCircuit {
                     .then(|| Box::new(new_gate.1.iter().map(|x| Param::Float(*x)).collect())),
                 extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: OnceCell::new(),
+                py_op: OnceLock::new(),
             }
         } else {
             panic!("This method only works if provided index is an op node");
@@ -6276,12 +6276,12 @@ impl DAGCircuit {
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
-                OperationRef::Standard(_) => OnceCell::new(),
-                OperationRef::Gate(gate) => OnceCell::from(gate.gate.clone_ref(py)),
+                OperationRef::Standard(_) => OnceLock::new(),
+                OperationRef::Gate(gate) => OnceLock::from(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => {
-                    OnceCell::from(instruction.instruction.clone_ref(py))
+                    OnceLock::from(instruction.instruction.clone_ref(py))
                 }
-                OperationRef::Operation(op) => OnceCell::from(op.operation.clone_ref(py)),
+                OperationRef::Operation(op) => OnceLock::from(op.operation.clone_ref(py)),
             };
             let inst = PackedInstruction {
                 op: new_op.operation,
@@ -6732,7 +6732,7 @@ impl DAGCircuit {
                     params: instr.params.clone(),
                     extra_attrs: instr.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 })
             })
             .collect::<PyResult<Vec<_>>>()?;
@@ -6994,7 +6994,7 @@ impl DAGCircuit {
             params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: py_op_cache.map(OnceCell::from).unwrap_or_default(),
+            py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
         });
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;

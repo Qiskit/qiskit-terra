@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 use std::hash::Hasher;
 
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -241,7 +241,7 @@ impl DAGOpNode {
             instruction.operation = instruction.operation.py_deepcopy(py, None)?;
             #[cfg(feature = "cache_pygates")]
             {
-                instruction.py_op = OnceCell::new();
+                instruction.py_op = OnceLock::new();
             }
         }
         let base = PyClassInitializer::from(DAGNode { node: None });
@@ -293,7 +293,7 @@ impl DAGOpNode {
             params: self.instruction.params.clone(),
             extra_attrs: self.instruction.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         })
     }
 

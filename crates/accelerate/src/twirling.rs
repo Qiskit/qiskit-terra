@@ -209,7 +209,7 @@ fn twirl_gate(
             params: None,
             extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
             #[cfg(feature = "cache_pygates")]
-            py_op: std::cell::OnceCell::new(),
+            py_op: std::sync::OnceLock::new(),
         },
     )?;
     out_circ.push(
@@ -221,7 +221,7 @@ fn twirl_gate(
             params: None,
             extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
             #[cfg(feature = "cache_pygates")]
-            py_op: std::cell::OnceCell::new(),
+            py_op: std::sync::OnceLock::new(),
         },
     )?;
 
@@ -235,7 +235,7 @@ fn twirl_gate(
             params: None,
             extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
             #[cfg(feature = "cache_pygates")]
-            py_op: std::cell::OnceCell::new(),
+            py_op: std::sync::OnceLock::new(),
         },
     )?;
     out_circ.push(
@@ -247,7 +247,7 @@ fn twirl_gate(
             params: None,
             extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
             #[cfg(feature = "cache_pygates")]
-            py_op: std::cell::OnceCell::new(),
+            py_op: std::sync::OnceLock::new(),
         },
     )?;
 
@@ -361,7 +361,7 @@ fn generate_twirled_circuit(
                         )),
                         extra_attrs: inst.extra_attrs.clone(),
                         #[cfg(feature = "cache_pygates")]
-                        py_op: std::cell::OnceCell::new(),
+                        py_op: std::sync::OnceLock::new(),
                     };
                     #[cfg(feature = "cache_pygates")]
                     new_inst.py_op.set(new_inst_obj).unwrap();
