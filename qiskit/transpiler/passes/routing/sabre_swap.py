@@ -29,7 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 
 from qiskit._accelerate.sabre import sabre_routing, Heuristic, SetScaling, NeighborTable, SabreDAG
 from qiskit._accelerate.nlayout import NLayout
@@ -167,7 +167,7 @@ class SabreSwap(TransformationPass):
         self.heuristic = heuristic
         self.seed = seed
         if trials is None:
-            self.trials = CPU_COUNT
+            self.trials = default_num_processes()
         else:
             self.trials = trials
 

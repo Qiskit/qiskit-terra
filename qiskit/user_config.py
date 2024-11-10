@@ -245,15 +245,19 @@ def set_config(key, value, section=None, file_path=None):
 
 
 def get_config():
-    """Read the config file from the default location or env var
+    """Read the config file from the default location or env var.
 
-    It will read a config file at either the default location
-    ~/.qiskit/settings.conf or if set the value of the QISKIT_SETTINGS env var.
+    It will read a config file at the location specified by the ``QISKIT_SETTINGS`` environment
+    variable if set, or ``$HOME/.qiskit/settings.conf`` if not.
 
-    It will return the parsed settings dict from the parsed config file.
+    If the environment variable ``QISKIT_IGNORE_USER_SETTINGS`` is set to the string ``TRUE``, this
+    will return an empty configuration, regardless of all other variables.
+
     Returns:
         dict: The settings dict from the parsed config file.
     """
+    if os.getenv("QISKIT_IGNORE_USER_SETTINGS", "false").lower() == "true":
+        return {}
     filename = os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
     if not os.path.isfile(filename):
         return {}

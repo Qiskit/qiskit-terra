@@ -37,3 +37,5 @@ jobs:
       - name: Run QPY backwards compatibility tests
         working-directory: test/qpy_compat
         run: ./run_tests.sh
+        env:
+          QISKIT_IGNORE_USER_SETTINGS: TRUE

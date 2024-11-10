@@ -81,7 +81,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap, Schedule, Play, Gaussian, DriveChannel
 from qiskit.quantum_info import Operator, random_unitary
-from qiskit.utils import parallel
+from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
@@ -2771,13 +2771,9 @@ class TestTranspileParallel(QiskitTestCase):
         super().setUp()
 
         # Force parallel execution to True to test multiprocessing for this class
-        original_val = parallel.PARALLEL_DEFAULT
-
-        def restore_default():
-            parallel.PARALLEL_DEFAULT = original_val
-
-        self.addCleanup(restore_default)
-        parallel.PARALLEL_DEFAULT = True
+        cm = should_run_in_parallel.override(True)
+        cm.__enter__()
+        self.addCleanup(cm.__exit__, None, None, None)
 
     @data(0, 1, 2, 3)
     def test_parallel_multiprocessing(self, opt_level):

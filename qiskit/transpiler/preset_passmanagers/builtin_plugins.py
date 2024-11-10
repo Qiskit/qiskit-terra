@@ -67,7 +67,7 @@ from qiskit.circuit.library.standard_gates import (
     SXGate,
     SXdgGate,
 )
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 from qiskit import user_config
 
 CONFIG = user_config.get_config()
@@ -1041,5 +1041,5 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
 
 def _get_trial_count(default_trials=5):
     if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-        return max(CPU_COUNT, default_trials)
+        return max(default_num_processes(), default_trials)
     return default_trials

@@ -1,0 +1,17 @@
+---
+features_misc:
+  - |
+    :mod:`qiskit.utils` now contains utilities to provide better control and inspection of Qiskit's
+    :mod:`multiprocessing` parallelization settings.  In particular, one can now use
+    :func:`.should_run_in_parallel` to query whether :func:`.parallel_map` (and pass managers) will
+    launch subprocesses for suitable inputs, and use the context manager
+    :func:`.should_run_in_parallel.override` to temporarily override most system and user
+    configuration around this decision.
+
+    An additional function, :func:`.default_num_processes` reads the default maximum number of
+    subprocesses that Qiskit will use for process-based parallelism.
+  - |
+    A new environment variable, ``QISKIT_IGNORE_USER_SETTINGS``, now controls whether to read the
+    user settings file on ``import qiskit``.  If set to the string ``true``, the settings file
+    will not be read.  This is useful for isolating certain instances of Qiskit from the system
+    environment, such as for testing.
