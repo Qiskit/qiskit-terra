@@ -1,0 +1,57 @@
+---
+name: Lint and Docs
+on:
+  push:
+    branches: [ main, 'stable/*' ]
+  pull_request:
+    branches: [ main, 'stable/*' ]
+  merge_group:
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  docs:
+    if: github.repository_owner == 'Qiskit'
+    name: Docs
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: False
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    - name: Install ubuntu docs dependencies
+      run: tools/install_ubuntu_docs_dependencies.sh
+    - name: Run docs
+      run: |
+      tox -e docs
+    - name: Store built documentation artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: qiskit-docs
+        path: |
+          ./docs/_build/html/*
+          !**/.doctrees
+          !**/.buildinfo
+        if-no-files-found: error
+  lint:
+    if: github.repository_owner == 'Qiskit'
+    name: Lint
+    runs-on: macOS-14
+    strategy:
+      fail-fast: False
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    - name: Install ubuntu docs dependencies
+      run: tools/install_ubuntu_docs_dependencies.sh
+    - name: Run lint
+      run: |
+      tox -e lint
+        
