@@ -26,8 +26,7 @@ jobs:
     - name: Install ubuntu docs dependencies
       run: tools/install_ubuntu_docs_dependencies.sh
     - name: Run docs
-      run: |
-      tox -e docs
+      run: tox -e docs
     - name: Store built documentation artifact
       uses: actions/upload-artifact@v4
       with:
@@ -52,6 +51,5 @@ jobs:
     - name: Install ubuntu docs dependencies
       run: tools/install_ubuntu_docs_dependencies.sh
     - name: Run lint
-      run: |
-      tox -e lint
+      run: tox -e lint
         
