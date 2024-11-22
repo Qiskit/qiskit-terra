@@ -39,7 +39,7 @@ jobs:
   lint:
     if: github.repository_owner == 'Qiskit'
     name: Lint
-    runs-on: macOS-14
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: False
     steps:
