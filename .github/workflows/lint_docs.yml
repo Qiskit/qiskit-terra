@@ -8,7 +8,7 @@ on:
   merge_group:
 
 concurrency:
-  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
 jobs:
   docs:
@@ -16,9 +16,12 @@ jobs:
     name: Docs
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: False
+      fail-fast: true
     steps:
     - uses: actions/checkout@v4
+      with:
+        # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -27,23 +30,26 @@ jobs:
       run: tools/install_ubuntu_docs_dependencies.sh
     - name: Run docs
       run: tox -e docs
+    - name: Clean up docs detritus
+      run: rm -rf docs/_build/html/{.doctrees,.buildinfo}
     - name: Store built documentation artifact
       uses: actions/upload-artifact@v4
       with:
         name: qiskit-docs
         path: |
           ./docs/_build/html/*
-          !**/.doctrees
-          !**/.buildinfo
         if-no-files-found: error
   lint:
     if: github.repository_owner == 'Qiskit'
     name: Lint
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: False
+      fail-fast: true
     steps:
     - uses: actions/checkout@v4
+      with:
+        # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
