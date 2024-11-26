@@ -174,10 +174,14 @@ jobs:
             ./test/visual/mpl/graph/graph_results
           if-no-files-found: error  
         
-  tests:
+  tests-mac:
     if: github.repository_owner == 'Qiskit'
     name: macOS-arm64-tests-Python-${{ matrix.python-version }}
     runs-on: macOS-14
+    env:
+      QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+      PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      QISKIT_TEST_CAPTURE_STREAMS: 1
     strategy:
       fail-fast: false
       matrix:
@@ -194,26 +198,43 @@ jobs:
           architecture: arm64
       - name: 'Install dependencies'
         run: |
-          python -m pip install -U -r requirements.txt -c constraints.txt
-          python -m pip install -U -r requirements-dev.txt -c constraints.txt
-          python -m pip install -c constraints.txt -e .
-        if: matrix.python-version == '3.9'
-        env:
-          QISKIT_NO_CACHE_GATES: 1
-      - name: 'Install dependencies'
-        run: |
-          python -m pip install -U -r requirements.txt -c constraints.txt
-          python -m pip install -U -r requirements-dev.txt -c constraints.txt
-          python -m pip install -c constraints.txt -e .
-        if: matrix.python-version == '3.13'
+          set -e
+          python -m pip install --upgrade pip setuptools wheel virtualenv
+          virtualenv test-job
+          source test-job/bin/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -e .
+            # Build and install both qiskit and qiskit-terra so that any optionals
+            # depending on `qiskit` will resolve correctly.
+          pip check
       - name: 'Install optionals'
         run: |
-          python -m pip install -r requirements-optional.txt -c constraints.txt
-          python tools/report_numpy_state.py
-        if: matrix.python-version == '3.9'
+          set -e
+          source test-job/bin/activate
+          pip install -r requirements-optional.txt -c constraints.txt
+        if: ${{ inputs.install-optionals }}
       - name: 'Run tests'
-        run: stestr run
-  
+        run: |
+          set -e
+          source test-job/bin/activate
+          python tools/report_numpy_state.py
+          export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+          echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          stestr run
+        env:
+          QISKIT_PARALLEL: FALSE
+          RUST_BACKTRACE: 1
+      - name: Copy and Publish images
+        uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: copied-images
+          path: '**/*.png'
+          if-no-files-found: error
   test-windows:
     if: github.repository_owner == 'Qiskit'
     name: windows-latest-tests-Python-${{ matrix.python-version }}
