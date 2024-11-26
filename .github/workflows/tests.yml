@@ -246,10 +246,9 @@ jobs:
           path: .stestr
       - name: Install dependencies
         run: |
-          set -e
           python -m pip install --upgrade pip setuptools wheel virtualenv
-          virtualenv test-job
-          source test-job/Scripts/activate
+          python -m virtualenv test-job
+          .\test-job\Scripts\activate
           python -m pip install -U pip setuptools wheel
           python -m pip install -U \
             -c constraints.txt \
@@ -261,8 +260,7 @@ jobs:
           pip check
       - name: Install Optional packages
         run: |
-          set -e
-          source test-job/Scripts/activate
+          .\test-job\Scripts\activate
           pip install -c constraints.txt -r requirements-optional.txt
           pip check
         if: ${{ inputs.install-optionals }}
@@ -270,7 +268,7 @@ jobs:
         run: |
           set -e
           chcp.com 65001
-          source test-job/Scripts/activate
+          .\test-job\Scripts\activate
           python tools/report_numpy_state.py
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
