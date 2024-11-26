@@ -196,6 +196,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: arm64
+      - name: Cache stestr
+        uses: actions/cache@v4
+        with:
+          key: 'stestr | "${{ runner.os }}" | "${{ matrix.python-version }}" | "${{ github.run_id }}"'
+          restore-keys: |
+            stestr | "${{ runner.os }}" | "${{ matrix.python-version }}"
+            stestr | "${{ runner.os }}"
+            stestr
+          path: .stestr
       - name: 'Install dependencies'
         run: |
           set -e
