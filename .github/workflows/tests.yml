@@ -250,10 +250,10 @@ jobs:
           python -m virtualenv test-job
           .\test-job\Scripts\activate
           python -m pip install -U pip setuptools wheel
-          python -m pip install -U \
-            -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+          python -m pip install -U `
+            -c constraints.txt `
+            -r requirements.txt `
+            -r requirements-dev.txt `
             -e .
           # Build and install both qiskit and qiskit-terra so that any optionals
           # depending on `qiskit` will resolve correctly.
