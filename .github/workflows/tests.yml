@@ -99,7 +99,7 @@ jobs:
             dist/qiskit-*.tar.gz
           # Build and install both qiskit and qiskit-terra so that any optionals
           # depending on `qiskit` will resolve correctly.
-      - name: Install QIskit directly
+      - name: Install Qiskit directly
         if: ${{ !inputs.install-from-dist }}
         run: |
           set -e
@@ -181,14 +181,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Normally we test min and max version but we can't run python
-        # 3.9 on arm64 until actions/setup-python#808 is resolved
-        python-version: ["3.10", "3.13"]
+        python-version: ["3.9", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.70
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.9'
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -199,7 +197,7 @@ jobs:
           python -m pip install -U -r requirements.txt -c constraints.txt
           python -m pip install -U -r requirements-dev.txt -c constraints.txt
           python -m pip install -c constraints.txt -e .
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.9'
         env:
           QISKIT_NO_CACHE_GATES: 1
       - name: 'Install dependencies'
@@ -212,6 +210,80 @@ jobs:
         run: |
           python -m pip install -r requirements-optional.txt -c constraints.txt
           python tools/report_numpy_state.py
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.9'
       - name: 'Run tests'
         run: stestr run
+  
+  test-windows:
+    if: github.repository_owner == 'Qiskit'
+    name: windows-latest-tests-Python-${{ matrix.python-version }}
+    runs-on: windows-latest
+    env:
+      QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.70
+        if: matrix.python-version == '3.9'
+      - name: Set up Python ${{ matrix.python-version }}
+        id: python-outputs
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache stestr
+        uses: actions/cache@v4
+        with:
+          key: 'stestr | "${{ runner.os }}" | "${{ matrix.python-version }}" | "${{ github.run_id }}"'
+          restore-keys: |
+            stestr | "${{ runner.os }}" | "${{ matrix.python-version }}"
+            stestr | "${{ runner.os }}"
+            stestr
+          path: .stestr
+      - name: Install dependencies
+        run: |
+          set -e
+          python -m pip install --upgrade pip setuptools wheel virtualenv
+          virtualenv test-job
+          source test-job/Scripts/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -e .
+          # Build and install both qiskit and qiskit-terra so that any optionals
+          # depending on `qiskit` will resolve correctly.
+          pip check
+      - name: Install Optional packages
+        run: |
+          set -e
+          source test-job/Scripts/activate
+          pip install -c constraints.txt -r requirements-optional.txt
+          pip check
+        if: ${{ inputs.install-optionals }}
+      - name: Run Tests
+        run: |
+          set -e
+          chcp.com 65001
+          source test-job/Scripts/activate
+          python tools/report_numpy_state.py
+          export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
+          echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          stestr run
+        env:
+          LANG: 'C.UTF-8'
+          PYTHONIOENCODING: 'utf-8:backslashreplace'
+          QISKIT_PARALLEL: FALSE
+          RUST_BACKTRACE: 1
+      - name: Copy and Publish images
+        uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: copied-images
+          path: '**/*.png'
+          if-no-files-found: error
