@@ -266,7 +266,6 @@ jobs:
         if: ${{ inputs.install-optionals }}
       - name: Run Tests
         run: |
-          set -e
           chcp.com 65001
           .\test-job\Scripts\activate
           python tools/report_numpy_state.py
