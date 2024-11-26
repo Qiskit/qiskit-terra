@@ -269,7 +269,7 @@ jobs:
           chcp.com 65001
           .\test-job\Scripts\activate
           python tools/report_numpy_state.py
-          export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
+          $Env:PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
           stestr run
         env:
