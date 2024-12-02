@@ -43,7 +43,7 @@ jobs:
       install-optionals: false
 
   main-tests-mac:
-    name: Main Tests (ubuntu-latest)
+    name: Main Tests (macos)
     needs: [lint-docs, preliminary-tests]
     strategy:
       matrix:
@@ -54,7 +54,7 @@ jobs:
       install-optionals: ${{ matrix.python_version == '3.9'}}
 
   main-tests-windows:
-    name: Main Tests (ubuntu-latest)
+    name: Main Tests (windows-latest)
     needs: [lint-docs, preliminary-tests]
     strategy:
       matrix:
