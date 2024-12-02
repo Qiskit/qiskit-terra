@@ -72,7 +72,7 @@ jobs:
           # On Linux we link against `libpython` dynamically, but it isn't written into the rpath
           # of the test executable (I'm not 100% sure why ---Jake).  It's easiest just to forcibly
           # include the correct place in the `dlopen` search path.
-          LD_LIBRARY_PATH: "${{ steps.python-outputs.outputs.python-path }}/lib:$LD_LIBRARY_PATH"
+          LD_LIBRARY_PATH: "${{ steps.python-outputs.outputs.python-path }}/lib:${{env.LD_LIBRARY_PATH}}"
       - name: Prepare venv
         run: |
           set -e
