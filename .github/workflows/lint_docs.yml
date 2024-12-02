@@ -1,10 +1,6 @@
 ---
 name: Lint and Docs
 on:
-  push:
-    branches: [ main, 'stable/*' ]
-  pull_request:
-    branches: [ main, 'stable/*' ]
   merge_group:
 
 concurrency:

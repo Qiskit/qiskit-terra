@@ -1,0 +1,76 @@
+---
+name: Qiskit CI Workflow (Docs, Lint, and Tests)
+on:
+  push:
+    branches: [main, "stable/*"]
+  pull_request:
+    branches: [main, "stable/*"]
+  merge_group:
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-docs:
+    name: Lint and Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/workflows/lint_docs.yml
+  preliminary-tests:
+    name: Preliminary Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/workflows/test-linux.yml
+        with:
+          python-version: "3.9"
+          # A PR is more likely to fail CI because it introduces a logic error
+          # into an existing test than because it adds a new test / optional
+          # dependency that isn't accounted for in the test-skipping logic
+          # (and such a failure would need fewer iterations to fix).  We want
+          # to fail fast in the first CI stage.
+          install-optionals: true
+          test-rust: true
+          test-images: true
+  main-tests-ubuntu:
+    runs-on: ubuntu-latest
+    name: Main Tests (ubuntu-latest)
+    needs: [lint-docs, preliminary-tests]
+    strategy:
+      matrix:
+        python_version: ["3.13"]
+    steps:
+      - uses: ./.github/workflows/test-linux.yml
+        with:
+          python-version: ${{ matrix.python_version }}
+          test-rust: false
+          test-images: false
+          install-from-sdist: true
+          install-optionals: false
+
+  main-tests-mac:
+    runs-on: macos-14
+    name: Main Tests (ubuntu-latest)
+    needs: [lint-docs, preliminary-tests]
+    strategy:
+      matrix:
+        python_version: ["3.9", "3.13"]
+    steps:
+      - uses: ./.github/workflows/test-macos.yml
+        with:
+          python-version: ${{ matrix.python_version }}
+          install-optionals: ${{ matrix.python_version == '3.9'}}
+
+  main-tests-windows:
+    runs-on: macos-14
+    name: Main Tests (ubuntu-latest)
+    needs: [lint-docs, preliminary-tests]
+    strategy:
+      matrix:
+        python_version: ["3.9", "3.13"]
+    steps:
+      - uses: ./.github/workflows/test-windows.yml
+        with:
+          python-version: ${{ matrix.python_version }}
+          install-optionals: ${{ matrix.python_version == '3.9'}}
+
