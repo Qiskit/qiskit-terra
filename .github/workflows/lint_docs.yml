@@ -1,7 +1,8 @@
 ---
 name: Lint and Docs
 on:
-  merge_group:
+  workflow_call:
+    
 
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
