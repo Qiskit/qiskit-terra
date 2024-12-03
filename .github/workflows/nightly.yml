@@ -1,0 +1,31 @@
+---
+# A schedule only runs on branches that match include rules from _both_ `main`
+# and the branch itself.  On `main`, we blanket include all branches that might
+# want to be enabled, then particular branches can override it to exclude
+# themselves by removing themselves from the trigger list.  For example, old
+# stable branches can remove `stable/*` from their copy of this file once they
+# reach their end-of-life.
+name: Nightly Main tests
+on:
+  schedule:
+    - cron: "20 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  nightly-tests:
+    # Nightly cron job.
+    #
+    # For this to run on a branch, the `schedules` trigger  up at the top of this
+    # file needs to match on _both_ `main` and the branch itself.
+    if: ${{ github.repository_owner == 'Qiskit'}}
+    uses: ./.github/workflows/on-nightly.yml
+  nightly-failure:
+    name: Create comment on failed test run
+    if: ${{ github.repository_owner == 'Qiskit' && failure() }}
+    uses: peter-evans/create-or-update-comment@v4
+    with:
+      issue-number: 7864
+      body: |
+        Nightly matrix test run failed at commit ${{ github.sha }}.
+
+        _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.

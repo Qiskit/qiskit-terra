@@ -1,0 +1,26 @@
+---
+# Push to main or the stable branches.  The triggering branches also need to
+# be in the triggers at the top of this file.
+name: Push
+on:
+  push:
+    branches: [main, "stable/*"]
+
+jobs:
+  tests-mac:
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/test-mac
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.13"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      install-optionals: false
+  test-linux:
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/test-mac
+    with:
+      python-version: "3.9"
+      test-rust: true
+      test-images: true
+      install-optionals: false

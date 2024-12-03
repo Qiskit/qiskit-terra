@@ -1,0 +1,36 @@
+---
+name: Nightly complete matrix tests
+on:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  nightly-linux:
+    uses: ./.github/workflows/test-linux
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      test-images: false
+      test-rust: false
+      install-optionals: true
+  nightly-mac:
+    uses: ./.github/workflows/test-mac
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      install-optionals: true
+  nightly-windows:
+    uses: ./.github/workflows/test-windows
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      install-optionals: true
