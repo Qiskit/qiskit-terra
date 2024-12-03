@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   nightly-linux:
-    uses: ./.github/workflows/test-linux
+    uses: ./.github/workflows/test-linux.yml
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -19,7 +19,7 @@ jobs:
       test-rust: false
       install-optionals: true
   nightly-mac:
-    uses: ./.github/workflows/test-mac
+    uses: ./.github/workflows/test-mac.yml
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -27,7 +27,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       install-optionals: true
   nightly-windows:
-    uses: ./.github/workflows/test-windows
+    uses: ./.github/workflows/test-windows.yml
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]

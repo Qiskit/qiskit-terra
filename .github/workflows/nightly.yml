@@ -22,10 +22,12 @@ jobs:
   nightly-failure:
     name: Create comment on failed test run
     if: ${{ github.repository_owner == 'Qiskit' && failure() }}
-    uses: peter-evans/create-or-update-comment@v4
-    with:
-      issue-number: 7864
-      body: |
-        Nightly matrix test run failed at commit ${{ github.sha }}.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: 7864
+          body: |
+            Nightly matrix test run failed at commit ${{ github.sha }}.
 
-        _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+            _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.

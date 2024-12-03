@@ -9,7 +9,7 @@ on:
 jobs:
   tests-mac:
     if: github.repository_owner == 'Qiskit'
-    uses: ./.github/workflows/test-mac
+    uses: ./.github/workflows/test-mac.yml
     strategy:
       matrix:
         python-version: ["3.9", "3.13"]
@@ -18,7 +18,7 @@ jobs:
       install-optionals: false
   test-linux:
     if: github.repository_owner == 'Qiskit'
-    uses: ./.github/workflows/test-mac
+    uses: ./.github/workflows/test-linux.yml
     with:
       python-version: "3.9"
       test-rust: true
