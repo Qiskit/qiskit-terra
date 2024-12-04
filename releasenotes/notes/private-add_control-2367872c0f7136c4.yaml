@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The internal function ``qiskit.circuit.add_control.add_control`` was removed and inlined, as it is not part of the
+    public API. User that had been wrongly using it as ``add_control(SomeGate(...), ...)`` should change their code to
+    ``SomeGate(...).control(...)`` instead.
