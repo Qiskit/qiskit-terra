@@ -19,6 +19,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import HGate, CCXGate, U2Gate
 from qiskit.quantum_info.operators import Operator, Clifford
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -352,3 +353,79 @@ class TestDecompose(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(expected, decomposed)
+
+    def test_cif(self):
+        """Test decomposition with c_if."""
+        circuit = QuantumCircuit(1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(0, 0)
+
+        ops = circuit.decompose().count_ops()
+        self.assertEqual(ops.get("u3", 0), 1)
+
+    def test_cif_no_definition(self):
+        """Test decomposition with c_if when the gate has no definition.
+
+        Regression test of #13493.
+        """
+        circuit = QuantumCircuit(1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.u(1, 2, 3, 0).c_if(0, 0)
+
+        ops = circuit.decompose().count_ops()
+        self.assertEqual(ops.get("u", 0), 1)
+
+    def test_control_flow_if(self):
+        """Test decompose with control flow."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.p(0.2, 0)
+        qc.measure(0, 0)
+
+        with qc.if_test((cr[0], 0)) as else_:
+            qc.cry(0.5, 0, 1)
+        with else_:
+            qc.crz(0.5, 0, 1)
+
+        expect = qc.copy_empty_like()
+        expect.u(0, 0, 0.2, 0)
+        expect.measure(0, 0)
+
+        with expect.if_test((cr[0], 0)) as else_:
+            expect.ry(0.25, 1)
+            expect.cx(0, 1)
+            expect.ry(-0.25, 1)
+            expect.cx(0, 1)
+        with else_:
+            expect.rz(0.25, 1)
+            expect.cx(0, 1)
+            expect.rz(-0.25, 1)
+            expect.cx(0, 1)
+
+        self.assertEqual(expect, qc.decompose())
+
+    def test_control_flow_for(self):
+        """Test decompose with control flow."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.p(0.2, 0)
+        qc.measure(0, 0)
+
+        with qc.for_loop(range(3)):
+            qc.cry(0.5, 0, 1)
+
+        expect = qc.copy_empty_like()
+        expect.u(0, 0, 0.2, 0)
+        expect.measure(0, 0)
+
+        with expect.for_loop(range(3)):
+            expect.ry(0.25, 1)
+            expect.cx(0, 1)
+            expect.ry(-0.25, 1)
+            expect.cx(0, 1)
+
+        self.assertEqual(expect, qc.decompose())

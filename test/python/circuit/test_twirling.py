@@ -15,7 +15,7 @@
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, pauli_twirl_2q_gates, Gate
+from qiskit.circuit import QuantumCircuit, pauli_twirl_2q_gates, Gate, Parameter
 from qiskit.circuit.library import (
     CXGate,
     ECRGate,
@@ -210,3 +210,13 @@ class TestTwirling(QiskitTestCase):
         qc = QuantumCircuit(5)
         with self.assertRaises(QiskitError):
             pauli_twirl_2q_gates(qc, [RZXGate(3.24)])
+
+    def test_with_global_phase(self):
+        """Test twirling a circuit with parameterized global phase."""
+
+        x = Parameter("x")
+        qc = QuantumCircuit(2, global_phase=x)
+        res = pauli_twirl_2q_gates(qc, seed=2)
+        bound = res.assign_parameters([1])
+
+        self.assertEqual(bound.global_phase, 1)

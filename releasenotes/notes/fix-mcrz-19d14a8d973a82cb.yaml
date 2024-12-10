@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.RZGate.control` for more than 1 control qubit, which used
+    an unnecessarily expensive decomposition.
+    Fixed `#13473 <https://github.com/Qiskit/qiskit/issues/13473>`__.
+upgrade_circuits:
+  - |
+    The generic control method for gates now avoids attempting to translate gates
+    into a supported basis, if the gate is already supported. This can slightly change the
+    synthesis of the controlled gate, although it should not increase the two-qubit gate count.

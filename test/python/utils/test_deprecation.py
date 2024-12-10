@@ -71,7 +71,7 @@ class TestDeprecationDecorators(QiskitTestCase):
                 f"""\
 
                 .. deprecated:: 9.99
-                  The function ``{__name__}._deprecated_func()`` is deprecated as of qiskit \
+                  The function ``{__name__}._deprecated_func()`` is deprecated as of Qiskit \
 9.99. It will be removed in 2 releases. Instead, use new_func().
                 """
             ),
@@ -82,7 +82,7 @@ class TestDeprecationDecorators(QiskitTestCase):
                 f"""\
 
                 .. deprecated:: 9.99_pending
-                  The class ``{__name__}._Foo`` is pending deprecation as of qiskit 9.99. It \
+                  The class ``{__name__}._Foo`` is pending deprecation as of Qiskit 9.99. It \
 will be marked deprecated in a future release, and then removed no earlier than 3 months after \
 the release date.
                 """
@@ -95,7 +95,7 @@ the release date.
                 Method.
 
                 .. deprecated:: 9.99
-                  The method ``{__name__}._Foo.my_method()`` is deprecated as of qiskit \
+                  The method ``{__name__}._Foo.my_method()`` is deprecated as of Qiskit \
 9.99. It will be removed no earlier than 3 months after the release date. Stop using this!
                 """
             ),
@@ -107,11 +107,21 @@ the release date.
                 Property.
 
                 .. deprecated:: 9.99
-                  The property ``{__name__}._Foo.my_property`` is deprecated as of qiskit \
+                  The property ``{__name__}._Foo.my_property`` is deprecated as of Qiskit \
 9.99. It will be removed no earlier than 3 months after the release date.
                 """
             ),
         )
+
+    def test_deprecate_func_package_name(self) -> None:
+        """Test setting the package name works."""
+
+        @deprecate_func(since="9.99", package_name="riskit")
+        def my_func() -> None:
+            pass
+
+        with self.assertWarnsRegex(DeprecationWarning, "is deprecated as of riskit 9.99"):
+            my_func()
 
     def test_deprecate_arg_docstring(self) -> None:
         """Test that `@deprecate_arg` adds the correct message to the docstring."""
@@ -142,22 +152,22 @@ the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg4`` is deprecated as of \
-qiskit 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
+Qiskit 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
 use foo.
 
                 .. deprecated:: 9.99
-                  Using the argument arg3 is deprecated as of qiskit 9.99. It will be \
+                  Using the argument arg3 is deprecated as of Qiskit 9.99. It will be \
 removed no earlier than 3 months after the release date. Instead, use the argument ``new_arg3``, \
 which behaves identically.
 
                 .. deprecated:: 9.99_pending
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg2`` is pending \
-deprecation as of qiskit 9.99. It will be marked deprecated in a future release, and then \
+deprecation as of Qiskit 9.99. It will be marked deprecated in a future release, and then \
 removed no earlier than 3 months after the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg1`` is deprecated as of \
-qiskit 9.99. It will be removed in 2 releases.
+Qiskit 9.99. It will be removed in 2 releases.
                 """
             ),
         )

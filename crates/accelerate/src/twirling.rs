@@ -267,7 +267,7 @@ fn generate_twirled_circuit(
     custom_gate_map: Option<&CustomGateTwirlingMap>,
     optimizer_target: Option<&Target>,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::clone_empty_like(circ, None);
+    let mut out_circ = CircuitData::clone_empty_like(py, circ, None)?;
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {

@@ -13,6 +13,7 @@
 """Add control to operation if supported."""
 from __future__ import annotations
 
+from math import pi
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import UnitaryGate
 from qiskit.transpiler import PassManager
@@ -92,7 +93,6 @@ def control(
     Raises:
         CircuitError: gate contains non-gate in definition
     """
-    from math import pi
 
     # pylint: disable=cyclic-import
     from qiskit.circuit import controlledgate
@@ -101,22 +101,23 @@ def control(
 
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")
-    q_ancillae = None  # TODO: add
     controlled_circ = QuantumCircuit(q_control, q_target, name=f"c_{operation.name}")
     if isinstance(operation, controlledgate.ControlledGate):
         original_ctrl_state = operation.ctrl_state
+        operation = operation.to_mutable()
+        operation.ctrl_state = None
+
     global_phase = 0
-    if operation.name == "x" or (
-        isinstance(operation, controlledgate.ControlledGate) and operation.base_gate.name == "x"
-    ):
-        controlled_circ.mcx(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
-        if operation.definition is not None and operation.definition.global_phase:
-            global_phase += operation.definition.global_phase
+
+    basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+
+    if operation.name in basis:
+        apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target[0])
     else:
-        basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
         if isinstance(operation, controlledgate.ControlledGate):
             operation = operation.to_mutable()
             operation.ctrl_state = None
+
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         if unrolled_gate.definition.global_phase:
             global_phase += unrolled_gate.definition.global_phase
@@ -130,87 +131,17 @@ def control(
 
         for instruction in definition.data:
             gate, qargs = instruction.operation, instruction.qubits
-            if gate.name == "x":
-                controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
-            elif gate.name == "rx":
-                controlled_circ.mcrx(
-                    gate.definition.data[0].operation.params[0],
-                    q_control,
-                    q_target[bit_indices[qargs[0]]],
-                    use_basis_gates=False,
-                )
-            elif gate.name == "ry":
-                controlled_circ.mcry(
-                    gate.definition.data[0].operation.params[0],
-                    q_control,
-                    q_target[bit_indices[qargs[0]]],
-                    q_ancillae,
-                    mode="noancilla",
-                    use_basis_gates=False,
-                )
-            elif gate.name == "rz":
-                controlled_circ.mcrz(
-                    gate.definition.data[0].operation.params[0],
-                    q_control,
-                    q_target[bit_indices[qargs[0]]],
-                    use_basis_gates=False,
-                )
-                continue
-            elif gate.name == "p":
-                from qiskit.circuit.library import MCPhaseGate
 
-                controlled_circ.append(
-                    MCPhaseGate(gate.params[0], num_ctrl_qubits),
-                    q_control[:] + [q_target[bit_indices[qargs[0]]]],
-                )
-            elif gate.name == "cx":
-                controlled_circ.mcx(
-                    q_control[:] + [q_target[bit_indices[qargs[0]]]],
-                    q_target[bit_indices[qargs[1]]],
-                    q_ancillae,
-                )
-            elif gate.name == "u":
-                theta, phi, lamb = gate.params
-                if num_ctrl_qubits == 1:
-                    if theta == 0 and phi == 0:
-                        controlled_circ.cp(lamb, q_control[0], q_target[bit_indices[qargs[0]]])
-                    else:
-                        controlled_circ.cu(
-                            theta, phi, lamb, 0, q_control[0], q_target[bit_indices[qargs[0]]]
-                        )
-                else:
-                    if phi == -pi / 2 and lamb == pi / 2:
-                        controlled_circ.mcrx(
-                            theta, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
-                    elif phi == 0 and lamb == 0:
-                        controlled_circ.mcry(
-                            theta,
-                            q_control,
-                            q_target[bit_indices[qargs[0]]],
-                            q_ancillae,
-                            use_basis_gates=True,
-                        )
-                    elif theta == 0 and phi == 0:
-                        controlled_circ.mcp(lamb, q_control, q_target[bit_indices[qargs[0]]])
-                    else:
-                        controlled_circ.mcp(lamb, q_control, q_target[bit_indices[qargs[0]]])
-                        controlled_circ.mcry(
-                            theta,
-                            q_control,
-                            q_target[bit_indices[qargs[0]]],
-                            q_ancillae,
-                            use_basis_gates=True,
-                        )
-                        controlled_circ.mcp(phi, q_control, q_target[bit_indices[qargs[0]]])
-            elif gate.name == "z":
-                controlled_circ.h(q_target[bit_indices[qargs[0]]])
-                controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
-                controlled_circ.h(q_target[bit_indices[qargs[0]]])
+            if len(qargs) == 1:
+                target = q_target[bit_indices[qargs[0]]]
             else:
-                raise CircuitError(f"gate contains non-controllable instructions: {gate.name}")
-            if gate.definition is not None and gate.definition.global_phase:
+                target = [q_target[bit_indices[qarg]] for qarg in qargs]
+
+            apply_basic_controlled_gate(controlled_circ, gate, q_control, target)
+
+            if gate.definition is not None and gate.definition.global_phase and gate.name != "rz":
                 global_phase += gate.definition.global_phase
+
     # apply controlled global phase
     if global_phase:
         if len(q_control) < 2:
@@ -228,6 +159,7 @@ def control(
         new_ctrl_state = ctrl_state
         base_name = operation.name
         base_gate = operation
+
     # In order to maintain some backward compatibility with gate names this
     # uses a naming convention where if the number of controls is <=2 the gate
     # is named like "cc<base_gate.name>", else it is named like
@@ -250,15 +182,101 @@ def control(
     return cgate
 
 
+def apply_basic_controlled_gate(circuit, gate, controls, target):
+    """Apply a controlled version of ``gate`` to the circuit.
+
+    This implements multi-control operations for the following basis gates:
+
+        ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+
+    """
+    num_ctrl_qubits = len(controls)
+
+    if gate.name == "x":
+        circuit.mcx(controls, target)
+
+    elif gate.name == "rx":
+        circuit.mcrx(
+            gate.definition.data[0].operation.params[0],
+            controls,
+            target,
+            use_basis_gates=False,
+        )
+    elif gate.name == "ry":
+        circuit.mcry(
+            gate.definition.data[0].operation.params[0],
+            controls,
+            target,
+            mode="noancilla",
+            use_basis_gates=False,
+        )
+    elif gate.name == "rz":
+        circuit.mcrz(
+            gate.definition.data[0].operation.params[0],
+            controls,
+            target,
+            use_basis_gates=False,
+        )
+        # continue
+    elif gate.name == "p":
+        from qiskit.circuit.library import MCPhaseGate
+
+        circuit.append(
+            MCPhaseGate(gate.params[0], num_ctrl_qubits),
+            controls[:] + [target],
+        )
+    elif gate.name == "cx":
+        circuit.mcx(
+            controls[:] + [target[0]],  # CX has two targets
+            target[1],
+        )
+    elif gate.name == "u":
+        theta, phi, lamb = gate.params
+        if num_ctrl_qubits == 1:
+            if theta == 0 and phi == 0:
+                circuit.cp(lamb, controls[0], target)
+            else:
+                circuit.cu(theta, phi, lamb, 0, controls[0], target)
+        else:
+            if phi == -pi / 2 and lamb == pi / 2:
+                circuit.mcrx(theta, controls, target, use_basis_gates=True)
+            elif phi == 0 and lamb == 0:
+                circuit.mcry(
+                    theta,
+                    controls,
+                    target,
+                    use_basis_gates=True,
+                )
+            elif theta == 0 and phi == 0:
+                circuit.mcp(lamb, controls, target)
+            else:
+                circuit.mcp(lamb, controls, target)
+                circuit.mcry(
+                    theta,
+                    controls,
+                    target,
+                    use_basis_gates=True,
+                )
+                circuit.mcp(phi, controls, target)
+
+    elif gate.name == "z":
+        circuit.h(target)
+        circuit.mcx(controls, target)
+        circuit.h(target)
+
+    else:
+        raise CircuitError(f"Gate {gate} not in supported basis.")
+
+
 def _gate_to_circuit(operation):
     """Converts a gate instance to a QuantumCircuit"""
     if hasattr(operation, "definition") and operation.definition is not None:
         return operation.definition
-    else:
-        qr = QuantumRegister(operation.num_qubits)
-        qc = QuantumCircuit(qr, name=operation.name)
-        qc.append(operation, qr)
-        return qc
+
+    qr = QuantumRegister(operation.num_qubits)
+    qc = QuantumCircuit(qr, name=operation.name)
+    qc.append(operation, qr)
+    return qc
 
 
 def _unroll_gate(operation, basis_gates):

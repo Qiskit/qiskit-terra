@@ -31,6 +31,7 @@ lint:
 	tools/verify_headers.py qiskit test tools
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
+	tools/verify_images.py
 
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
@@ -38,6 +39,7 @@ lint-incr:
 	tools/pylint_incr.py -j4 -rn -sn --paths :/qiskit/*.py :/test/*.py :/tools/*.py
 	tools/verify_headers.py qiskit test tools
 	tools/find_optional_imports.py
+	tools/verify_images.py
 
 ruff:
 	ruff qiskit test tools setup.py

@@ -75,7 +75,6 @@ Optimizations
    CollectLinearFunctions
    CollectCliffords
    ConsolidateBlocks
-   CXCancellation
    InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
@@ -230,7 +229,6 @@ from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CommutativeInverseCancellation
-from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState

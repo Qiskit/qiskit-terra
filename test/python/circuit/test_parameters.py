@@ -1246,6 +1246,18 @@ class TestParameters(QiskitTestCase):
         bound_test_qc = test_qc.assign_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
 
+    def test_global_phase_to_dag_and_back(self):
+        """Test global phase parameters are correctly handled to dag and back."""
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+        theta = Parameter("theta")
+        qc = QuantumCircuit(global_phase=theta)
+
+        test_qc = dag_to_circuit(circuit_to_dag(qc))
+
+        bound_test_qc = test_qc.assign_parameters({theta: 1})
+        self.assertEqual(bound_test_qc.global_phase, 1)
+
     def test_rebinding_instruction_copy(self):
         """Test rebinding a copied instruction does not modify the original."""
 
@@ -1616,6 +1628,22 @@ class TestParameters(QiskitTestCase):
 
         subbed = x.subs({y: z}, allow_unknown_parameters=True)
         self.assertEqual(subbed, x)
+
+    def test_decompose_with_global_phase(self):
+        """Test decomposing a circuit which introduces a global phase is correctly bound.
+
+        Regression test of #13534.
+        """
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.rz(x, 0)
+
+        bound = qc.decompose().assign_parameters([1])
+
+        expect = QuantumCircuit(1)
+        expect.rz(1, 0)
+
+        self.assertEqual(expect.decompose(), bound)
 
 
 def _construct_circuit(param, qr):

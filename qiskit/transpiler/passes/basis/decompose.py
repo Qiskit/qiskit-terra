@@ -17,8 +17,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Type
 from fnmatch import fnmatch
+import warnings
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -58,7 +60,7 @@ class Decompose(TransformationPass):
             output dag where ``gate`` was expanded.
         """
         # We might use HLS to synthesize objects that do not have a definition
-        hls = HighLevelSynthesis() if self.apply_synthesis else None
+        hls = HighLevelSynthesis(qubits_initially_zero=False) if self.apply_synthesis else None
 
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
@@ -66,12 +68,18 @@ class Decompose(TransformationPass):
             if not self._should_decompose(node):
                 continue
 
-            if getattr(node.op, "definition", None) is None:
+            if node.is_control_flow():
+                decomposition = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(node, decomposition, inplace=True)
+
+            elif getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS
                 if self.apply_synthesis:
+                    # note that node_as_dag does not include the condition, which will
+                    # be propagated in ``substitute_node_with_dag``
                     node_as_dag = _node_to_dag(node)
                     synthesized = hls.run(node_as_dag)
-                    dag.substitute_node_with_dag(node, synthesized)
+                    dag.substitute_node_with_dag(node, synthesized, propagate_condition=True)
 
                 # else: no definition and synthesis not enabled, so we do nothing
             else:
@@ -123,9 +131,21 @@ class Decompose(TransformationPass):
 
 
 def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
+    # Control flow is already handled separately, however that does not capture
+    # c_if, which we are treating here. We explicitly ignore the condition attribute,
+    # which will be handled by ``substitute_node_with_dag``, so we create a copy of the node
+    # and set the condition to None. Once ``c_if`` is removed for 2.0, this block can go, too.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        if getattr(node.op, "condition", None) is not None:
+            op = node.op.copy()
+            op.condition = None
+            node = DAGOpNode(op, node.qargs, node.cargs)
+
+    # create new dag and apply the operation
     dag = DAGCircuit()
     dag.add_qubits(node.qargs)
     dag.add_clbits(node.cargs)
-
     dag.apply_operation_back(node.op, node.qargs, node.cargs)
+
     return dag

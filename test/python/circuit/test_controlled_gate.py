@@ -29,6 +29,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -1571,13 +1572,15 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", cgate.name, uqc.size())
         self.log.info("\n%s", str(uqc))
-        # these limits could be changed
-        if gate.name == "ry":
-            self.assertLessEqual(uqc.size(), 32, f"\n{uqc}")
+
+        if gate.name in ["ry", "rx"]:
+            expected_cx = 8
         elif gate.name == "rz":
-            self.assertLessEqual(uqc.size(), 43, f"\n{uqc}")
-        else:
-            self.assertLessEqual(uqc.size(), 20, f"\n{uqc}")
+            expected_cx = 4
+        else:  # u1
+            expected_cx = 6
+
+        self.assertLessEqual(uqc.count_ops().get("cx", 0), expected_cx, f"\n{uqc}")
 
     def test_composite(self):
         """Test composite gate count."""
@@ -1594,6 +1597,25 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", uqc.name, uqc.size())
         self.assertLessEqual(uqc.size(), 96, f"\n{uqc}")  # this limit could be changed
+
+    def test_mcrz_complexity(self):
+        """Test MCRZ is decomposed using the efficient MC-SU(2) algorithm.
+
+        Regression test of #13473.
+        """
+        basis_gates = ["sx", "x", "rz", "ecr"]
+        pm = generate_preset_pass_manager(
+            optimization_level=3, basis_gates=basis_gates, seed_transpiler=12345
+        )
+
+        num_qubits = 6
+        angle = np.pi / 7
+        qc = QuantumCircuit(num_qubits)
+        qc.append(RZGate(angle).control(num_qubits - 1), qc.qubits)
+
+        isa_qc = pm.run(qc)
+
+        self.assertLessEqual(isa_qc.count_ops().get("ecr", 0), 40)
 
 
 @ddt
