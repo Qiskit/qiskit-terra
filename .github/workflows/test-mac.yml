@@ -1,5 +1,5 @@
 ---
-name: Test Windows
+name: Test MacOS
 on:
   workflow_call:
     inputs:
