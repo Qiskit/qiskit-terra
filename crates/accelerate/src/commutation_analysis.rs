@@ -82,25 +82,25 @@ pub(crate) fn analyze_commutations_inner(
                     if let (NodeType::Operation(packed_inst0), NodeType::Operation(packed_inst1)) =
                         (&dag.dag()[current_gate_idx], &dag.dag()[*prev_gate_idx])
                     {
-                        let op1 = packed_inst0.op.view();
-                        let op2 = packed_inst1.op.view();
+                        let op1 = packed_inst0.op().view();
+                        let op2 = packed_inst1.op().view();
                         let params1 = packed_inst0.params_view();
                         let params2 = packed_inst1.params_view();
-                        let qargs1 = dag.get_qargs(packed_inst0.qubits);
-                        let qargs2 = dag.get_qargs(packed_inst1.qubits);
-                        let cargs1 = dag.get_cargs(packed_inst0.clbits);
-                        let cargs2 = dag.get_cargs(packed_inst1.clbits);
+                        let qargs1 = dag.get_qargs(packed_inst0.qubits());
+                        let qargs2 = dag.get_qargs(packed_inst1.qubits());
+                        let cargs1 = dag.get_cargs(packed_inst0.clbits());
+                        let cargs2 = dag.get_cargs(packed_inst1.clbits());
 
                         all_commute = commutation_checker.commute_inner(
                             py,
                             &op1,
                             params1,
-                            &packed_inst0.extra_attrs,
+                            packed_inst0.extra_attrs(),
                             qargs1,
                             cargs1,
                             &op2,
                             params2,
-                            &packed_inst1.extra_attrs,
+                            packed_inst1.extra_attrs(),
                             qargs2,
                             cargs2,
                             MAX_NUM_QUBITS,

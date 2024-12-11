@@ -617,7 +617,7 @@ impl EquivalenceLibrary {
             equivalent_circuit
                 .0
                 .iter()
-                .map(|inst| Key::from_operation(&inst.op)),
+                .map(|inst| Key::from_operation(inst.op())),
         );
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (

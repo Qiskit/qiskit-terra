@@ -196,59 +196,51 @@ fn twirl_gate(
     twirl_set: &[([StandardGate; 4], f64)],
     inst: &PackedInstruction,
 ) -> PyResult<()> {
-    let qubits = circ.get_qargs(inst.qubits);
+    let qubits = circ.get_qargs(inst.qubits());
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
     let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard(twirl[0]),
-            qubits: bit_zero,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::new(
+            PackedOperation::from_standard(twirl[0]),
+            bit_zero,
+            circ.cargs_interner().get_default(),
+            None,
+            ExtraInstructionAttributes::default(),
+        ),
     )?;
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard(twirl[1]),
-            qubits: bit_one,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::new(
+            PackedOperation::from_standard(twirl[1]),
+            bit_one,
+            circ.cargs_interner().get_default(),
+            None,
+            ExtraInstructionAttributes::default(),
+        ),
     )?;
 
     out_circ.push(py, inst.clone())?;
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard(twirl[2]),
-            qubits: bit_zero,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::new(
+            PackedOperation::from_standard(twirl[2]),
+            bit_zero,
+            circ.cargs_interner().get_default(),
+            None,
+            ExtraInstructionAttributes::default(),
+        ),
     )?;
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard(twirl[3]),
-            qubits: bit_one,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::new(
+            PackedOperation::from_standard(twirl[3]),
+            bit_one,
+            circ.cargs_interner().get_default(),
+            None,
+            ExtraInstructionAttributes::default(),
+        ),
     )?;
 
     if *twirl_phase != 0. {
@@ -271,12 +263,12 @@ fn generate_twirled_circuit(
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
-            if let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
+            if let Some(twirling_set) = custom_gate_map.get(inst.op().name()) {
                 twirl_gate(py, circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
                 continue;
             }
         }
-        match inst.op.view() {
+        match inst.op().view() {
             OperationRef::Standard(gate) => match gate {
                 StandardGate::CXGate => {
                     if twirling_mask & CX_MASK != 0 {
@@ -349,22 +341,18 @@ fn generate_twirled_circuit(
                         control_flow: true,
                         instruction: new_inst_obj.clone_ref(py),
                     };
-                    let new_inst = PackedInstruction {
-                        op: PackedOperation::from_instruction(Box::new(new_inst)),
-                        qubits: inst.qubits,
-                        clbits: inst.clbits,
-                        params: Some(Box::new(
+                    let new_inst = PackedInstruction::new(
+                        PackedOperation::from_instruction(Box::new(new_inst)),
+                        inst.qubits(),
+                        inst.clbits(),
+                        (!new_blocks.is_empty()).then_some(
                             new_blocks
                                 .iter()
-                                .map(|x| Param::Obj(x.into_py(py)))
+                                .map(|x| x.extract(py).unwrap())
                                 .collect::<SmallVec<[Param; 3]>>(),
-                        )),
-                        extra_attrs: inst.extra_attrs.clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        py_op: std::sync::OnceLock::new(),
-                    };
-                    #[cfg(feature = "cache_pygates")]
-                    new_inst.py_op.set(new_inst_obj).unwrap();
+                        ),
+                        inst.extra_attrs().clone(),
+                    );
                     out_circ.push(py, new_inst)?;
                 } else {
                     out_circ.push(py, inst.clone())?;

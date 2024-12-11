@@ -40,20 +40,20 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
     let mut new_dag = dag.copy_empty_like(py, "alike")?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag.dag()[node_index] {
-            match (inst.op.name(), inst.condition()) {
+            match (inst.op().name(), inst.condition()) {
                 ("swap", None) => {
-                    let qargs = dag.get_qargs(inst.qubits);
+                    let qargs = dag.get_qargs(inst.qubits());
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                 }
                 ("permutation", None) => {
-                    if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                    if let Param::Obj(ref pyobj) = inst.params_view()[0] {
                         let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                         let pattern = pyarray.as_array();
 
                         let qindices: Vec<usize> = dag
-                            .get_qargs(inst.qubits)
+                            .get_qargs(inst.qubits())
                             .iter()
                             .map(|q| q.index())
                             .collect();
@@ -75,8 +75,8 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                 }
                 _ => {
                     // General instruction
-                    let qargs = dag.get_qargs(inst.qubits);
-                    let cargs = dag.get_cargs(inst.clbits);
+                    let qargs = dag.get_qargs(inst.qubits());
+                    let cargs = dag.get_cargs(inst.clbits());
                     let mapped_qargs: Vec<Qubit> = qargs
                         .iter()
                         .map(|q| Qubit::new(mapping[q.index()]))
@@ -84,13 +84,11 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
 
                     new_dag.apply_operation_back(
                         py,
-                        inst.op.clone(),
+                        inst.op().clone(),
                         &mapped_qargs,
                         cargs,
-                        inst.params.as_deref().cloned(),
-                        inst.extra_attrs.clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        inst.py_op.get().map(|x| x.clone_ref(py)),
+                        (!inst.params_view().is_empty()).then_some(inst.params_view().into()),
+                        inst.extra_attrs().clone(),
                     )?;
                 }
             }

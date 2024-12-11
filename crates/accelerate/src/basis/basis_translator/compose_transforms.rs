@@ -74,8 +74,6 @@ pub(super) fn compose_transforms<'a>(
                 Some(gate_obj.params)
             },
             gate_obj.extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            Some(gate.into()),
         )?;
         mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
 
@@ -86,7 +84,7 @@ pub(super) fn compose_transforms<'a>(
                     .filter_map(|node| {
                         if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
                             if (gate_name.as_str(), *gate_num_qubits)
-                                == (op.op.name(), op.op.num_qubits())
+                                == (op.op().name(), op.op().num_qubits())
                             {
                                 Some((
                                     node,
@@ -144,11 +142,11 @@ fn get_gates_num_params(
     for node in dag.op_nodes(true) {
         if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
             example_gates.insert(
-                (op.op.name().to_string(), op.op.num_qubits()),
+                (op.op().name().to_string(), op.op().num_qubits()),
                 op.params_view().len(),
             );
-            if op.op.control_flow() {
-                let blocks = op.op.blocks();
+            if op.op().control_flow() {
+                let blocks = op.op().blocks();
                 for block in blocks {
                     get_gates_num_params_circuit(&block, example_gates)?;
                 }
@@ -168,11 +166,11 @@ fn get_gates_num_params_circuit(
 ) -> PyResult<()> {
     for inst in circuit.iter() {
         example_gates.insert(
-            (inst.op.name().to_string(), inst.op.num_qubits()),
+            (inst.op().name().to_string(), inst.op().num_qubits()),
             inst.params_view().len(),
         );
-        if inst.op.control_flow() {
-            let blocks = inst.op.blocks();
+        if inst.op().control_flow() {
+            let blocks = inst.op().blocks();
             for block in blocks {
                 get_gates_num_params_circuit(&block, example_gates)?;
             }

@@ -32,13 +32,13 @@ use crate::QiskitError;
 
 #[inline]
 pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+    if let Some(mat) = inst.op().matrix(inst.params_view()) {
         Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
+    } else if inst.op().try_standard_gate().is_some() {
         Err(QiskitError::new_err(
             "Parameterized gates can't be consolidated",
         ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
+    } else if let OperationRef::Gate(gate) = inst.op().view() {
         Ok(QI_OPERATOR
             .get_bound(py)
             .call1((gate.gate.clone_ref(py),))?
@@ -75,7 +75,7 @@ pub fn blocks_to_matrix(
         let inst = dag.dag()[*node].unwrap_operation();
         let op_matrix = get_matrix_from_inst(py, inst)?;
         match dag
-            .get_qargs(inst.qubits)
+            .get_qargs(inst.qubits())
             .iter()
             .map(map_bits)
             .collect::<Vec<_>>()

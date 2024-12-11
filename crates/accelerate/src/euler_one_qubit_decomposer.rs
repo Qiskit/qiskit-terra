@@ -1090,7 +1090,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
             None => raw_run.len() as f64,
         };
         let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag()[raw_run[0]] {
-            PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
+            PhysicalQubit::new(dag.get_qargs(inst.qubits())[0].0)
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };
@@ -1178,9 +1178,9 @@ pub(crate) fn optimize_1q_gates_decomposition(
                 let node = &dag.dag()[*node_index];
                 if let NodeType::Operation(inst) = node {
                     if let Some(target) = target {
-                        error *= compute_error_term_from_target(inst.op.name(), target, qubit);
+                        error *= compute_error_term_from_target(inst.op().name(), target, qubit);
                     }
-                    inst.op.matrix(inst.params_view()).unwrap()
+                    inst.op().matrix(inst.params_view()).unwrap()
                 } else {
                     unreachable!("Can only have op nodes here")
                 }
@@ -1219,7 +1219,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         if let Some(basis) = basis_gates {
             for node in &raw_run {
                 if let NodeType::Operation(inst) = &dag.dag()[*node] {
-                    if !basis.contains(inst.op.name()) {
+                    if !basis.contains(inst.op().name()) {
                         outside_basis = true;
                         break;
                     }

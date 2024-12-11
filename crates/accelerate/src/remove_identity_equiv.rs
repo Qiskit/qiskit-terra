@@ -42,11 +42,11 @@ fn remove_identity_equiv(
                     match target {
                         Some(target) => {
                             let qargs: Vec<PhysicalQubit> = dag
-                                .get_qargs(inst.qubits)
+                                .get_qargs(inst.qubits())
                                 .iter()
                                 .map(|x| PhysicalQubit::new(x.0))
                                 .collect();
-                            let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
+                            let error_rate = target.get_error(inst.op().name(), qargs.as_slice());
                             match error_rate {
                                 Some(err) => err * degree,
                                 None => f64::EPSILON.max(1. - degree),
@@ -59,11 +59,11 @@ fn remove_identity_equiv(
             None => match target {
                 Some(target) => {
                     let qargs: Vec<PhysicalQubit> = dag
-                        .get_qargs(inst.qubits)
+                        .get_qargs(inst.qubits())
                         .iter()
                         .map(|x| PhysicalQubit::new(x.0))
                         .collect();
-                    let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
+                    let error_rate = target.get_error(inst.op().name(), qargs.as_slice());
                     match error_rate {
                         Some(err) => err,
                         None => f64::EPSILON,
@@ -76,7 +76,7 @@ fn remove_identity_equiv(
 
     for op_node in dag.op_nodes(false) {
         let inst = dag.dag()[op_node].unwrap_operation();
-        match inst.op.view() {
+        match inst.op().view() {
             OperationRef::Standard(gate) => {
                 let (dim, trace) = match gate {
                     StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {

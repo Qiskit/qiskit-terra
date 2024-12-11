@@ -81,7 +81,7 @@ fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> P
             PhysicalQubit::new(op_args[1].0)
         ];
 
-        target.instruction_supported(inst.op.name(), Some(&qargs))
+        target.instruction_supported(inst.op().name(), Some(&qargs))
     };
 
     check_gate_direction(py, dag, &target_check, None)
@@ -110,9 +110,9 @@ where
             panic!("PackedInstruction is expected");
         };
 
-        let inst_qargs = dag.get_qargs(packed_inst.qubits);
+        let inst_qargs = dag.get_qargs(packed_inst.qubits());
 
-        if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
+        if let OperationRef::Instruction(py_inst) = packed_inst.op().view() {
             if py_inst.control_flow() {
                 let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
                 let py_inst = py_inst.instruction.bind(py);
@@ -212,7 +212,7 @@ fn py_fix_direction_target(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::Standard(std_gate) = inst.op.view() {
+        if let OperationRef::Standard(std_gate) = inst.op().view() {
             match std_gate {
                 StandardGate::RXXGate
                 | StandardGate::RYYGate
@@ -228,14 +228,14 @@ fn py_fix_direction_target(
                                     .expect("These gates should have Python classes")
                                     .bind(py),
                             ),
-                            Some(inst.params_view().to_vec()),
+                            (!inst.params_view().is_empty()).then_some(inst.params_view().to_vec()),
                         )
                         .unwrap_or(false)
                 }
                 _ => {}
             }
         }
-        target.instruction_supported(inst.op.name(), Some(&qargs))
+        target.instruction_supported(inst.op().name(), Some(&qargs))
     };
 
     fix_gate_direction(py, dag, &target_check, None).cloned()
@@ -257,9 +257,9 @@ where
     for node in dag.op_nodes(false) {
         let packed_inst = dag.dag()[node].unwrap_operation();
 
-        let op_args = dag.get_qargs(packed_inst.qubits);
+        let op_args = dag.get_qargs(packed_inst.qubits());
 
-        if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
+        if let OperationRef::Instruction(py_inst) = packed_inst.op().view() {
             if py_inst.control_flow() {
                 let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
 
@@ -315,7 +315,7 @@ where
 
         // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
-        if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
+        if let OperationRef::Standard(std_gate) = packed_inst.op().view() {
             match std_gate {
                 StandardGate::CXGate
                 | StandardGate::ECRGate
@@ -333,7 +333,7 @@ where
                         return Err(TranspilerError::new_err(format!(
                             "The circuit requires a connection between physical qubits {:?} for {}",
                             op_args,
-                            packed_inst.op.name()
+                            packed_inst.op().name()
                         )));
                     }
                 }
@@ -344,12 +344,12 @@ where
         if gate_complies(packed_inst, &[op_args1, op_args0])
             || has_calibration_for_op_node(py, dag, packed_inst, &[op_args1, op_args0])?
         {
-            return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
+            return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op().name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
             // NOTE: Make sure to update the list of the supported gates if adding more replacements
         } else {
             return Err(TranspilerError::new_err(format!(
                 "{} with parameters {:?} is not supported on qubits {:?} in either direction.",
-                packed_inst.op.name(),
+                packed_inst.op().name(),
                 packed_inst.params_view(),
                 op_args
             )));
@@ -358,7 +358,7 @@ where
 
     for (node, op_blocks) in ops_to_replace {
         let packed_inst = dag.dag()[node].unwrap_operation();
-        let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
+        let OperationRef::Instruction(py_inst) = packed_inst.op().view() else {
             panic!("PyInstruction is expected");
         };
         let new_op = py_inst
@@ -396,13 +396,17 @@ fn has_calibration_for_op_node(
         (
             DAGOpNode {
                 instruction: CircuitInstruction {
-                    operation: packed_inst.op.clone(),
+                    operation: packed_inst.op().clone(),
                     qubits: py_args.unbind(),
                     clbits: PyTuple::empty_bound(py).unbind(),
-                    params: packed_inst.params_view().iter().cloned().collect(),
-                    extra_attrs: packed_inst.extra_attrs.clone(),
+                    params: packed_inst
+                        .params_view()
+                        .iter()
+                        .map(|param| param.clone_ref(py))
+                        .collect(),
+                    extra_attrs: packed_inst.extra_attrs().clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: packed_inst.py_op.clone(),
+                    py_op: packed_inst.py_op().clone(),
                 },
                 sort_key: "".into_py(py),
             },
@@ -475,8 +479,6 @@ fn apply_operation_back(
         &[],
         param,
         ExtraInstructionAttributes::default(),
-        #[cfg(feature = "cache_pygates")]
-        None,
     )?;
 
     Ok(())

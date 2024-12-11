@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    ``PackedInstruction``, the principal representation of an instance of :class:`.CircuitInstruction`
+    in Rust, has been re-organized to discard its cached instance of a python :class:`.Gate` whenever its
+    operation, parameters, or extra attributes are modified. This results in ``PackedInstruction`` no
+    longer having shared references between them.

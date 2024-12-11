@@ -38,9 +38,9 @@ fn recurse<'py>(
     };
     for node in dag.op_nodes(false) {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
-            let qubits = dag.get_qargs(inst.qubits);
-            if inst.op.control_flow() {
-                if let OperationRef::Instruction(py_inst) = inst.op.view() {
+            let qubits = dag.get_qargs(inst.qubits());
+            if inst.op().control_flow() {
+                if let OperationRef::Instruction(py_inst) = inst.op().view() {
                     let raw_blocks = py_inst.instruction.getattr(py, "blocks")?;
                     let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
                     for raw_block in raw_blocks.bind(py).iter().unwrap() {
@@ -71,7 +71,7 @@ fn recurse<'py>(
                 && !check_qubits(qubits)
             {
                 return Ok(Some((
-                    inst.op.name().to_string(),
+                    inst.op().name().to_string(),
                     [qubits[0].0, qubits[1].0],
                 )));
             }

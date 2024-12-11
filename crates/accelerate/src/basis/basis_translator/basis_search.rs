@@ -102,7 +102,7 @@ pub(crate) fn basis_search(
         let mut cost_tot = 0;
         let borrowed_cost = opt_cost_map.borrow();
         for instruction in edge_data.rule.circuit.0.iter() {
-            let instruction_op = instruction.op.view();
+            let instruction_op = instruction.op().view();
             cost_tot += borrowed_cost[&(
                 instruction_op.name().to_string(),
                 instruction_op.num_qubits(),
