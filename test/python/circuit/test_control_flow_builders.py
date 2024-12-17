@@ -3427,11 +3427,13 @@ class TestControlFlowBuilders(QiskitTestCase):
         self.assertFalse(base.has_var(inner))
 
     def test_store_to_clbit_captures_bit(self):
-        base = QuantumCircuit(1, 2)
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(2)
+        base = QuantumCircuit(qr, cr)
         with base.if_test(expr.lift(False)):
             base.store(expr.lift(base.clbits[0]), expr.lift(True))
 
-        expected = QuantumCircuit(1, 2)
+        expected = QuantumCircuit(qr, cr)
         body = QuantumCircuit([expected.clbits[0]])
         body.store(expr.lift(expected.clbits[0]), expr.lift(True))
         expected.if_test(expr.lift(False), body, [], [0])

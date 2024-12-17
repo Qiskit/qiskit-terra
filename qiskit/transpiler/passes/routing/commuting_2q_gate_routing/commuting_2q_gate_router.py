@@ -325,7 +325,7 @@ class Commuting2qGateRouter(TransformationPass):
         # Iterate over and apply gate layers
         max_distance = max(gate_layers.keys())
 
-        circuit_with_swap = QuantumCircuit(len(dag.qubits))
+        circuit_with_swap = QuantumCircuit(*dag.qregs.values())
 
         for i in range(max_distance + 1):
             # Get current layer and replace the problem indices j,k by the corresponding

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Introduction of a custom serialization for using 'new-style' opaque `Bits`. Caching of
+    `ControlledGate.definition`. Fixes several failing test cases for opaque `Bits`.
+upgrade:
+  - |
+    Removes internal `_index` and `_registers` fields of the `Bit` classes `ClBit` and `Qubit`.

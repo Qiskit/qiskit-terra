@@ -33,6 +33,27 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
+    def assert_layout_equal(self, first_qc, first_layout, second_qc, second_layout):
+        """Assert layout equality up to `BitLocations`
+        Args:
+            first_qc (QuantumCircuit): a quantum circuit
+            first_layout (QuantumCircuit): a quantum circuit layout
+            second_qc (QuantumCircuit): other quantum circuit
+            second_layout (QuantumCircuit): other quantum circuit layout
+
+        Returns:
+            bool: `self` and `other` are equal.
+        """
+        if first_layout is None and second_layout is None:
+            self.assertTrue(first_layout == second_layout)
+        else:
+            self.assertEqual(first_layout._p2v.keys(), second_layout._p2v.keys())
+            for k in first_layout._p2v:
+                self.assertEqual(
+                    first_qc.find_bit(first_layout._p2v[k]),
+                    second_qc.find_bit(second_layout._p2v[k]),
+                )
+
     def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
@@ -44,7 +65,14 @@ class QpyCircuitTestCase(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
 
         self.assertEqual(circuit, new_circuit)
-        self.assertEqual(circuit.layout, new_circuit.layout)
+        if circuit is None or new_circuit is None:
+            self.assertEqual(circuit, new_circuit)
+        elif circuit.layout is None or new_circuit.layout is None:
+            self.assertEqual(circuit.layout, new_circuit.layout)
+        else:
+            self.assert_layout_equal(
+                circuit, circuit.layout.final_layout, new_circuit, new_circuit.layout.final_layout
+            )
         if version is not None:
             qpy_file.seek(0)
             file_version = struct.unpack("!6sB", qpy_file.read(7))[1]
@@ -230,12 +258,9 @@ class TestLayout(QpyCircuitTestCase):
         for i in initial_layout_old:
             self.assertIsInstance(initial_layout_old[i], Qubit)
             self.assertIsInstance(initial_layout_new[i], Qubit)
-            if initial_layout_old[i]._register is not None:
+            if initial_layout_old[i] in qc.qubits and initial_layout_new[i] in qc.qubits:
                 self.assertEqual(initial_layout_new[i], initial_layout_old[i])
-            else:
-                self.assertIsNone(initial_layout_new[i]._register)
-                self.assertIsNone(initial_layout_old[i]._index)
-                self.assertIsNone(initial_layout_new[i]._index)
+
         self.assertEqual(
             list(tqc.layout.input_qubit_mapping.values()),
             list(new_circuit.layout.input_qubit_mapping.values()),

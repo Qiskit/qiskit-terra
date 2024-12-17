@@ -1001,7 +1001,7 @@ class TestBasisExamples(QiskitTestCase):
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
         qr = QuantumRegister(2, "q")
-        expected = QuantumCircuit(2)
+        expected = QuantumCircuit(qr)
         expected.u(pi / 2, 0, pi, qr[0])
         expected.u(0, 0, -pi / 2, qr[0])
         expected.u(pi, 0, 0, qr[0])

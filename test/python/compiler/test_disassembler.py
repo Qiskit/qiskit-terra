@@ -161,7 +161,10 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(
             circuits[0]._data[0].operation.params[1:], circ._data[0].operation.params[1:]
         )
-        self.assertEqual(circuits[0]._data[0].qubits, circ._data[0].qubits)
+        self.assertEqual(
+            [circuits[0].find_bit(q) for q in circuits[0]._data[0].qubits],
+            [circ.find_bit(q) for q in circ._data[0].qubits],
+        )
         self.assertEqual(circuits[0]._data[0].clbits, circ._data[0].clbits)
         self.assertEqual(circuits[0]._data[1:], circ._data[1:])
         self.assertEqual({}, header)

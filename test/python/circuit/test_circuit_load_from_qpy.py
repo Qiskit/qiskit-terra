@@ -70,15 +70,18 @@ class TestLoadFromQPY(QiskitTestCase):
     """Test qpy set of methods."""
 
     def assertDeprecatedBitProperties(self, original, roundtripped):
-        """Test that deprecated bit attributes are equal if they are set in the original circuit."""
+        """Test that deprecated BitLocations are equal if they are set in the original circuit."""
         owned_qubits = [
-            (a, b) for a, b in zip(original.qubits, roundtripped.qubits) if a._register is not None
+            (original.find_bit(a), roundtripped.find_bit(b))
+            for a, b in zip(original.qubits, roundtripped.qubits)
         ]
+
         if owned_qubits:
             original_qubits, roundtripped_qubits = zip(*owned_qubits)
             self.assertEqual(original_qubits, roundtripped_qubits)
         owned_clbits = [
-            (a, b) for a, b in zip(original.clbits, roundtripped.clbits) if a._register is not None
+            (original.find_bit(a), roundtripped.find_bit(b))
+            for a, b in zip(original.clbits, roundtripped.clbits)
         ]
         if owned_clbits:
             original_clbits, roundtripped_clbits = zip(*owned_clbits)
@@ -2012,15 +2015,19 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         self.qc = qc
 
     def assertDeprecatedBitProperties(self, original, roundtripped):
-        """Test that deprecated bit attributes are equal if they are set in the original circuit."""
+        """Test that deprecated BitLocations are equal if they are set in the original circuit."""
+
         owned_qubits = [
-            (a, b) for a, b in zip(original.qubits, roundtripped.qubits) if a._register is not None
+            (original.find_bit(a), roundtripped.find_bit(b))
+            for a, b in zip(original.qubits, roundtripped.qubits)
         ]
+
         if owned_qubits:
             original_qubits, roundtripped_qubits = zip(*owned_qubits)
             self.assertEqual(original_qubits, roundtripped_qubits)
         owned_clbits = [
-            (a, b) for a, b in zip(original.clbits, roundtripped.clbits) if a._register is not None
+            (original.find_bit(a), roundtripped.find_bit(b))
+            for a, b in zip(original.clbits, roundtripped.clbits)
         ]
         if owned_clbits:
             original_clbits, roundtripped_clbits = zip(*owned_clbits)

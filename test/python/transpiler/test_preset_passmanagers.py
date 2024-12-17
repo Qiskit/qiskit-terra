@@ -14,16 +14,15 @@
 
 import unittest
 
-
 from test import combine
 from ddt import ddt, data
 
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
-from qiskit.circuit.library import quantum_volume
-from qiskit.compiler import transpile
+from qiskit.circuit.quantumcircuit import BitLocations
+from qiskit.circuit import Gate, ControlFlowOp, ForLoopOp
+from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
@@ -33,7 +32,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.providers.fake_provider import Fake5QV1, Fake20QV1, GenericBackendV2
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import GraphState
+from qiskit.circuit.library import GraphState, quantum_volume
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
@@ -86,6 +85,19 @@ def circuit_2532():
     circuit = QuantumCircuit(5)
     circuit.cx(2, 4)
     return circuit
+
+
+def get_layout_as_bitlocations(qc, layout):
+    """Get `BitLocations` of qubits in the layout of a quantum circuit
+
+    Args:
+        qc (QuantumCircuit): a quantum circuit
+        layout (Layout): a layout
+
+    Returns:
+        dict: a dictionary mapping a set of physical qubits, i.e. integers, to set of `BitLocations`
+    """
+    return {p: qc.find_bit(v) if v in qc.qubits else None for p, v in layout._p2v.items()}
 
 
 @ddt
@@ -464,10 +476,16 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
-        ancilla = QuantumRegister(3, "ancilla")
+        expected_layout = {
+            0: None,
+            1: None,
+            2: BitLocations(1, [(qr, 1)]),
+            3: None,
+            4: BitLocations(0, [(qr, 0)]),
+        }
         self.assertEqual(
-            transpiled._layout.initial_layout,
-            Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1], ancilla[2], qr[0]]),
+            get_layout_as_bitlocations(qc, transpiled._layout.initial_layout),
+            expected_layout,
         )
 
     @unittest.mock.patch.object(
@@ -735,33 +753,32 @@ class TestInitialLayouts(QiskitTestCase):
         # build a circuit which works as-is on the coupling map, using the initial layout
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(3)
-        ancilla = QuantumRegister(13, "ancilla")
         qc = QuantumCircuit(qr, cr)
         qc.cx(qr[2], qr[1])
         qc.cx(qr[2], qr[0])
         initial_layout = {0: qr[1], 2: qr[0], 15: qr[2]}
         final_layout = {
-            0: qr[1],
-            1: ancilla[0],
-            2: qr[0],
-            3: ancilla[1],
-            4: ancilla[2],
-            5: ancilla[3],
-            6: ancilla[4],
-            7: ancilla[5],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: ancilla[8],
-            11: ancilla[9],
-            12: ancilla[10],
-            13: ancilla[11],
-            14: ancilla[12],
-            15: qr[2],
+            0: BitLocations(1, [(qr, 1)]),
+            1: None,
+            2: BitLocations(0, [(qr, 0)]),
+            3: None,
+            4: None,
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None,
+            11: None,
+            12: None,
+            13: None,
+            14: None,
+            15: BitLocations(2, [(qr, 2)]),
         }
         backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42)
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
+        self.assertEqual(get_layout_as_bitlocations(qc, qc_b._layout.initial_layout), final_layout)
 
         for inst in qc_b.data:
             if inst.operation.name == "cx":
@@ -780,7 +797,6 @@ class TestInitialLayouts(QiskitTestCase):
         # build a circuit which works as-is on the coupling map, using the initial layout
         qr = QuantumRegister(5, "q")
         cr = ClassicalRegister(2)
-        ancilla = QuantumRegister(9, "ancilla")
         qc = QuantumCircuit(qr, cr)
         qc.cx(qr[2], qr[4])
         initial_layout = {
@@ -791,24 +807,25 @@ class TestInitialLayouts(QiskitTestCase):
             qr[3]: 9,
         }
         final_layout = {
-            0: ancilla[0],
-            1: qr[0],
-            2: ancilla[1],
-            3: qr[4],
-            4: ancilla[2],
-            5: qr[1],
-            6: ancilla[3],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: qr[3],
-            10: ancilla[6],
-            11: qr[2],
-            12: ancilla[7],
-            13: ancilla[8],
+            0: None,
+            1: BitLocations(0, [(qr, 0)]),
+            2: None,
+            3: BitLocations(4, [(qr, 4)]),
+            4: None,
+            5: BitLocations(1, [(qr, 1)]),
+            6: None,
+            7: None,
+            8: None,
+            9: BitLocations(3, [(qr, 3)]),
+            10: None,
+            11: BitLocations(2, [(qr, 2)]),
+            12: None,
+            13: None,
         }
         backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP, seed=42)
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
-        self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
+
+        self.assertEqual(get_layout_as_bitlocations(qc, qc_b._layout.initial_layout), final_layout)
 
         output_qr = qc_b.qregs[0]
         for instruction in qc_b:
@@ -826,7 +843,6 @@ class TestInitialLayouts(QiskitTestCase):
         # build a circuit which works as-is on the coupling map, using the initial layout
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(2)
-        ancilla = QuantumRegister(17, "ancilla")
 
         qc = QuantumCircuit(qr, cr)
         qc.append(U3Gate(0.1, 0.2, 0.3), [qr[0]])
@@ -836,26 +852,26 @@ class TestInitialLayouts(QiskitTestCase):
         initial_layout = [6, 7, 12]
 
         final_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: ancilla[5],
-            6: qr[0],
-            7: qr[1],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: ancilla[8],
-            11: ancilla[9],
-            12: qr[2],
-            13: ancilla[10],
-            14: ancilla[11],
-            15: ancilla[12],
-            16: ancilla[13],
-            17: ancilla[14],
-            18: ancilla[15],
-            19: ancilla[16],
+            0: None,
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: BitLocations(0, [(qr, 0)]),
+            7: BitLocations(1, [(qr, 1)]),
+            8: None,
+            9: None,
+            10: None,
+            11: None,
+            12: BitLocations(2, [(qr, 2)]),
+            13: None,
+            14: None,
+            15: None,
+            16: None,
+            17: None,
+            18: None,
+            19: None,
         }
 
         backend = GenericBackendV2(
@@ -865,8 +881,7 @@ class TestInitialLayouts(QiskitTestCase):
             seed=42,
         )
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
-
-        self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
+        self.assertEqual(get_layout_as_bitlocations(qc, qc_b._layout.initial_layout), final_layout)
 
         output_qr = qc_b.qregs[0]
         self.assertIsInstance(qc_b[0].operation, U3Gate)
@@ -895,49 +910,49 @@ class TestFinalLayouts(QiskitTestCase):
 
         ancilla = QuantumRegister(15, "ancilla")
         trivial_layout = {
-            0: qr1[0],
-            1: qr1[1],
-            2: qr1[2],
-            3: qr2[0],
-            4: qr2[1],
-            5: ancilla[0],
-            6: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
+            0: BitLocations(0, [(qr1, 0)]),
+            1: BitLocations(1, [(qr1, 1)]),
+            2: BitLocations(2, [(qr1, 2)]),
+            3: BitLocations(3, [(qr2, 0)]),
+            4: BitLocations(4, [(qr2, 1)]),
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None,
+            11: None,
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: None,
+            17: None,
+            18: None,
+            19: None,
         }
 
         vf2_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr1[2],
-            6: qr2[0],
-            7: qr2[1],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr1[1],
-            11: qr1[0],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
+            0: None,
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: None,
+            6: BitLocations(1, [(qr1, 1)]),
+            7: None,
+            8: None,
+            9: None,
+            10: BitLocations(0, [(qr1, 0)]),
+            11: BitLocations(2, [(qr1, 2)]),
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: BitLocations(3, [(qr2, 0)]),
+            17: BitLocations(4, [(qr2, 1)]),
+            18: None,
+            19: None,
         }
 
         # Trivial layout
@@ -957,7 +972,9 @@ class TestFinalLayouts(QiskitTestCase):
 
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
+        self.assertEqual(
+            get_layout_as_bitlocations(qc, result._layout.initial_layout), expected_layouts[level]
+        )
 
     @data(0, 1, 2, 3)
     def test_layout_tokyo_fully_connected_cx(self, level):
@@ -971,52 +988,96 @@ class TestFinalLayouts(QiskitTestCase):
                 if qubit_control != qubit_target:
                     qc.cx(qubit_control, qubit_target)
 
-        ancilla = QuantumRegister(15, "ancilla")
-
         trivial_layout = {
-            0: qr[0],
-            1: qr[1],
-            2: qr[2],
-            3: qr[3],
-            4: qr[4],
-            5: ancilla[0],
-            6: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
+            0: BitLocations(0, [(qr, 0)]),
+            1: BitLocations(1, [(qr, 1)]),
+            2: BitLocations(2, [(qr, 2)]),
+            3: BitLocations(3, [(qr, 3)]),
+            4: BitLocations(4, [(qr, 4)]),
+            5: None,
+            6: None,
+            7: None,
+            8: None,
+            9: None,
+            10: None,
+            11: None,
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: None,
+            17: None,
+            18: None,
+            19: None,
         }
 
         sabre_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[1],
-            6: qr[0],
-            7: qr[4],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[5],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
+            0: None,
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: BitLocations(2, [(qr, 2)]),
+            6: BitLocations(1, [(qr, 1)]),
+            7: None,
+            8: None,
+            9: None,
+            10: BitLocations(3, [(qr, 3)]),
+            11: BitLocations(0, [(qr, 0)]),
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: BitLocations(4, [(qr, 4)]),
+            17: None,
+            18: None,
+            19: None,
+        }
+
+        sabre_layout_lvl_2 = {
+            0: None,
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: BitLocations(2, [(qr, 2)]),
+            6: BitLocations(1, [(qr, 1)]),
+            7: None,
+            8: None,
+            9: None,
+            10: BitLocations(3, [(qr, 3)]),
+            11: BitLocations(0, [(qr, 0)]),
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: BitLocations(4, [(qr, 4)]),
+            17: None,
+            18: None,
+            19: None,
+        }
+
+        sabre_layout_lvl_3 = {
+            0: None,
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+            5: BitLocations(2, [(qr, 2)]),
+            6: BitLocations(1, [(qr, 1)]),
+            7: None,
+            8: None,
+            9: None,
+            10: BitLocations(3, [(qr, 3)]),
+            11: BitLocations(0, [(qr, 0)]),
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: BitLocations(4, [(qr, 4)]),
+            17: None,
+            18: None,
+            19: None,
         }
 
         expected_layout_level0 = trivial_layout
@@ -1032,7 +1093,9 @@ class TestFinalLayouts(QiskitTestCase):
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
+        self.assertEqual(
+            get_layout_as_bitlocations(qc, result._layout.initial_layout), expected_layouts[level]
+        )
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):
@@ -1050,30 +1113,33 @@ class TestFinalLayouts(QiskitTestCase):
         adjacency_matrix[rows, cols] = 1
         qc = GraphState(adjacency_matrix)
         qc.measure_all()
+        qr = qc.qregs[0]
         expected = {
-            0: Qubit(QuantumRegister(20, "q"), 0),
-            1: Qubit(QuantumRegister(20, "q"), 1),
-            2: Qubit(QuantumRegister(20, "q"), 2),
-            3: Qubit(QuantumRegister(20, "q"), 3),
-            4: Qubit(QuantumRegister(20, "q"), 4),
-            5: Qubit(QuantumRegister(20, "q"), 5),
-            6: Qubit(QuantumRegister(20, "q"), 6),
-            7: Qubit(QuantumRegister(20, "q"), 7),
-            8: Qubit(QuantumRegister(20, "q"), 8),
-            9: Qubit(QuantumRegister(20, "q"), 9),
-            10: Qubit(QuantumRegister(20, "q"), 10),
-            11: Qubit(QuantumRegister(20, "q"), 11),
-            12: Qubit(QuantumRegister(20, "q"), 12),
-            13: Qubit(QuantumRegister(20, "q"), 13),
-            14: Qubit(QuantumRegister(20, "q"), 14),
-            15: Qubit(QuantumRegister(20, "q"), 15),
-            16: Qubit(QuantumRegister(20, "q"), 16),
-            17: Qubit(QuantumRegister(20, "q"), 17),
-            18: Qubit(QuantumRegister(20, "q"), 18),
-            19: Qubit(QuantumRegister(20, "q"), 19),
+            0: BitLocations(0, [(qr, 0)]),
+            1: BitLocations(1, [(qr, 1)]),
+            2: BitLocations(2, [(qr, 2)]),
+            3: BitLocations(3, [(qr, 3)]),
+            4: BitLocations(4, [(qr, 4)]),
+            5: BitLocations(5, [(qr, 5)]),
+            6: BitLocations(6, [(qr, 6)]),
+            7: BitLocations(7, [(qr, 7)]),
+            8: BitLocations(8, [(qr, 8)]),
+            9: BitLocations(9, [(qr, 9)]),
+            10: BitLocations(10, [(qr, 10)]),
+            11: BitLocations(11, [(qr, 11)]),
+            12: BitLocations(12, [(qr, 12)]),
+            13: BitLocations(13, [(qr, 13)]),
+            14: BitLocations(14, [(qr, 14)]),
+            15: BitLocations(15, [(qr, 15)]),
+            16: BitLocations(16, [(qr, 16)]),
+            17: BitLocations(17, [(qr, 17)]),
+            18: BitLocations(18, [(qr, 18)]),
+            19: BitLocations(19, [(qr, 19)]),
         }
         trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(trans_qc._layout.initial_layout._p2v, expected)
+        self.assertEqual(
+            {p: qc.find_bit(v) for p, v in trans_qc._layout.initial_layout._p2v.items()}, expected
+        )
 
     @data(0)
     def test_trivial_layout(self, level):
@@ -1093,28 +1159,27 @@ class TestFinalLayouts(QiskitTestCase):
         qc.cx(qr[6], qr[5])
         qc.cx(qr[5], qr[0])
 
-        ancilla = QuantumRegister(10, "ancilla")
         trivial_layout = {
-            0: qr[0],
-            1: qr[1],
-            2: qr[2],
-            3: qr[3],
-            4: qr[4],
-            5: qr[5],
-            6: qr[6],
-            7: qr[7],
-            8: qr[8],
-            9: qr[9],
-            10: ancilla[0],
-            11: ancilla[1],
-            12: ancilla[2],
-            13: ancilla[3],
-            14: ancilla[4],
-            15: ancilla[5],
-            16: ancilla[6],
-            17: ancilla[7],
-            18: ancilla[8],
-            19: ancilla[9],
+            0: BitLocations(0, [(qr, 0)]),
+            1: BitLocations(1, [(qr, 1)]),
+            2: BitLocations(2, [(qr, 2)]),
+            3: BitLocations(3, [(qr, 3)]),
+            4: BitLocations(4, [(qr, 4)]),
+            5: BitLocations(5, [(qr, 5)]),
+            6: BitLocations(6, [(qr, 6)]),
+            7: BitLocations(7, [(qr, 7)]),
+            8: BitLocations(8, [(qr, 8)]),
+            9: BitLocations(9, [(qr, 9)]),
+            10: None,
+            11: None,
+            12: None,
+            13: None,
+            14: None,
+            15: None,
+            16: None,
+            17: None,
+            18: None,
+            19: None,
         }
 
         expected_layouts = [trivial_layout, trivial_layout]
@@ -1126,7 +1191,9 @@ class TestFinalLayouts(QiskitTestCase):
             seed=42,
         )
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
+        self.assertEqual(
+            get_layout_as_bitlocations(qc, result._layout.initial_layout), expected_layouts[level]
+        )
 
     @data(0, 1, 2, 3)
     def test_initial_layout(self, level):

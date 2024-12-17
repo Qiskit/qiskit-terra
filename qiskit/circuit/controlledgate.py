@@ -107,6 +107,7 @@ class ControlledGate(Gate):
         self._open_ctrl = None
         self.ctrl_state = ctrl_state
         self._name = name
+        self._cached_definition = {}
 
     @property
     def definition(self) -> QuantumCircuit:
@@ -115,6 +116,14 @@ class ControlledGate(Gate):
         definition is conjugated with X without changing the internal
         ``_definition``.
         """
+        cached_definition = self._cached_definition.get(
+            (self.ctrl_state, self.num_ctrl_qubits), None
+        )
+        if cached_definition is not None:
+            return cached_definition
+
+        self._cached_definition.clear()
+
         if self._open_ctrl:
             closed_gate = self.to_mutable()
             closed_gate.ctrl_state = None
@@ -128,9 +137,11 @@ class ControlledGate(Gate):
             for qind, val in enumerate(bit_ctrl_state[::-1]):
                 if val == "0":
                     qc_open_ctrl.x(qind)
-            return qc_open_ctrl
+            self._cached_definition[(self.ctrl_state, self.num_ctrl_qubits)] = qc_open_ctrl
         else:
-            return super().definition
+            self._cached_definition[(self.ctrl_state, self.num_ctrl_qubits)] = super().definition
+
+        return self._cached_definition[(self.ctrl_state, self.num_ctrl_qubits)]
 
     @definition.setter
     def definition(self, excited_def: "QuantumCircuit"):

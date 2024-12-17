@@ -36,7 +36,7 @@ class TestCircuitToGate(QiskitTestCase):
         circ.cx(qr1[1], qr2[2])
 
         gate = circ.to_gate()
-        q = QuantumRegister(10, "q")
+        q = gate.definition.qregs[0]
 
         self.assertIsInstance(gate, Gate)
         self.assertEqual(gate.definition[0].qubits, (q[1], q[6]))

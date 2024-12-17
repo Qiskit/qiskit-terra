@@ -154,19 +154,17 @@ class TestApplyLayout(QiskitTestCase):
                 first_layout_circ.qubits[4]: 3,
             }
         )
-        out_pass(first_layout_circ)
-        self.assertEqual(
-            out_pass.property_set["final_layout"],
-            Layout(
-                {
-                    first_layout_circ.qubits[0]: 0,
-                    first_layout_circ.qubits[2]: 1,
-                    first_layout_circ.qubits[4]: 4,
-                    first_layout_circ.qubits[1]: 3,
-                    first_layout_circ.qubits[3]: 2,
-                }
-            ),
-        )
+        qc2 = out_pass(first_layout_circ)
+        qr = first_layout_circ.qregs[0]
+        expected = {
+            0: first_layout_circ.find_bit(qr[0]),
+            1: first_layout_circ.find_bit(qr[2]),
+            2: first_layout_circ.find_bit(qr[3]),
+            3: first_layout_circ.find_bit(qr[1]),
+            4: first_layout_circ.find_bit(qr[4]),
+        }
+        actual = {p: qc2.find_bit(v) for p, v in out_pass.property_set["final_layout"]._p2v.items()}
+        self.assertEqual(actual, expected)
 
     def test_works_with_var_nodes(self):
         """Test that standalone var nodes work."""

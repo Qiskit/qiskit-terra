@@ -13,7 +13,7 @@
 """Test the ResetAfterMeasureSimplification pass"""
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Clbit
 from qiskit.transpiler.passes.optimization import ResetAfterMeasureSimplification
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -92,7 +92,9 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
     def test_simple_multi_resets_with_resets_before_measure(self):
         """Reset BEFORE measurement not collapsed"""
-        qc = QuantumCircuit(2, 2)
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
         qc.measure(0, 0)
         qc.reset(0)
         qc.reset(1)
@@ -101,7 +103,7 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             new_qc = ResetAfterMeasureSimplification()(qc)
 
-        ans_qc = QuantumCircuit(2, 2)
+        ans_qc = QuantumCircuit(qr, cr)
         ans_qc.measure(0, 0)
         with self.assertWarns(DeprecationWarning):
             ans_qc.x(0).c_if(Clbit(ClassicalRegister(2, "c"), 0), 1)

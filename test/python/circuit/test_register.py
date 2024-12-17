@@ -103,10 +103,10 @@ class TestRegisterClass(QiskitTestCase):
 
         test_diffbits = [reg_type.bit_type() for _ in range(3)]
         reg_diffbits = reg_type(name="foo", bits=test_diffbits)
-        self.assertNotEqual(reg_diffbits, test_reg)
+        self.assertEqual(reg_diffbits, test_reg)
 
         reg_oldstyle = reg_type(3, "foo")
-        self.assertNotEqual(reg_oldstyle, test_reg)
+        self.assertEqual(reg_oldstyle, test_reg)
 
         test_largerbits = [reg_type.bit_type() for _ in range(4)]
         reg_larger = reg_type(name="foo", bits=test_largerbits)

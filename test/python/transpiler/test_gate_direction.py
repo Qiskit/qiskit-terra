@@ -396,7 +396,9 @@ class TestGateDirection(QiskitTestCase):
 
     def test_coupling_map_control_flow(self):
         """Test that gates are replaced within nested control-flow blocks."""
-        circuit = QuantumCircuit(4, 1)
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(1)
+        circuit = QuantumCircuit(qr, cr)
         circuit.h(0)
         circuit.measure(0, 0)
         with circuit.for_loop((1, 2)):
@@ -408,7 +410,7 @@ class TestGateDirection(QiskitTestCase):
                 with circuit.while_loop((circuit.clbits[0], True)):
                     circuit.rzx(2.3, 2, 1)
 
-        expected = QuantumCircuit(4, 1)
+        expected = QuantumCircuit(qr, cr)
         expected.h(0)
         expected.measure(0, 0)
         with expected.for_loop((1, 2)):
@@ -438,7 +440,9 @@ class TestGateDirection(QiskitTestCase):
 
     def test_target_control_flow(self):
         """Test that gates are replaced within nested control-flow blocks."""
-        circuit = QuantumCircuit(4, 1)
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(1)
+        circuit = QuantumCircuit(qr, cr)
         circuit.h(0)
         circuit.measure(0, 0)
         with circuit.for_loop((1, 2)):
@@ -450,7 +454,7 @@ class TestGateDirection(QiskitTestCase):
                 with circuit.while_loop((circuit.clbits[0], True)):
                     circuit.rzx(2.3, 2, 1)
 
-        expected = QuantumCircuit(4, 1)
+        expected = QuantumCircuit(qr, cr)
         expected.h(0)
         expected.measure(0, 0)
         with expected.for_loop((1, 2)):

@@ -1025,14 +1025,13 @@ def _write_calibrations(file_obj, calibrations, metadata_serializer, version):
 def _write_registers(file_obj, in_circ_regs, full_bits):
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
 
+    # all bits should be in in_circ_regs now
     out_circ_regs = set()
-    for bit in full_bits:
-        if bit._register is not None and bit._register not in in_circ_regs:
-            out_circ_regs.add(bit._register)
 
     for regs, is_in_circuit in [(in_circ_regs, True), (out_circ_regs, False)]:
         for reg in regs:
-            standalone = all(bit._register is reg for bit in reg)
+            # We can not have non-standalone registers anymore
+            standalone = True
             reg_name = reg.name.encode(common.ENCODE)
             reg_type = reg.prefix.encode(common.ENCODE)
             file_obj.write(
@@ -1067,28 +1066,36 @@ def _write_layout(file_obj, circuit):
     if circuit.layout.initial_layout is not None:
         initial_size = len(circuit.layout.initial_layout)
         layout_mapping = circuit.layout.initial_layout.get_physical_bits()
+        layout_qregs = {q: r for r in circuit.layout.initial_layout.get_registers() for q in r}
         for i in range(circuit.num_qubits):
             qubit = layout_mapping[i]
             input_qubit_mapping[qubit] = i
-            if qubit._register is not None or qubit._index is not None:
-                if qubit._register not in circuit.qregs:
-                    extra_registers[qubit._register].append(qubit)
-                initial_layout_array.append((qubit._index, qubit._register))
+            if qubit in circuit.qubits or qubit in layout_qregs:
+                if qubit in layout_qregs:
+                    extra_registers[layout_qregs[qubit]].append(qubit)
+                    initial_layout_array.append(
+                        (layout_qregs[qubit].index(qubit), layout_qregs[qubit])
+                    )
+
+                if qubit in circuit.qubits:
+                    bit_location = circuit.find_bit(qubit)
+                    circuit_index, qreg_locations = bit_location
+                    for qreg_location in qreg_locations:
+                        initial_layout_array.append((circuit_index, qreg_location[0]))
             else:
                 initial_layout_array.append((None, None))
+
     input_qubit_size = -1
     input_qubit_mapping_array = []
     if circuit.layout.input_qubit_mapping is not None:
         input_qubit_size = len(circuit.layout.input_qubit_mapping)
         input_qubit_mapping_array = [None] * input_qubit_size
+        layout_qregs = {q: r for r in circuit.layout.initial_layout.get_registers() for q in r}
         layout_mapping = circuit.layout.initial_layout.get_virtual_bits()
         for qubit, index in circuit.layout.input_qubit_mapping.items():
-            if (
-                getattr(qubit, "_register", None) is not None
-                and getattr(qubit, "_index", None) is not None
-            ):
-                if qubit._register not in circuit.qregs:
-                    extra_registers[qubit._register].append(qubit)
+            if qubit in circuit or qubit in layout_qregs:
+                if qubit in layout_qregs:
+                    extra_registers[layout_qregs[qubit]].append(qubit)
                 input_qubit_mapping_array[index] = layout_mapping[qubit]
             else:
                 input_qubit_mapping_array[index] = layout_mapping[qubit]

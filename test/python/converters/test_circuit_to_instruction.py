@@ -42,8 +42,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         circ.measure(qr3[0], cr2[0])
 
         inst = circuit_to_instruction(circ)
-        q = QuantumRegister(10, "q")
-        c = ClassicalRegister(5, "c")
+        q = inst.definition.qregs[0]
+        c = inst.definition.cregs[0]
 
         self.assertEqual(inst.definition[0].qubits, (q[1], q[6]))
         self.assertEqual(inst.definition[1].qubits, (q[7],))

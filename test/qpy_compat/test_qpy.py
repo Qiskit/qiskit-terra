@@ -693,7 +693,7 @@ def generate_control_flow_expr():
 
     inner3 = QuantumCircuit(1)
     inner3.x(0)
-    outer3 = QuantumCircuit(1, 1)
+    outer3 = QuantumCircuit(QuantumRegister(1), *outer2.cregs)
     outer3.switch(expr.logic_not(outer2.clbits[0]), [(False, inner2)], [0], [])
     qr3 = QuantumRegister(2, "q2")
     cr1_3 = ClassicalRegister(3, "c1")
@@ -874,6 +874,36 @@ def generate_circuits(version_parts):
     return output_circuits
 
 
+def equal_transpile_layout(reference, qpy):
+    """Compare two TranspileLayouts with new-style bits."""
+    if reference is None and qpy is None:
+        return True
+    if (reference is None) != (qpy is None):
+        return False
+    if reference.layout is None and qpy.layout is None:
+        return True
+    if (reference.layout is None) != (qpy.layout is None):
+        return False
+    return equal_layout(
+        reference, reference.layout.initial_layout, qpy, qpy.layout.initial_layout
+    ) and equal_layout(reference, reference.layout.final_layout, qpy, qpy.layout.final_layout)
+
+
+def equal_layout(ref, ref_lay, qpy, qpy_lay):
+    """Compare two Layouts with new-style bits."""
+    if ref_lay is None and qpy_lay is None:
+        return True
+    if (ref_lay is None) != (qpy_lay is None):
+        return False
+    if ref_lay._p2v.keys() != qpy_lay._p2v.keys():
+        return False
+    equal_so_far = True
+    for k in ref_lay._p2v:
+        if ref.find_bit(ref_lay._p2v[k]) != qpy.find_bit(qpy_lay._p2v[k]):
+            equal_so_far = False
+    return equal_so_far
+
+
 def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
     """Compare two circuits."""
     if bind is not None:
@@ -911,7 +941,9 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         for ref_bit, qpy_bit in itertools.chain(
             zip(reference.qubits, qpy.qubits), zip(reference.clbits, qpy.clbits)
         ):
-            if ref_bit._register is not None and ref_bit != qpy_bit:
+            if ((ref_bit is None) != (qpy_bit is None)) or (
+                reference.find_bit(ref_bit) != qpy.find_bit(qpy_bit)
+            ):
                 msg = (
                     f"Reference Circuit {count}:\n"
                     "deprecated bit-level register information mismatch\n"
@@ -924,7 +956,7 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
     if (
         version_parts >= (0, 24, 2)
         and isinstance(reference, QuantumCircuit)
-        and reference.layout != qpy.layout
+        and not equal_transpile_layout(reference, qpy)
     ):
         msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
         sys.stderr.write(msg)

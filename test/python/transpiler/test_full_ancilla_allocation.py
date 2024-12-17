@@ -51,14 +51,13 @@ class TestFullAncillaAllocation(QiskitTestCase):
         pass_ = FullAncillaAllocation(self.cmap5)
         pass_.property_set["layout"] = initial_layout
 
-        pass_.run(dag)
+        qc2 = pass_.run(dag)
         after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(2, "ancilla")
-
-        self.assertEqual(after_layout[0], qr[0])
-        self.assertEqual(after_layout[1], qr[1])
-        self.assertEqual(after_layout[2], qr[2])
+        ancilla = list(after_layout.get_registers())[0]
+        self.assertEqual(qc2.find_bit(after_layout[0]), circ.find_bit(qr[0]))
+        self.assertEqual(qc2.find_bit(after_layout[1]), circ.find_bit(qr[1]))
+        self.assertEqual(qc2.find_bit(after_layout[2]), circ.find_bit(qr[2]))
         self.assertEqual(after_layout[3], ancilla[0])
         self.assertEqual(after_layout[4], ancilla[1])
 
@@ -86,14 +85,13 @@ class TestFullAncillaAllocation(QiskitTestCase):
         pass_ = FullAncillaAllocation(target)
         pass_.property_set["layout"] = initial_layout
 
-        pass_.run(dag)
+        qc2 = pass_.run(dag)
         after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(2, "ancilla")
-
-        self.assertEqual(after_layout[0], qr[0])
-        self.assertEqual(after_layout[1], qr[1])
-        self.assertEqual(after_layout[2], qr[2])
+        ancilla = list(after_layout.get_registers())[0]
+        self.assertEqual(qc2.find_bit(after_layout[0]), circ.find_bit(qr[0]))
+        self.assertEqual(qc2.find_bit(after_layout[1]), circ.find_bit(qr[1]))
+        self.assertEqual(qc2.find_bit(after_layout[2]), circ.find_bit(qr[2]))
         self.assertEqual(after_layout[3], ancilla[0])
         self.assertEqual(after_layout[4], ancilla[1])
 
@@ -116,14 +114,13 @@ class TestFullAncillaAllocation(QiskitTestCase):
 
         pass_ = FullAncillaAllocation(self.cmap5)
         pass_.property_set["layout"] = initial_layout
-        pass_.run(dag)
+        qc2 = pass_.run(dag)
         after_layout = pass_.property_set["layout"]
+        ancilla = list(after_layout.get_registers())[0]
 
-        ancilla = QuantumRegister(3, "ancilla")
-
-        self.assertEqual(after_layout[0], qr[0])
+        self.assertEqual(qc2.find_bit(after_layout[0]), circ.find_bit(qr[0]))
         self.assertEqual(after_layout[1], ancilla[0])
-        self.assertEqual(after_layout[2], qr[1])
+        self.assertEqual(qc2.find_bit(after_layout[2]), circ.find_bit(qr[1]))
         self.assertEqual(after_layout[3], ancilla[1])
         self.assertEqual(after_layout[4], ancilla[2])
 
@@ -147,15 +144,15 @@ class TestFullAncillaAllocation(QiskitTestCase):
 
         pass_ = FullAncillaAllocation(self.cmap5)
         pass_.property_set["layout"] = initial_layout
-        pass_.run(dag)
+        qc2 = pass_.run(dag)
         after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(2, "ancilla")
+        ancilla = list(after_layout.get_registers())[0]
 
-        self.assertEqual(after_layout[0], qr[0])
+        self.assertEqual(qc2.find_bit(after_layout[0]), circ.find_bit(qr[0]))
         self.assertEqual(after_layout[1], ancilla[0])
-        self.assertEqual(after_layout[2], qr[2])
-        self.assertEqual(after_layout[3], qr[1])
+        self.assertEqual(qc2.find_bit(after_layout[2]), circ.find_bit(qr[2]))
+        self.assertEqual(qc2.find_bit(after_layout[3]), circ.find_bit(qr[1]))
         self.assertEqual(after_layout[4], ancilla[1])
 
     def test_name_collision(self):
