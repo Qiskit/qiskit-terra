@@ -49,7 +49,7 @@ class MCMT(QuantumCircuit):
     :class:`~qiskit.circuit.library.MCMTVChain`.
     """
 
-    @deprecate_func(since="1.3", additional_msg="Use MCMTGate instead.")
+    @deprecate_func(since="1.4", additional_msg="Use MCMTGate instead.")
     def __init__(
         self,
         gate: Gate | Callable[[QuantumCircuit, circuit.Qubit, circuit.Qubit], circuit.Instruction],
@@ -157,7 +157,7 @@ class MCMTVChain(MCMT):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use MCMTGate with the V-chain synthesis plugin instead.",
     )
     def __init__(
