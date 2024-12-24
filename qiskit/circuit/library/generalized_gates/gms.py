@@ -77,7 +77,7 @@ class GMS(QuantumCircuit):
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
     """
 
-    @deprecate_func(since="1.3", additional_msg="Use the MSGate instead.", pending=True)
+    @deprecate_func(since="1.4", additional_msg="Use the MSGate instead.")
     def __init__(self, num_qubits: int, theta: list[list[float]] | np.ndarray) -> None:
         """Create a new Global Mølmer–Sørensen (GMS) gate.
 

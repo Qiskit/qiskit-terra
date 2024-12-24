@@ -78,7 +78,7 @@ def excitation_preserving(
             ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
             ansatz.draw("mpl")
 
-        The entanglement structure can be explicitly specified with the ``entanglement`` 
+        The entanglement structure can be explicitly specified with the ``entanglement``
         argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
         in each block:
 
@@ -203,15 +203,14 @@ class ExcitationPreserving(TwoLocal):
 
     .. seealso::
 
-        The :func:`.excitation_preserving` function constructs a functionally equivalent circuit, 
+        The :func:`.excitation_preserving` function constructs a functionally equivalent circuit,
         but faster.
 
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use the function qiskit.circuit.library.excitation_preserving instead.",
-        pending=True,
     )
     def __init__(
         self,

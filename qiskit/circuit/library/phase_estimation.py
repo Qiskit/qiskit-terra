@@ -50,9 +50,8 @@ class PhaseEstimation(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use qiskit.circuit.library.phase_estimation instead.",
-        pending=True,
     )
     def __init__(
         self,

@@ -227,8 +227,7 @@ class LinearFunction(Gate):
         self.definition = synth_cnot_count_full_pmh(self.linear)
 
     @deprecate_func(
-        since="1.3",
-        pending=True,
+        since="1.4",
         additional_msg="Call LinearFunction.definition instead, or compile the circuit.",
     )
     def synthesize(self):

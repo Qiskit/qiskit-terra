@@ -63,9 +63,8 @@ class InnerProduct(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use qiskit.circuit.library.InnerProductGate instead.",
-        pending=True,
     )
     def __init__(self, num_qubits: int) -> None:
         """Return a circuit to compute the inner product of 2 n-qubit registers.

@@ -28,7 +28,7 @@ from qiskit.utils.deprecation import deprecate_func
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
-    @deprecate_func(since="1.3", pending=True, additional_msg="Use PermutationGate instead.")
+    @deprecate_func(since="1.4", additional_msg="Use PermutationGate instead.")
     def __init__(
         self,
         num_qubits: int,
