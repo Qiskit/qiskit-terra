@@ -96,12 +96,11 @@ class ZZFeatureMap(PauliFeatureMap):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg=(
             "Use the z_feature_map function as a replacement. Note that this will no longer "
             "return a BlueprintCircuit, but just a plain QuantumCircuit."
         ),
-        pending=True,
     )
     def __init__(
         self,

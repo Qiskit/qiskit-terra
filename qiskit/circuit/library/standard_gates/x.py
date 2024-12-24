@@ -1181,8 +1181,7 @@ class MCXGate(ControlledGate):
             "qubits is require, one can create a custom gate by calling the corresponding "
             "synthesis function directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
@@ -1291,8 +1290,7 @@ class MCXGrayCode(MCXGate):
             "high-level-synthesis plugin `gray_code` for MCX gates, or, alternatively, "
             "one can use synth_mcx_gray_code to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def __init__(
         self,
@@ -1346,8 +1344,7 @@ class MCXRecursive(MCXGate):
             "high-level-synthesis plugin '1_clean_b95' for MCX gates, or, alternatively, "
             "one can use synth_mcx_1_clean to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def __init__(
         self,
@@ -1437,8 +1434,7 @@ class MCXVChain(MCXGate):
             "`n_dirty_i15` (using dirty ancillas) for MCX gates. Alternatively, one can "
             "use synth_mcx_n_dirty_i15 and synth_mcx_n_clean_m15 to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        since="1.4",
     )
     def __init__(
         self,

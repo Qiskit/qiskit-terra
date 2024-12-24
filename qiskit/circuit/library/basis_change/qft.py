@@ -73,12 +73,11 @@ class QFT(BlueprintCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg=(
             "Use qiskit.circuit.library.QFTGate or qiskit.synthesis.qft.synth_qft_full instead, "
             "for access to all previous arguments.",
         ),
-        pending=True,
     )
     def __init__(
         self,

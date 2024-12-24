@@ -189,9 +189,8 @@ class EfficientSU2(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use the function qiskit.circuit.library.efficient_su2 instead.",
-        pending=True,
     )
     def __init__(
         self,

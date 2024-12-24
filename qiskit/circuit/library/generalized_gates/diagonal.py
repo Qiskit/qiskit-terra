@@ -34,7 +34,7 @@ _EPS = 1e-10
 class Diagonal(QuantumCircuit):
     """Circuit implementing a diagonal transformation."""
 
-    @deprecate_func(since="1.3", additional_msg="Use DiagonalGate instead.", pending=True)
+    @deprecate_func(since="1.4", additional_msg="Use DiagonalGate instead.")
     def __init__(self, diag: Sequence[complex]) -> None:
         r"""
         Args:

@@ -58,9 +58,8 @@ class GraphState(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use qiskit.circuit.library.GraphStateGate instead.",
-        pending=True,
     )
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.

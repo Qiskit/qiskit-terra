@@ -63,9 +63,8 @@ class IQP(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use the qiskit.circuit.library.iqp function instead.",
-        pending=True,
     )
     def __init__(self, interactions: list | np.ndarray) -> None:
         """Create IQP circuit.
