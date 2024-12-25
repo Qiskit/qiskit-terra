@@ -1621,6 +1621,7 @@ class TestTranspile(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
             backend_v2 = BackendV2Converter(backend_v1)
+
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1, "dt")

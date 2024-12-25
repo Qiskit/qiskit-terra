@@ -25,6 +25,7 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils import deprecate_func
 from qiskit.utils.deprecate_pulse import deprecate_pulse_arg, deprecate_pulse_dependency
 
 
@@ -368,6 +369,12 @@ class BackendV2Converter(BackendV2):
         )
     """
 
+    @deprecate_func(
+        since="1.4",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Since ``BackendV1`` is deprecated, this conversion tool from BackendV1 to "
+        "BackendV2 is going to be removed with BackendV1.",
+    )
     def __init__(
         self,
         backend: BackendV1,

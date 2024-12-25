@@ -1,0 +1,4 @@
+---
+deprecations_providers:
+  - |
+    With the deprecation of ``BackendV1``, the tool for converting ``BackendV1`` to ``BackendV2`` is now deprecated.
