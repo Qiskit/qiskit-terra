@@ -83,7 +83,7 @@ impl ToPyObject for TargetOperation {
 
 impl TargetOperation {
     /// Gets the number of qubits of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
-    pub fn num_qubits(&self) -> u32 {
+    pub fn num_qubits(&self) -> usize {
         match &self {
             Self::Normal(normal) => normal.operation.num_qubits(),
             Self::Variadic(_) => {
@@ -176,7 +176,7 @@ pub(crate) struct Target {
     gate_map: GateMap,
     #[pyo3(get)]
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
-    global_operations: IndexMap<u32, HashSet<String>, RandomState>,
+    global_operations: IndexMap<usize, HashSet<String>, RandomState>,
     qarg_gate_map: NullableIndexMap<Qargs, Option<HashSet<String>>>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
@@ -324,7 +324,7 @@ impl Target {
                         properties.keys().map(|qargs| qargs.cloned()).collect();
                     for qarg in property_keys {
                         if let Some(qarg) = qarg.as_ref() {
-                            if qarg.len() != inst_num_qubits as usize {
+                            if qarg.len() != inst_num_qubits {
                                 return Err(TranspilerError::new_err(format!(
                                     "The number of qubits for {name} does not match\
                                     the number of qubits in the properties dictionary: {:?}",
@@ -596,14 +596,14 @@ impl Target {
                                     if gate_map_name.contains_key(None) {
                                         let qubit_comparison =
                                             self._gate_name_map[op_name].num_qubits();
-                                        return Ok(qubit_comparison == _qargs.len() as u32
+                                        return Ok(qubit_comparison == _qargs.len()
                                             && _qargs.iter().all(|x| {
                                                 x.index() < self.num_qubits.unwrap_or_default()
                                             }));
                                     }
                                 } else {
                                     let qubit_comparison = obj.num_qubits();
-                                    return Ok(qubit_comparison == _qargs.len() as u32
+                                    return Ok(qubit_comparison == _qargs.len()
                                         && _qargs.iter().all(|x| {
                                             x.index() < self.num_qubits.unwrap_or_default()
                                         }));
@@ -881,7 +881,7 @@ impl Target {
         self.global_operations = state
             .get_item("global_operations")?
             .unwrap()
-            .extract::<IndexMap<u32, HashSet<String>, RandomState>>()?;
+            .extract::<IndexMap<usize, HashSet<String>, RandomState>>()?;
         self.qarg_gate_map = NullableIndexMap::from_iter(
             state
                 .get_item("qarg_gate_map")?
@@ -1059,7 +1059,7 @@ impl Target {
             }
         }
         if let Some(qargs) = qargs.as_ref() {
-            if let Some(global_gates) = self.global_operations.get(&(qargs.len() as u32)) {
+            if let Some(global_gates) = self.global_operations.get(&(qargs.len())) {
                 res.extend(global_gates.iter().map(|key| key.as_str()))
             }
         }
@@ -1169,7 +1169,7 @@ impl Target {
                             }
                             TargetOperation::Normal(obj) => {
                                 let qubit_comparison = obj.operation.num_qubits();
-                                return qubit_comparison == _qargs.len() as u32
+                                return qubit_comparison == _qargs.len()
                                     && _qargs.iter().all(|qarg| {
                                         qarg.index() < self.num_qubits.unwrap_or_default()
                                     });
@@ -1188,7 +1188,7 @@ impl Target {
                         }
                         TargetOperation::Normal(obj) => {
                             let qubit_comparison = obj.operation.num_qubits();
-                            return qubit_comparison == _qargs.len() as u32
+                            return qubit_comparison == _qargs.len()
                                 && _qargs.iter().all(|qarg| {
                                     qarg.index() < self.num_qubits.unwrap_or_default()
                                 });

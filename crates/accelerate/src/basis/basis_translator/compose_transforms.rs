@@ -26,7 +26,7 @@ use smallvec::SmallVec;
 use crate::equivalence::CircuitFromPython;
 
 // Custom types
-pub type GateIdentifier = (String, u32);
+pub type GateIdentifier = (String, usize);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
@@ -62,7 +62,7 @@ pub(super) fn compose_transforms<'a>(
                 .collect::<SmallVec<[Param; 3]>>(),
         ))?;
         let gate_obj: OperationFromPython = gate.extract()?;
-        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+        let qubits: Vec<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
         dag.apply_operation_back(
             py,
             gate_obj.operation,

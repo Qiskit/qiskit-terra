@@ -52,37 +52,25 @@ fn to_qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
         CliffordGate::CNOT(i, j) => (
             StandardGate::CXGate,
             smallvec![],
-            smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            smallvec![Qubit::new(*i), Qubit::new(*j)],
         ),
         CliffordGate::CZ(i, j) => (
             StandardGate::CZGate,
             smallvec![],
-            smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            smallvec![Qubit::new(*i), Qubit::new(*j)],
         ),
-        CliffordGate::H(i) => (
-            StandardGate::HGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::S(i) => (
-            StandardGate::SGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
+        CliffordGate::H(i) => (StandardGate::HGate, smallvec![], smallvec![Qubit::new(*i)]),
+        CliffordGate::S(i) => (StandardGate::SGate, smallvec![], smallvec![Qubit::new(*i)]),
         CliffordGate::Sd(i) => (
             StandardGate::SdgGate,
             smallvec![],
-            smallvec![Qubit(*i as u32)],
+            smallvec![Qubit::new(*i)],
         ),
-        CliffordGate::SqrtX(i) => (
-            StandardGate::SXGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
+        CliffordGate::SqrtX(i) => (StandardGate::SXGate, smallvec![], smallvec![Qubit::new(*i)]),
         CliffordGate::SqrtXd(i) => (
             StandardGate::SXdgGate,
             smallvec![],
-            smallvec![Qubit(*i as u32)],
+            smallvec![Qubit::new(*i)],
         ),
     }
 }
@@ -110,7 +98,7 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
                 false => angle.clone(),
                 true => multiply_param(angle, -1.0, py),
             };
-            return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
+            return (standard_gate, smallvec![param], smallvec![Qubit::new(q)]);
         }
     }
     unreachable!("The pauli rotation is guaranteed to be a single-qubit rotation.")
@@ -372,5 +360,5 @@ pub fn pauli_network_synthesis_inner(
         }
     }
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, gates, global_phase)
+    CircuitData::from_standard_gates(py, num_qubits, gates, global_phase)
 }

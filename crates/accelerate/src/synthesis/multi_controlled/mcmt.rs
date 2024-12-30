@@ -146,7 +146,7 @@ pub fn mcmt_v_chain(
     if num_ctrl_qubits == 1 {
         CircuitData::from_packed_operations(
             py,
-            num_qubits as u32,
+            num_qubits,
             0,
             flip_control_state
                 .clone()
@@ -164,7 +164,7 @@ pub fn mcmt_v_chain(
 
         CircuitData::from_packed_operations(
             py,
-            num_qubits as u32,
+            num_qubits,
             0,
             flip_control_state
                 .clone()

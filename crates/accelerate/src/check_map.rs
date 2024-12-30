@@ -24,16 +24,16 @@ use qiskit_circuit::Qubit;
 fn recurse<'py>(
     py: Python<'py>,
     dag: &'py DAGCircuit,
-    edge_set: &'py HashSet<[u32; 2]>,
+    edge_set: &'py HashSet<[usize; 2]>,
     wire_map: Option<&'py [Qubit]>,
-) -> PyResult<Option<(String, [u32; 2])>> {
+) -> PyResult<Option<(String, [usize; 2])>> {
     let check_qubits = |qubits: &[Qubit]| -> bool {
         match wire_map {
             Some(wire_map) => {
                 let mapped_bits = [wire_map[qubits[0].index()], wire_map[qubits[1].index()]];
-                edge_set.contains(&[mapped_bits[0].into(), mapped_bits[1].into()])
+                edge_set.contains(&[mapped_bits[0].index(), mapped_bits[1].index()])
             }
-            None => edge_set.contains(&[qubits[0].into(), qubits[1].into()]),
+            None => edge_set.contains(&[qubits[0].index(), qubits[1].index()]),
         }
     };
     for node in dag.op_nodes(false) {
@@ -72,7 +72,7 @@ fn recurse<'py>(
             {
                 return Ok(Some((
                     inst.op.name().to_string(),
-                    [qubits[0].0, qubits[1].0],
+                    [qubits[0].index(), qubits[1].index()],
                 )));
             }
         }
@@ -84,8 +84,8 @@ fn recurse<'py>(
 pub fn check_map(
     py: Python,
     dag: &DAGCircuit,
-    edge_set: HashSet<[u32; 2]>,
-) -> PyResult<Option<(String, [u32; 2])>> {
+    edge_set: HashSet<[usize; 2]>,
+) -> PyResult<Option<(String, [usize; 2])>> {
     recurse(py, dag, &edge_set, None)
 }
 

@@ -100,8 +100,8 @@ pub(crate) fn cancel_commutations(
     let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
     let mut cancellation_sets: HashMap<CancellationSetKey, Vec<NodeIndex>> = HashMap::new();
 
-    (0..dag.num_qubits() as u32).for_each(|qubit| {
-        let wire = Qubit(qubit);
+    (0..dag.num_qubits()).for_each(|qubit| {
+        let wire = Qubit::new(qubit);
         if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
                 if let Some(&nd) = com_set.first() {

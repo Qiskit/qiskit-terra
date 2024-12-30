@@ -46,7 +46,7 @@ type Instruction = (
 ///     A pointer to an iterator over standard instructions.
 pub fn pauli_evolution<'a>(
     pauli: &'a str,
-    indices: Vec<u32>,
+    indices: Vec<usize>,
     time: Param,
     phase_gate: bool,
     do_fountain: bool,
@@ -58,7 +58,7 @@ pub fn pauli_evolution<'a>(
         .chars()
         .zip(indices)
         .filter(|(pauli, _)| *pauli != 'i');
-    let (paulis, indices): (Vec<char>, Vec<u32>) = active.unzip();
+    let (paulis, indices): (Vec<char>, Vec<usize>) = active.unzip();
 
     match (phase_gate, indices.len()) {
         (_, 0) => Box::new(std::iter::empty()),
@@ -79,10 +79,10 @@ pub fn pauli_evolution<'a>(
 /// multiplied by a factor of 2.
 fn single_qubit_evolution(
     pauli: char,
-    index: u32,
+    index: usize,
     time: Param,
 ) -> impl Iterator<Item = StandardInstruction> {
-    let qubit: SmallVec<[Qubit; 2]> = smallvec![Qubit(index)];
+    let qubit: SmallVec<[Qubit; 2]> = smallvec![Qubit::new(index)];
     let param: SmallVec<[Param; 3]> = smallvec![time];
 
     std::iter::once(match pauli {
@@ -101,10 +101,10 @@ fn single_qubit_evolution(
 /// multi-qubit evolution is called.
 fn two_qubit_evolution<'a>(
     pauli: Vec<char>,
-    indices: Vec<u32>,
+    indices: Vec<usize>,
     time: Param,
 ) -> Box<dyn Iterator<Item = StandardInstruction> + 'a> {
-    let qubits: SmallVec<[Qubit; 2]> = smallvec![Qubit(indices[0]), Qubit(indices[1])];
+    let qubits: SmallVec<[Qubit; 2]> = smallvec![Qubit::new(indices[0]), Qubit::new(indices[1])];
     let param: SmallVec<[Param; 3]> = smallvec![time.clone()];
     let paulistring: String = pauli.iter().collect();
 
@@ -122,14 +122,14 @@ fn two_qubit_evolution<'a>(
 /// Implement a multi-qubit Pauli evolution. See ``pauli_evolution`` detailed docs.
 fn multi_qubit_evolution(
     pauli: Vec<char>,
-    indices: Vec<u32>,
+    indices: Vec<usize>,
     time: Param,
     phase_gate: bool,
     do_fountain: bool,
 ) -> impl Iterator<Item = StandardInstruction> {
     let active_paulis: Vec<(char, Qubit)> = pauli
         .into_iter()
-        .zip(indices.into_iter().map(Qubit))
+        .zip(indices.into_iter().map(Qubit::new))
         .collect();
 
     // get the basis change: x -> HGate, y -> SXdgGate, z -> nothing
@@ -219,7 +219,7 @@ fn multi_qubit_evolution(
 #[pyfunction]
 #[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, do_fountain=false))]
 pub fn py_pauli_evolution(
-    num_qubits: i64,
+    num_qubits: usize,
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
     do_fountain: bool,
@@ -227,7 +227,7 @@ pub fn py_pauli_evolution(
     let py = sparse_paulis.py();
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
-    let mut indices: Vec<Vec<u32>> = Vec::with_capacity(num_paulis);
+    let mut indices: Vec<Vec<usize>> = Vec::with_capacity(num_paulis);
     let mut times: Vec<Param> = Vec::with_capacity(num_paulis);
     let mut global_phase = Param::Float(0.0);
     let mut modified_phase = false; // keep track of whether we modified the phase
@@ -245,10 +245,10 @@ pub fn py_pauli_evolution(
 
         paulis.push(pauli);
         times.push(time); // note we do not multiply by 2 here, this is done Python side!
-        indices.push(tuple.get_item(1)?.extract::<Vec<u32>>()?)
+        indices.push(tuple.get_item(1)?.extract::<Vec<usize>>()?)
     }
 
-    let barrier = get_barrier(py, num_qubits as u32);
+    let barrier = get_barrier(py, num_qubits);
 
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {
@@ -274,7 +274,7 @@ pub fn py_pauli_evolution(
         global_phase = multiply_param(&global_phase, -1.0, py);
     }
 
-    CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
+    CircuitData::from_packed_operations(py, num_qubits, 0, evos, global_phase)
 }
 
 /// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return
@@ -329,13 +329,13 @@ fn cx_fountain(
     }))
 }
 
-fn get_barrier(py: Python, num_qubits: u32) -> Instruction {
+fn get_barrier(py: Python, num_qubits: usize) -> Instruction {
     let barrier_cls = imports::BARRIER.get_bound(py);
     let barrier = barrier_cls
         .call1((num_qubits,))
         .expect("Could not create Barrier Python-side");
     let barrier_inst = PyInstruction {
-        qubits: num_qubits,
+        qubits: num_qubits.try_into().unwrap(),
         clbits: 0,
         params: 0,
         op_name: "barrier".to_string(),
@@ -345,7 +345,7 @@ fn get_barrier(py: Python, num_qubits: u32) -> Instruction {
     (
         barrier_inst.into(),
         smallvec![],
-        (0..num_qubits).map(Qubit).collect(),
+        (0..num_qubits).map(Qubit::new).collect(),
         vec![],
     )
 }

@@ -39,7 +39,7 @@ fn is_supported(
 ) -> bool {
     match target {
         Some(target) => {
-            let physical_qargs = qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
+            let physical_qargs = qargs.iter().cloned().map(PhysicalQubit::from_bit).collect();
             target.instruction_supported(name, Some(&physical_qargs))
         }
         None => match basis_gates {
@@ -148,7 +148,7 @@ pub(crate) fn consolidate_blocks(
                 .collect();
             let circuit_data = CircuitData::from_packed_operations(
                 py,
-                block_qargs.len() as u32,
+                block_qargs.len(),
                 0,
                 block.iter().map(|node| {
                     let inst = dag.dag()[*node].unwrap_operation();

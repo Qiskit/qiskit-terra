@@ -252,15 +252,15 @@ impl Clifford {
                     Ok(())
                 }
                 StandardGate::SdgGate => {
-                    clifford.append_sdg(qubits[0].0 as usize);
+                    clifford.append_sdg(qubits[0].index());
                     Ok(())
                 }
                 StandardGate::SXGate => {
-                    clifford.append_sx(qubits[0].0 as usize);
+                    clifford.append_sx(qubits[0].index());
                     Ok(())
                 }
                 StandardGate::SXdgGate => {
-                    clifford.append_sxdg(qubits[0].0 as usize);
+                    clifford.append_sxdg(qubits[0].index());
                     Ok(())
                 }
                 StandardGate::HGate => {

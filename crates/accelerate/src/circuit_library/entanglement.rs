@@ -22,13 +22,13 @@ use crate::QiskitError;
 
 /// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
 /// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-fn full(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
-    (0..num_qubits).combinations(block_size as usize)
+fn full(num_qubits: usize, block_size: usize) -> impl Iterator<Item = Vec<usize>> {
+    (0..num_qubits).combinations(block_size)
 }
 
 /// Get a linear entanglement structure. For ``n`` qubits and block size ``m`` we have:
 /// [(0..m-1), (1..m), (2..m+1), ..., (n-m..n-1)]
-fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item = Vec<u32>> {
+fn linear(num_qubits: usize, block_size: usize) -> impl DoubleEndedIterator<Item = Vec<usize>> {
     (0..num_qubits - block_size + 1)
         .map(move |start_index| (start_index..start_index + block_size).collect())
 }
@@ -37,7 +37,7 @@ fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item = V
 /// [(n-m..n-1), ..., (1..m), (0..m-1)]
 /// This is particularly interesting, as CX+"full" uses n(n-1)/2 gates, but operationally equals
 /// CX+"reverse_linear", which needs only n-1 gates.
-fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
+fn reverse_linear(num_qubits: usize, block_size: usize) -> impl Iterator<Item = Vec<usize>> {
     linear(num_qubits, block_size).rev()
 }
 
@@ -45,7 +45,7 @@ fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<
 /// starting at each possible index ``(0..n)``. Historically, Qiskit starts with index ``n-m+1``.
 /// This is probably easiest understood for a concerete example of 4 qubits and block size 3:
 /// [(2,3,0), (3,0,1), (0,1,2), (1,2,3)]
-fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec<u32>>> {
+fn circular(num_qubits: usize, block_size: usize) -> Box<dyn Iterator<Item = Vec<usize>>> {
     if block_size == 1 || num_qubits == block_size {
         Box::new(linear(num_qubits, block_size))
     } else {
@@ -61,7 +61,7 @@ fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec<u32
 /// Get pairwise entanglement. This is typically used on 2 qubits and only has a depth of 2, as
 /// first all odd pairs, and then even pairs are entangled. For example on 6 qubits:
 /// [(0, 1), (2, 3), (4, 5), /* now the even pairs */ (1, 2), (3, 4)]
-fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
+fn pairwise(num_qubits: usize) -> impl Iterator<Item = Vec<usize>> {
     // for Python-folks (like me): pairwise is equal to linear[::2] + linear[1::2]
     linear(num_qubits, 2)
         .step_by(2)
@@ -77,16 +77,16 @@ fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
 /// Offset 2 -> [(0,1,2), (1,2,3), (2,3,0), (3,0,1)]
 /// ...
 fn shift_circular_alternating(
-    num_qubits: u32,
-    block_size: u32,
+    num_qubits: usize,
+    block_size: usize,
     offset: usize,
-) -> Box<dyn Iterator<Item = Vec<u32>>> {
+) -> Box<dyn Iterator<Item = Vec<usize>>> {
     // index at which we split the circular iterator -- we use Python-like indexing here,
     // and define ``split`` as equivalent to a Python index of ``-offset``
-    let split = (num_qubits - (offset as u32 % num_qubits)) % num_qubits;
+    let split = (num_qubits - (offset % num_qubits)) % num_qubits;
     let shifted = circular(num_qubits, block_size)
-        .skip(split as usize)
-        .chain(circular(num_qubits, block_size).take(split as usize));
+        .skip(split)
+        .chain(circular(num_qubits, block_size).take(split));
     if offset % 2 == 0 {
         Box::new(shifted)
     } else {
@@ -109,11 +109,11 @@ fn shift_circular_alternating(
 ///     The entangler map using mode ``entanglement`` to scatter a block of ``block_size``
 ///     qubits on ``num_qubits`` qubits.
 pub fn get_entanglement_from_str(
-    num_qubits: u32,
-    block_size: u32,
+    num_qubits: usize,
+    block_size: usize,
     entanglement: &str,
     offset: usize,
-) -> PyResult<Box<dyn Iterator<Item = Vec<u32>>>> {
+) -> PyResult<Box<dyn Iterator<Item = Vec<usize>>>> {
     if num_qubits == 0 || block_size == 0 {
         return Ok(Box::new(std::iter::empty()));
     }
@@ -157,11 +157,11 @@ pub fn get_entanglement_from_str(
 ///     The entangler map using mode ``entanglement`` to scatter a block of ``block_size``
 ///     qubits on ``num_qubits`` qubits.
 pub fn get_entanglement<'a>(
-    num_qubits: u32,
-    block_size: u32,
+    num_qubits: usize,
+    block_size: usize,
     entanglement: &'a Bound<PyAny>,
     offset: usize,
-) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<u32>>> + 'a>> {
+) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<usize>>> + 'a>> {
     // unwrap the callable, if it is one
     let entanglement = if entanglement.is_callable() {
         entanglement.call1((offset,))?
@@ -191,12 +191,12 @@ pub fn get_entanglement<'a>(
 
 fn _check_entanglement_list<'a>(
     list: Bound<'a, PyList>,
-    block_size: u32,
-) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<u32>>> + 'a>> {
+    block_size: usize,
+) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<usize>>> + 'a>> {
     let entanglement_iter = list.iter().map(move |el| {
-        let connections: Vec<u32> = el.extract()?;
+        let connections: Vec<usize> = el.extract()?;
 
-        if connections.len() != block_size as usize {
+        if connections.len() != block_size {
             return Err(QiskitError::new_err(format!(
                 "Entanglement {:?} does not match block size {}",
                 connections, block_size
@@ -235,14 +235,14 @@ fn _check_entanglement_list<'a>(
 #[pyo3(signature = (num_qubits, block_size, entanglement, offset=0))]
 pub fn get_entangler_map<'py>(
     py: Python<'py>,
-    num_qubits: u32,
-    block_size: u32,
+    num_qubits: usize,
+    block_size: usize,
     entanglement: &Bound<PyAny>,
     offset: usize,
 ) -> PyResult<Vec<Bound<'py, PyTuple>>> {
-    // The entanglement is Result<impl Iterator<Item = Result<Vec<u32>>>>, so there's two
+    // The entanglement is Result<impl Iterator<Item = Result<Vec<usize>>>>, so there's two
     // levels of errors we must handle: the outer error is handled by the outer match statement,
-    // and the inner (Result<Vec<u32>>) is handled upon the PyTuple creation.
+    // and the inner (Result<Vec<usize>>) is handled upon the PyTuple creation.
     match get_entanglement(num_qubits, block_size, entanglement, offset) {
         Ok(entanglement) => entanglement
             .into_iter()

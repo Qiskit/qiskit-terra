@@ -54,7 +54,7 @@ type Instruction = (
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_feature_map(
     py: Python,
-    feature_dimension: u32,
+    feature_dimension: usize,
     parameters: Bound<PyAny>,
     reps: usize,
     entanglement: Option<&Bound<PyAny>>,
@@ -124,12 +124,12 @@ pub fn pauli_feature_map(
     )
 }
 
-fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
+fn _get_h_layer(feature_dimension: usize) -> impl Iterator<Item = Instruction> {
     (0..feature_dimension).map(|i| {
         (
             StandardGate::HGate.into(),
             smallvec![],
-            vec![Qubit(i)],
+            vec![Qubit::new(i)],
             vec![] as Vec<Clbit>,
         )
     })
@@ -138,7 +138,7 @@ fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
 #[allow(clippy::too_many_arguments)]
 fn _get_evolution_layer<'a>(
     py: Python<'a>,
-    feature_dimension: u32,
+    feature_dimension: usize,
     rep: usize,
     alpha: f64,
     parameter_vector: &'a [Param],
@@ -149,7 +149,7 @@ fn _get_evolution_layer<'a>(
     let mut insts: Vec<Instruction> = Vec::new();
 
     for pauli in pauli_strings {
-        let block_size = pauli.len() as u32;
+        let block_size = pauli.len();
         let entanglement =
             entanglement::get_entanglement(feature_dimension, block_size, entanglement, rep)?;
 
@@ -158,7 +158,7 @@ fn _get_evolution_layer<'a>(
             let active_parameters: Vec<Param> = indices
                 .clone()
                 .iter()
-                .map(|i| parameter_vector[*i as usize].clone())
+                .map(|i| parameter_vector[*i].clone())
                 .collect();
 
             let angle = match data_map_func {
@@ -214,7 +214,7 @@ fn _default_reduce(py: Python, parameters: Vec<Param>) -> Param {
 /// PyString->String, followed by a check whether the feature dimension is large enough
 /// for the Pauli (e.g. we cannot implement a "zzz" Pauli on a 2 qubit circuit).
 fn _get_paulis(
-    feature_dimension: u32,
+    feature_dimension: usize,
     paulis: Option<&Bound<PySequence>>,
 ) -> PyResult<Vec<String>> {
     let default_pauli: Vec<String> = if feature_dimension == 1 {
@@ -231,7 +231,7 @@ fn _get_paulis(
                 .map(|el| {
                     // Get the string and check whether it fits the feature dimension
                     let as_string = (*el.downcast::<PyString>()?).to_string();
-                    if as_string.len() > feature_dimension as usize {
+                    if as_string.len() > feature_dimension {
                         Err(QiskitError::new_err(format!(
                             "feature_dimension ({}) smaller than the Pauli ({})",
                             feature_dimension, as_string
@@ -246,11 +246,11 @@ fn _get_paulis(
 }
 
 /// Get a barrier object from Python space.
-fn _get_barrier(py: Python, feature_dimension: u32) -> PyResult<Instruction> {
+fn _get_barrier(py: Python, feature_dimension: usize) -> PyResult<Instruction> {
     let barrier_cls = imports::BARRIER.get_bound(py);
     let barrier = barrier_cls.call1((feature_dimension,))?;
     let barrier_inst = PyInstruction {
-        qubits: feature_dimension,
+        qubits: feature_dimension.try_into().unwrap(),
         clbits: 0,
         params: 0,
         op_name: "barrier".to_string(),
@@ -260,7 +260,7 @@ fn _get_barrier(py: Python, feature_dimension: u32) -> PyResult<Instruction> {
     Ok((
         barrier_inst.into(),
         smallvec![],
-        (0..feature_dimension).map(Qubit).collect(),
+        (0..feature_dimension).map(Qubit::new).collect(),
         vec![] as Vec<Clbit>,
     ))
 }

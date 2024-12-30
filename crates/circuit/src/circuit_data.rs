@@ -33,6 +33,7 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
+use crate::dag_circuit::DAGCircuit;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -907,8 +908,8 @@ impl CircuitData {
     /// * global_phase: The global phase to use for the circuit
     pub fn from_packed_operations<I>(
         py: Python,
-        num_qubits: u32,
-        num_clbits: u32,
+        num_qubits: usize,
+        num_clbits: usize,
         instructions: I,
         global_phase: Param,
     ) -> PyResult<Self>
@@ -950,9 +951,48 @@ impl CircuitData {
         Ok(res)
     }
 
+    pub fn from_dag(py: Python, dag: &DAGCircuit, copy_operations: bool) -> PyResult<Self> {
+        use crate::dag_circuit::NodeType;
+        Self::from_packed_instructions(
+            py,
+            dag.qubits().clone(),
+            dag.clbits().clone(),
+            dag.qargs_interner().clone(),
+            dag.cargs_interner().clone(),
+            dag.topological_op_nodes()?.map(|node_index| {
+                let NodeType::Operation(ref instr) = dag.dag()[node_index] else {
+                    unreachable!(
+                        "The received node from topological_op_nodes() is not an Operation node."
+                    )
+                };
+                if copy_operations {
+                    let op = instr.op.py_deepcopy(py, None)?;
+                    Ok(PackedInstruction {
+                        op,
+                        qubits: instr.qubits,
+                        clbits: instr.clbits,
+                        params: Some(Box::new(
+                            instr
+                                .params_view()
+                                .iter()
+                                .map(|param| param.clone_ref(py))
+                                .collect(),
+                        )),
+                        extra_attrs: instr.extra_attrs.clone(),
+                        #[cfg(feature = "cache_pygates")]
+                        py_op: OnceLock::new(),
+                    })
+                } else {
+                    Ok(instr.clone())
+                }
+            }),
+            dag.get_global_phase(),
+        )
+    }
+
     /// A constructor for CircuitData from an iterator of PackedInstruction objects
     ///
-    /// This is tpically useful when iterating over a CircuitData or DAGCircuit
+    /// This is typically useful when iterating over a CircuitData or DAGCircuit
     /// to construct a new CircuitData from the iterator of PackedInstructions. As
     /// such it requires that you have `BitData` and `Interner` objects to run. If
     /// you just wish to build a circuit data from an iterator of instructions
@@ -977,7 +1017,7 @@ impl CircuitData {
     ///     of the operation while iterating for constructing the new `CircuitData`. An
     ///     example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
     /// * global_phase: The global phase value to use for the new circuit.
-    pub fn from_packed_instructions<I>(
+    pub(crate) fn from_packed_instructions<I>(
         py: Python,
         qubits: BitData<Qubit>,
         clbits: BitData<Clbit>,
@@ -1030,7 +1070,7 @@ impl CircuitData {
     /// * global_phase: The global phase to use for the circuit
     pub fn from_standard_gates<I>(
         py: Python,
-        num_qubits: u32,
+        num_qubits: usize,
         instructions: I,
         global_phase: Param,
     ) -> PyResult<Self>
@@ -1067,8 +1107,8 @@ impl CircuitData {
     /// Build an empty CircuitData object with an initially allocated instruction capacity
     pub fn with_capacity(
         py: Python,
-        num_qubits: u32,
-        num_clbits: u32,
+        num_qubits: usize,
+        num_clbits: usize,
         instruction_capacity: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
@@ -1285,12 +1325,12 @@ impl CircuitData {
     }
 
     /// Returns an immutable view of the Qubits registered in the circuit
-    pub fn qubits(&self) -> &BitData<Qubit> {
+    pub(crate) fn qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
-    pub fn clbits(&self) -> &BitData<Clbit> {
+    pub(crate) fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
 

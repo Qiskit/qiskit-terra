@@ -21,8 +21,7 @@ use pyo3::{
 };
 
 use crate::circuit_data::CircuitData;
-use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::packed_instruction::PackedInstruction;
+use crate::dag_circuit::DAGCircuit;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -99,41 +98,7 @@ pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
 ) -> PyResult<CircuitData> {
-    CircuitData::from_packed_instructions(
-        py,
-        dag.qubits().clone(),
-        dag.clbits().clone(),
-        dag.qargs_interner().clone(),
-        dag.cargs_interner().clone(),
-        dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag.dag()[node_index] else {
-                unreachable!(
-                    "The received node from topological_op_nodes() is not an Operation node."
-                )
-            };
-            if copy_operations {
-                let op = instr.op.py_deepcopy(py, None)?;
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    extra_attrs: instr.extra_attrs.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
-            } else {
-                Ok(instr.clone())
-            }
-        }),
-        dag.get_global_phase(),
-    )
+    CircuitData::from_dag(py, dag, copy_operations)
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {

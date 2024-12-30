@@ -911,7 +911,7 @@ pub fn unitary_to_circuit(
                 (
                     gate,
                     params.into_iter().map(Param::Float).collect(),
-                    smallvec![Qubit(0)],
+                    smallvec![Qubit::new(0)],
                 )
             }),
             Param::Float(seq.global_phase),
@@ -1090,7 +1090,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
             None => raw_run.len() as f64,
         };
         let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag()[raw_run[0]] {
-            PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
+            PhysicalQubit::from_bit(dag.get_qargs(inst.qubits)[0])
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };

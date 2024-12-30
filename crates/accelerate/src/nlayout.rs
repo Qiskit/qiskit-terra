@@ -15,6 +15,8 @@ use pyo3::types::PyList;
 
 use hashbrown::HashMap;
 
+use qiskit_circuit::Qubit;
+
 /// A newtype for the different categories of qubits used within layouts.  This is to enforce
 /// significantly more type safety when dealing with mixtures of physical and virtual qubits, as we
 /// typically are when dealing with layouts.  In Rust space, `NLayout` only works in terms of the
@@ -32,8 +34,20 @@ macro_rules! qubit_newtype {
                 Self(val)
             }
             #[inline]
+            pub fn from_bit(val: Qubit) -> Self {
+                // TODO: move physical and virtual bit types to the circuit crate
+                // This will always work since Qubit is never bigger than a u32.
+                Self(val.index() as u32)
+            }
+            #[inline]
             pub fn index(&self) -> usize {
                 self.0 as usize
+            }
+        }
+
+        impl From<Qubit> for $id {
+            fn from(value: Qubit) -> Self {
+                Self::from_bit(value)
             }
         }
 

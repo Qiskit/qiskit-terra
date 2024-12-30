@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::BitType;
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -70,8 +69,28 @@ impl PartialEq for BitAsKey {
 
 impl Eq for BitAsKey {}
 
+/// An intentionally crate-private trait that must be implemented
+/// for types used with [BitData].
+///
+/// Because this is private to the crate, implementing it does
+/// not automatically make the implementing type convertible to
+/// and from a [usize]. This is handy for types like
+/// [crate::dagcircuit::Var] which are intended to serve as opaque
+/// keys to access variable data managed by a
+/// [crate::dagcircuit::DAGCircuit].
+pub(crate) trait WireIndex {
+    fn new(index: usize) -> Self;
+    fn index(&self) -> usize;
+}
+
+/// An internal structure used to track the mapping between
+/// wire indices and Python bits.
+///
+/// This is very much only intended as a short-term method of
+/// tracking Python bits, and should not be exposed beyond
+/// this crate.
 #[derive(Clone, Debug)]
-pub struct BitData<T> {
+pub(crate) struct BitData<T> {
     /// The public field name (i.e. `qubits` or `clbits`).
     description: String,
     /// Registered Python bits.
@@ -84,8 +103,7 @@ pub struct BitData<T> {
 
 impl<T> BitData<T>
 where
-    T: From<BitType> + Copy,
-    BitType: From<T>,
+    T: WireIndex + Copy,
 {
     pub fn new(py: Python<'_>, description: String) -> Self {
         BitData {
@@ -96,7 +114,7 @@ where
         }
     }
 
-    pub fn with_capacity(py: Python<'_>, description: String, capacity: usize) -> Self {
+    pub fn with_capacity(py: Python, description: String, capacity: usize) -> Self {
         BitData {
             description,
             bits: Vec::with_capacity(capacity),
@@ -168,7 +186,7 @@ where
     /// bit index.
     #[inline]
     pub fn get(&self, index: T) -> Option<&PyObject> {
-        self.bits.get(<BitType as From<T>>::from(index) as usize)
+        self.bits.get(index.index())
     }
 
     /// Adds a new Python bit.
@@ -178,17 +196,8 @@ where
             format!("This circuit's {} list has become out of sync with the circuit data. Did something modify it?", self.description)
             ));
         }
-        let idx: BitType = self.bits.len().try_into().map_err(|_| {
-            PyRuntimeError::new_err(format!(
-                "The number of {} in the circuit has exceeded the maximum capacity",
-                self.description
-            ))
-        })?;
-        if self
-            .indices
-            .try_insert(BitAsKey::new(bit), idx.into())
-            .is_ok()
-        {
+        let idx = T::new(self.bits.len());
+        if self.indices.try_insert(BitAsKey::new(bit), idx).is_ok() {
             self.bits.push(bit.into_py(py));
             self.cached.bind(py).append(bit)?;
         } else if strict {
@@ -197,17 +206,15 @@ where
                 bit
             )));
         }
-        Ok(idx.into())
+        // TODO: looks like a bug where `idx` is wrong if not strict and already exists
+        Ok(idx)
     }
 
     pub fn remove_indices<I>(&mut self, py: Python, indices: I) -> PyResult<()>
     where
         I: IntoIterator<Item = T>,
     {
-        let mut indices_sorted: Vec<usize> = indices
-            .into_iter()
-            .map(|i| <BitType as From<T>>::from(i) as usize)
-            .collect();
+        let mut indices_sorted: Vec<usize> = indices.into_iter().map(|i| i.index()).collect();
         indices_sorted.sort();
 
         for index in indices_sorted.into_iter().rev() {
@@ -217,8 +224,7 @@ where
         }
         // Update indices.
         for (i, bit) in self.bits.iter().enumerate() {
-            self.indices
-                .insert(BitAsKey::new(bit.bind(py)), (i as BitType).into());
+            self.indices.insert(BitAsKey::new(bit.bind(py)), T::new(i));
         }
         Ok(())
     }

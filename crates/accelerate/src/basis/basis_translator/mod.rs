@@ -295,7 +295,7 @@ fn extract_basis_target(
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
         let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+            qargs.iter().cloned().map(PhysicalQubit::from_bit).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -374,7 +374,7 @@ fn extract_basis_target_circ(
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
         let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+            qargs.iter().cloned().map(PhysicalQubit::from_bit).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -509,8 +509,13 @@ fn apply_translation(
             }
             continue;
         }
-        let node_qarg_as_physical: Option<Qargs> =
-            Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
+        let node_qarg_as_physical: Option<Qargs> = Some(
+            node_qarg
+                .iter()
+                .cloned()
+                .map(PhysicalQubit::from_bit)
+                .collect(),
+        );
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
@@ -563,7 +568,13 @@ fn apply_translation(
         let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
             None
         } else {
-            Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())
+            Some(
+                qubit_set
+                    .iter()
+                    .cloned()
+                    .map(PhysicalQubit::from_bit)
+                    .collect(),
+            )
         };
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
@@ -614,12 +625,12 @@ fn replace_node(
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
-                .map(|qubit| old_qargs[qubit.0 as usize])
+                .map(|qubit| old_qargs[qubit.index()])
                 .collect();
             let new_clbits: Vec<Clbit> = target_dag
                 .get_cargs(inner_node.clbits)
                 .iter()
-                .map(|clbit| old_cargs[clbit.0 as usize])
+                .map(|clbit| old_cargs[clbit.index()])
                 .collect();
             let new_op = if inner_node.op.try_standard_gate().is_none() {
                 inner_node.op.py_copy(py)?
@@ -675,12 +686,12 @@ fn replace_node(
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
-                .map(|qubit| old_qargs[qubit.0 as usize])
+                .map(|qubit| old_qargs[qubit.index()])
                 .collect();
             let new_clbits: Vec<Clbit> = target_dag
                 .get_cargs(inner_node.clbits)
                 .iter()
-                .map(|clbit| old_cargs[clbit.0 as usize])
+                .map(|clbit| old_cargs[clbit.index()])
                 .collect();
             let new_op = if inner_node.op.try_standard_gate().is_none() {
                 inner_node.op.py_copy(py)?

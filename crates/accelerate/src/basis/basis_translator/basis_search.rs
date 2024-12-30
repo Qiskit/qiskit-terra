@@ -78,7 +78,7 @@ pub(crate) fn basis_search(
         equivs: vec![],
         key: Key {
             name: "key".to_string(),
-            num_qubits: u32::MAX,
+            num_qubits: usize::MAX,
         },
     });
 

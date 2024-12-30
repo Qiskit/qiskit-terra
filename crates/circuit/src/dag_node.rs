@@ -316,12 +316,12 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn num_qubits(&self) -> u32 {
+    fn num_qubits(&self) -> usize {
         self.instruction.operation.num_qubits()
     }
 
     #[getter]
-    fn num_clbits(&self) -> u32 {
+    fn num_clbits(&self) -> usize {
         self.instruction.operation.num_clbits()
     }
 

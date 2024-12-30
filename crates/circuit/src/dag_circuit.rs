@@ -15,7 +15,7 @@ use std::hash::Hash;
 use ahash::RandomState;
 use smallvec::SmallVec;
 
-use crate::bit_data::BitData;
+use crate::bit_data::{BitData, WireIndex};
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
@@ -29,7 +29,7 @@ use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::rustworkx_core_vnext::isomorphism;
-use crate::{BitType, Clbit, Qubit, TupleLikeArg};
+use crate::{Clbit, Qubit, TupleLikeArg};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -82,35 +82,19 @@ static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "con
 /// These keys are [Eq], but this is semantically valid only for keys
 /// from the same [DAGCircuit] instance.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Var(BitType);
+pub struct Var(u32);
 
-impl Var {
-    /// Construct a new [Var] object from a usize. if you have a u32 you can
-    /// create a [Var] object directly with `Var(0u32)`. This will panic
-    /// if the `usize` index exceeds `u32::MAX`.
-    #[inline(always)]
+// Note that the implementation is private to this crate
+// because the visibility of WireIndex is only pub(crate).
+// This is intentional, since it prevents users from creating
+// a Var, which should only be done by DAGCircuit.
+impl WireIndex for Var {
     fn new(index: usize) -> Self {
-        Var(index
-            .try_into()
-            .unwrap_or_else(|_| panic!("Index value '{}' exceeds the maximum bit width!", index)))
+        Var(index.try_into().expect("Variable storage exceeded."))
     }
 
-    /// Get the index of the [Var]
-    #[inline(always)]
     fn index(&self) -> usize {
         self.0 as usize
-    }
-}
-
-impl From<BitType> for Var {
-    fn from(value: BitType) -> Self {
-        Var(value)
-    }
-}
-
-impl From<Var> for BitType {
-    fn from(value: Var) -> Self {
-        value.0
     }
 }
 
@@ -991,10 +975,10 @@ def _format(operand):
             }
             params.push(p.to_object(py));
         }
-        let qubits: Vec<BitType> = self
+        let qubits: Vec<usize> = self
             .qubits
             .map_bits(node.instruction.qubits.bind(py).iter())?
-            .map(|bit| bit.0)
+            .map(|bit| bit.index())
             .collect();
         let qubits = PyTuple::new_bound(py, qubits);
         let params = PyTuple::new_bound(py, params);
@@ -3251,9 +3235,9 @@ def _format(operand):
                             &mut self.dag[*new_node_index]
                         {
                             new_inst.op = PyInstruction {
-                                qubits: old_op.num_qubits(),
-                                clbits: old_op.num_clbits(),
-                                params: old_op.num_params(),
+                                qubits: old_op.num_qubits() as u32,
+                                clbits: old_op.num_clbits() as u32,
+                                params: old_op.num_params() as u32,
                                 control_flow: old_op.control_flow(),
                                 op_name: old_op.name().to_string(),
                                 instruction: new_op.clone().unbind(),
@@ -4798,19 +4782,19 @@ impl DAGCircuit {
 
     /// Returns an immutable view of the Qubits registered in the circuit
     #[inline(always)]
-    pub fn qubits(&self) -> &BitData<Qubit> {
+    pub(crate) fn qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
     #[inline(always)]
-    pub fn clbits(&self) -> &BitData<Clbit> {
+    pub(crate) fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
 
     /// Returns an immutable view of the Variable wires registered in the circuit
     #[inline(always)]
-    pub fn vars(&self) -> &BitData<Var> {
+    pub(crate) fn vars(&self) -> &BitData<Var> {
         &self.vars
     }
 
@@ -6015,6 +5999,20 @@ impl DAGCircuit {
         Ok(out_map)
     }
 
+    /// Retrieve a Python qubit given its [Qubit] within the DAG.
+    ///
+    /// The provided [Qubit] must be from this [DAGCircuit].
+    pub fn get_qubit<'py>(&self, py: Python<'py>, qubit: Qubit) -> Option<Bound<'py, PyAny>> {
+        self.qubits.get(qubit).map(|v| v.bind(py).clone())
+    }
+
+    /// Retrieve a Python clbit given its [Clbit] within the DAG.
+    ///
+    /// The provided [Clbit] must be from this [DAGCircuit].
+    pub fn get_clbit<'py>(&self, py: Python<'py>, clbit: Clbit) -> Option<Bound<'py, PyAny>> {
+        self.clbits.get(clbit).map(|v| v.bind(py).clone())
+    }
+
     /// Retrieve a variable given its unique [Var] key within the DAG.
     ///
     /// The provided [Var] must be from this [DAGCircuit].
@@ -6850,7 +6848,7 @@ impl DAGCircuit {
 
         let py_op = op.extract::<OperationFromPython>()?;
 
-        if py_op.operation.num_qubits() as usize != block_qargs.len() {
+        if py_op.operation.num_qubits() != block_qargs.len() {
             return Err(DAGCircuitError::new_err(format!(
                 "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!", py_op.operation.num_qubits(), block_qargs.len()
             )));

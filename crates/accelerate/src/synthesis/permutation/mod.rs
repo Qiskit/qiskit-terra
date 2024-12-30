@@ -49,7 +49,7 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
     let num_qubits = view.len();
     CircuitData::from_standard_gates(
         py,
-        num_qubits as u32,
+        num_qubits,
         utils::get_ordered_swap(&view).iter().map(|(i, j)| {
             (
                 StandardGate::SwapGate,
@@ -72,7 +72,7 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
 
     CircuitData::from_standard_gates(
         py,
-        num_qubits as u32,
+        num_qubits,
         swaps.iter().map(|(i, j)| {
             (
                 StandardGate::SwapGate,
@@ -104,7 +104,7 @@ pub fn _synth_permutation_depth_lnn_kms(
 
     CircuitData::from_standard_gates(
         py,
-        num_qubits as u32,
+        num_qubits,
         swap_layers.iter().map(|(i, j)| {
             (
                 StandardGate::SwapGate,
@@ -183,7 +183,7 @@ fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usiz
 fn synth_permutation_reverse_lnn_kms(py: Python, num_qubits: usize) -> PyResult<CircuitData> {
     let mut gates = LnnGatesVec::new();
     _append_reverse_permutation_lnn_kms(&mut gates, num_qubits);
-    CircuitData::from_standard_gates(py, num_qubits as u32, gates, Param::Float(0.0))
+    CircuitData::from_standard_gates(py, num_qubits, gates, Param::Float(0.0))
 }
 
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {

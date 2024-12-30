@@ -116,7 +116,7 @@ fn apply_synth_dag(
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
-            .map(|qarg| out_qargs[qarg.0 as usize])
+            .map(|qarg| out_qargs[qarg.index()])
             .collect();
         out_packed_instr.qubits = out_dag.qargs_interner.insert(&mapped_qargs);
         out_dag.push_back(py, out_packed_instr)?;
@@ -254,7 +254,7 @@ fn py_run_main_loop(
                 let new_ids = dag
                     .get_qargs(packed_instr.qubits)
                     .iter()
-                    .map(|qarg| qubit_indices[qarg.0 as usize])
+                    .map(|qarg| qubit_indices[qarg.index()])
                     .collect_vec();
                 let res = py_run_main_loop(
                     py,
@@ -289,9 +289,7 @@ fn py_run_main_loop(
                 py_op: new_node.unbind().into(),
             };
         }
-        if !(packed_instr.op.name() == "unitary"
-            && packed_instr.op.num_qubits() >= min_qubits as u32)
-        {
+        if !(packed_instr.op.name() == "unitary" && packed_instr.op.num_qubits() >= min_qubits) {
             out_dag.push_back(py, packed_instr)?;
             continue;
         }
@@ -303,11 +301,11 @@ fn py_run_main_loop(
             // Run 1q synthesis
             [2, 2] => {
                 let qubit = dag.get_qargs(packed_instr.qubits)[0];
-                let target_basis_set = get_target_basis_set(target, PhysicalQubit::new(qubit.0));
+                let target_basis_set = get_target_basis_set(target, PhysicalQubit::from_bit(qubit));
                 let sequence = unitary_to_gate_sequence_inner(
                     unitary.view(),
                     &target_basis_set,
-                    qubit.0 as usize,
+                    qubit.index(),
                     None,
                     true,
                     None,
@@ -341,8 +339,8 @@ fn py_run_main_loop(
                 let out_qargs = dag.get_qargs(packed_instr.qubits);
                 // "ref_qubits" is used to access properties in the target. It accounts for control flow mapping.
                 let ref_qubits: &[PhysicalQubit; 2] = &[
-                    PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
-                    PhysicalQubit::new(qubit_indices[out_qargs[1].0 as usize] as u32),
+                    PhysicalQubit::new(qubit_indices[out_qargs[0].index()] as u32),
+                    PhysicalQubit::new(qubit_indices[out_qargs[1].index()] as u32),
                 ];
                 let apply_original_op = |out_dag: &mut DAGCircuit| -> PyResult<()> {
                     out_dag.push_back(py, packed_instr.clone())?;
@@ -491,7 +489,7 @@ fn run_2q_unitary_synthesis(
                         let inst_qubits = synth_dag
                             .get_qargs(inst.qubits)
                             .iter()
-                            .map(|q| ref_qubits[q.0 as usize])
+                            .map(|q| ref_qubits[q.index()])
                             .collect();
                         (
                             inst.op.name().to_string(),
@@ -995,12 +993,12 @@ fn synth_su4_dag(
     match preferred_direction {
         None => Ok(synth_dag),
         Some(preferred_dir) => {
-            let mut synth_direction: Option<Vec<u32>> = None;
+            let mut synth_direction: Option<Vec<usize>> = None;
             for node in synth_dag.topological_op_nodes()? {
                 let inst = &synth_dag.dag()[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
-                    synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
+                    synth_direction = Some(vec![qargs[0].index(), qargs[1].index()]);
                 }
             }
             match synth_direction {
@@ -1059,14 +1057,14 @@ fn reversed_synth_su4_dag(
     };
 
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
-    let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
+    let flip_bits: [Qubit; 2] = [Qubit::new(1), Qubit::new(0)];
     for node in synth_dag.topological_op_nodes()? {
         let mut inst = synth_dag.dag()[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)
             .iter()
-            .map(|x| flip_bits[x.0 as usize])
+            .map(|x| flip_bits[x.index()])
             .collect();
         inst.qubits = target_dag.qargs_interner.insert_owned(qubits);
         target_dag.push_back(py, inst)?;

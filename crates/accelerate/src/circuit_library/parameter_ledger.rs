@@ -46,8 +46,8 @@ pub(super) struct ParameterLedger {
     parameter_vector: Vec<Param>, // all parameters
     rotation_indices: Vec<usize>, // indices where rotation blocks start
     entangle_indices: Vec<usize>,
-    rotations: Vec<(u32, usize)>, // (#blocks per layer, #params per block) for each block
-    entanglements: Vec<Vec<(u32, usize)>>, // this might additionally change per layer
+    rotations: Vec<(usize, usize)>, // (#blocks per layer, #params per block) for each block
+    entanglements: Vec<Vec<(usize, usize)>>, // this might additionally change per layer
 }
 
 impl ParameterLedger {
@@ -57,7 +57,7 @@ impl ParameterLedger {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn from_nlocal(
         py: Python,
-        num_qubits: u32,
+        num_qubits: usize,
         reps: usize,
         entanglement: &Entanglement,
         rotation_blocks: &[&Block],
@@ -73,24 +73,24 @@ impl ParameterLedger {
 
         // compute the number of parameters used for the rotation layers
         let mut num_rotation_params_per_layer: usize = 0;
-        let mut rotations: Vec<(u32, usize)> = Vec::new();
+        let mut rotations: Vec<(usize, usize)> = Vec::new();
 
         for block in rotation_blocks {
             let num_blocks = num_qubits / block.num_qubits;
             rotations.push((num_blocks, block.num_parameters));
-            num_rotation_params_per_layer += (num_blocks as usize) * block.num_parameters;
+            num_rotation_params_per_layer += num_blocks * block.num_parameters;
         }
 
         // compute the number of parameters used for the entanglement layers
         let mut num_entangle_params_per_layer: Vec<usize> = Vec::with_capacity(reps);
-        let mut entanglements: Vec<Vec<(u32, usize)>> = Vec::with_capacity(reps);
+        let mut entanglements: Vec<Vec<(usize, usize)>> = Vec::with_capacity(reps);
         for this_entanglement in entanglement.iter() {
-            let mut this_entanglements: Vec<(u32, usize)> = Vec::new();
+            let mut this_entanglements: Vec<(usize, usize)> = Vec::new();
             let mut this_num_params: usize = 0;
             for (block, block_entanglement) in entanglement_blocks.iter().zip(this_entanglement) {
                 let num_blocks = block_entanglement.len();
                 this_num_params += num_blocks * block.num_parameters;
-                this_entanglements.push((num_blocks as u32, block.num_parameters));
+                this_entanglements.push((num_blocks, block.num_parameters));
             }
             num_entangle_params_per_layer.push(this_num_params);
             entanglements.push(this_entanglements);

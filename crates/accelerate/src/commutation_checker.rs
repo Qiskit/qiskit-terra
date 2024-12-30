@@ -23,13 +23,12 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyBool, PyDict, PySequence, PyTuple};
 
-use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
-use qiskit_circuit::{BitType, Clbit, Qubit};
+use qiskit_circuit::{Clbit, Qubit};
 
 use crate::unitary_compose;
 use crate::QiskitError;
@@ -65,24 +64,40 @@ static SUPPORTED_ROTATIONS: Lazy<HashMap<&str, Option<OperationRef>>> = Lazy::ne
     ])
 });
 
-fn get_bits<T>(
+fn get_bits<T, F>(
     py: Python,
+    new_bit: F,
     bits1: &Bound<PyTuple>,
     bits2: &Bound<PyTuple>,
 ) -> PyResult<(Vec<T>, Vec<T>)>
 where
-    T: From<BitType> + Copy,
-    BitType: From<T>,
+    F: Fn(usize) -> T,
 {
-    let mut bitdata: BitData<T> = BitData::new(py, "bits".to_string());
-
+    let bits = PyDict::new_bound(py);
+    let mut index = 0usize;
     for bit in bits1.iter().chain(bits2.iter()) {
-        bitdata.add(py, &bit, false)?;
+        if bits.contains(&bit)? {
+            continue;
+        }
+        bits.set_item(bit, index)?;
+        index += 1;
     }
 
     Ok((
-        bitdata.map_bits(bits1)?.collect(),
-        bitdata.map_bits(bits2)?.collect(),
+        bits1
+            .iter()
+            .map(|b| {
+                bits.get_item(b)
+                    .map(|b| new_bit(b.unwrap().extract().unwrap()))
+            })
+            .collect::<PyResult<Vec<_>>>()?,
+        bits2
+            .iter()
+            .map(|b| {
+                bits.get_item(b)
+                    .map(|b| new_bit(b.unwrap().extract().unwrap()))
+            })
+            .collect::<PyResult<Vec<_>>>()?,
     ))
 }
 
@@ -129,13 +144,15 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let (qargs1, qargs2) = get_bits::<Qubit>(
+        let (qargs1, qargs2) = get_bits(
             py,
+            Qubit::new,
             op1.instruction.qubits.bind(py),
             op2.instruction.qubits.bind(py),
         )?;
-        let (cargs1, cargs2) = get_bits::<Clbit>(
+        let (cargs1, cargs2) = get_bits(
             py,
+            Clbit::new,
             op1.instruction.clbits.bind(py),
             op2.instruction.clbits.bind(py),
         )?;
@@ -178,8 +195,8 @@ impl CommutationChecker {
         let cargs2 =
             cargs2.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
 
-        let (qargs1, qargs2) = get_bits::<Qubit>(py, &qargs1, &qargs2)?;
-        let (cargs1, cargs2) = get_bits::<Clbit>(py, &cargs1, &cargs2)?;
+        let (qargs1, qargs2) = get_bits(py, Qubit::new, &qargs1, &qargs2)?;
+        let (cargs1, cargs2) = get_bits(py, Clbit::new, &cargs1, &cargs2)?;
 
         self.commute_inner(
             py,
@@ -427,15 +444,15 @@ impl CommutationChecker {
                 .enumerate()
                 .map(|(i, q)| (q, Qubit::new(i))),
         );
-        let mut num_qubits = first_qargs.len() as u32;
+        let mut num_qubits = first_qargs.len();
         for q in second_qargs {
             if !qarg.contains_key(q) {
-                qarg.insert(q, Qubit(num_qubits));
+                qarg.insert(q, Qubit::new(num_qubits));
                 num_qubits += 1;
             }
         }
 
-        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
+        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len()).map(Qubit::new));
         let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
 
         if first_qarg.len() > second_qarg.len() {
@@ -464,7 +481,7 @@ impl CommutationChecker {
                 2 => Ok(unitary_compose::commute_2q(
                     &first_mat.view(),
                     &second_mat.view(),
-                    &[Qubit(0), Qubit(1)],
+                    &[Qubit::new(0), Qubit::new(1)],
                     rtol,
                     atol,
                 )),
@@ -482,7 +499,7 @@ impl CommutationChecker {
             //  2. This code here expands the first op to match the second -- hence we always
             //     match the operator sizes.
             // This whole extension logic could be avoided since we know the second one is larger.
-            let extra_qarg2 = num_qubits - first_qarg.len() as u32;
+            let extra_qarg2: u32 = (num_qubits as u32) - first_qarg.len() as u32;
             let first_mat = if extra_qarg2 > 0 {
                 let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
                 kron(&id_op, &first_mat)
@@ -723,9 +740,9 @@ impl<'py> FromPyObject<'py> for CommutationLibraryEntry {
         let dict = b.downcast::<PyDict>()?;
         let mut ret = hashbrown::HashMap::with_capacity(dict.len());
         for (k, v) in dict {
-            let raw_key: SmallVec<[Option<u32>; 2]> = k.extract()?;
+            let raw_key: SmallVec<[Option<usize>; 2]> = k.extract()?;
             let v: bool = v.extract()?;
-            let key = raw_key.into_iter().map(|key| key.map(Qubit)).collect();
+            let key = raw_key.into_iter().map(|key| key.map(Qubit::new)).collect();
             ret.insert(key, v);
         }
         Ok(CommutationLibraryEntry::QubitMapping(ret))
@@ -740,7 +757,7 @@ impl ToPyObject for CommutationLibraryEntry {
                 .iter()
                 .map(|(k, v)| {
                     (
-                        PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
+                        PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.index()))),
                         PyBool::new_bound(py, *v),
                     )
                 })
@@ -761,7 +778,7 @@ type CommutationCacheEntry = HashMap<CacheKey, bool>;
 fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyResult<Py<PyDict>> {
     let out_dict = PyDict::new_bound(py);
     for (k, v) in entry.iter() {
-        let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0)));
+        let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.index())));
         let params0 = PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
         let params1 = PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
         out_dict.set_item(
@@ -776,7 +793,7 @@ fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<Commuta
     let mut ret = hashbrown::HashMap::with_capacity(dict.len());
     for (k, v) in dict {
         let raw_key: CacheKeyRaw = k.extract()?;
-        let qubits = raw_key.0.iter().map(|q| q.map(Qubit)).collect();
+        let qubits = raw_key.0.iter().map(|q| q.map(Qubit::new)).collect();
         let params0: SmallVec<_> = raw_key.1 .0;
         let params1: SmallVec<_> = raw_key.1 .1;
         let v: bool = v.extract()?;
@@ -786,7 +803,7 @@ fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<Commuta
 }
 
 type CacheKeyRaw = (
-    SmallVec<[Option<u32>; 2]>,
+    SmallVec<[Option<usize>; 2]>,
     (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
 );
 

@@ -187,9 +187,9 @@ pub fn synth_cnot_count_full_pmh(
             (
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
+                smallvec![Qubit::new(ctrl), Qubit::new(target)],
             )
         });
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(py, num_qubits, instructions, Param::Float(0.0))
 }

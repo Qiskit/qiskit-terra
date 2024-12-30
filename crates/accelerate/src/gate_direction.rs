@@ -10,11 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
 use hashbrown::HashSet;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use qiskit_circuit::operations::OperationRef;
@@ -76,10 +74,7 @@ fn py_check_direction_coupling_map(
 #[pyo3(name = "check_gate_direction_target")]
 fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
-        ];
+        let qargs = smallvec![op_args[0].into(), op_args[1].into()];
 
         target.instruction_supported(inst.op.name(), Some(&qargs))
     };
@@ -206,10 +201,7 @@ fn py_fix_direction_target(
     target: &Target,
 ) -> PyResult<DAGCircuit> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
-        ];
+        let qargs = smallvec![op_args[0].into(), op_args[1].into()];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
         if let OperationRef::Standard(std_gate) = inst.op.view() {
@@ -389,7 +381,7 @@ fn has_calibration_for_op_node(
     packed_inst: &PackedInstruction,
     qargs: &[Qubit],
 ) -> PyResult<bool> {
-    let py_args = PyTuple::new_bound(py, dag.qubits().map_indices(qargs));
+    let py_args = PyTuple::new_bound(py, qargs.iter().map(|q| dag.get_qubit(py, *q).unwrap()));
 
     let dag_op_node = Py::new(
         py,
@@ -441,23 +433,17 @@ fn replace_dag(
 //
 // TODO: replace this once we have a Rust version of QuantumRegister
 #[inline]
-fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
+fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: usize) -> PyResult<Vec<Qubit>> {
+    let first_bit = dag.num_qubits();
     let qreg = imports::QUANTUM_REGISTER
         .get_bound(py)
         .call1((num_qubits,))?;
     dag.add_qreg(py, &qreg)?;
-    let mut qargs = Vec::new();
 
-    for i in 0..num_qubits {
-        let qubit = qreg.call_method1(intern!(py, "__getitem__"), (i,))?;
-        qargs.push(
-            dag.qubits()
-                .find(&qubit)
-                .expect("Qubit should have been stored in the DAGCircuit"),
-        );
-    }
-
-    Ok(qargs)
+    // We are adding brand new bits, so we know exactly the indices that got added.
+    Ok((first_bit..(first_bit + num_qubits))
+        .map(Qubit::new)
+        .collect())
 }
 
 #[inline]

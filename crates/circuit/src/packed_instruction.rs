@@ -379,15 +379,15 @@ impl Operation for PackedOperation {
         }
     }
     #[inline]
-    fn num_qubits(&self) -> u32 {
+    fn num_qubits(&self) -> usize {
         self.view().num_qubits()
     }
     #[inline]
-    fn num_clbits(&self) -> u32 {
+    fn num_clbits(&self) -> usize {
         self.view().num_clbits()
     }
     #[inline]
-    fn num_params(&self) -> u32 {
+    fn num_params(&self) -> usize {
         self.view().num_params()
     }
     #[inline]

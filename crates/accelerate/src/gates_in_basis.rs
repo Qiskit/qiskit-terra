@@ -75,7 +75,9 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
 
     // In the outer DAG, virtual and physical bits are the same thing.
     let wire_map: HashMap<Qubit, PhysicalQubit> = HashMap::from_iter(
-        (0..dag.num_qubits()).map(|i| (Qubit::new(i), PhysicalQubit::new(i.try_into().unwrap()))),
+        (0..dag.num_qubits())
+            .map(Qubit::new)
+            .map(|q| (q, PhysicalQubit::from_bit(q))),
     );
 
     // Process the DAG.

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod bit_data;
+mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod converters;
@@ -29,17 +29,17 @@ pub mod util;
 
 mod rustworkx_core_vnext;
 
+use crate::bit_data::WireIndex;
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
-pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
-pub struct Qubit(pub BitType);
+pub struct Qubit(u32);
 
 impl Qubit {
-    /// Construct a new Qubit object from a usize, if you have a u32 you can
-    /// create a `Qubit` object directly with `Qubit(0u32)`. This will panic
-    /// if the `usize` index exceeds `u32::MAX`.
+    /// Construct a new [Qubit] from a usize.
+    ///
+    /// This will panic if the `usize` index exceeds `u32::MAX`.
     #[inline(always)]
     pub fn new(index: usize) -> Self {
         Qubit(
@@ -49,20 +49,30 @@ impl Qubit {
         )
     }
 
-    /// Convert a Qubit to a usize
+    /// Convert a [Qubit] to a usize.
     #[inline(always)]
     pub fn index(&self) -> usize {
         self.0 as usize
     }
 }
 
+impl WireIndex for Qubit {
+    fn new(index: usize) -> Self {
+        Qubit::new(index)
+    }
+
+    fn index(&self) -> usize {
+        self.index()
+    }
+}
+
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Clbit(pub BitType);
+pub struct Clbit(u32);
 
 impl Clbit {
-    /// Construct a new Clbit object from a usize. if you have a u32 you can
-    /// create a `Clbit` object directly with `Clbit(0u32)`. This will panic
-    /// if the `usize` index exceeds `u32::MAX`.
+    /// Construct a new [Clbit] from a usize.
+    ///
+    /// This will panic if the `usize` index exceeds `u32::MAX`.
     #[inline(always)]
     pub fn new(index: usize) -> Self {
         Clbit(
@@ -72,10 +82,20 @@ impl Clbit {
         )
     }
 
-    /// Convert a Clbit to a usize
+    /// Convert a [Clbit] to a usize.
     #[inline(always)]
     pub fn index(&self) -> usize {
         self.0 as usize
+    }
+}
+
+impl WireIndex for Clbit {
+    fn new(index: usize) -> Self {
+        Clbit::new(index)
+    }
+
+    fn index(&self) -> usize {
+        self.index()
     }
 }
 
@@ -95,30 +115,6 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
             ),
         };
         Ok(TupleLikeArg { value })
-    }
-}
-
-impl From<BitType> for Qubit {
-    fn from(value: BitType) -> Self {
-        Qubit(value)
-    }
-}
-
-impl From<Qubit> for BitType {
-    fn from(value: Qubit) -> Self {
-        value.0
-    }
-}
-
-impl From<BitType> for Clbit {
-    fn from(value: BitType) -> Self {
-        Clbit(value)
-    }
-}
-
-impl From<Clbit> for BitType {
-    fn from(value: Clbit) -> Self {
-        value.0
     }
 }
 

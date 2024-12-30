@@ -186,7 +186,7 @@ pub fn commute_2q(
     rtol: f64,
     atol: f64,
 ) -> bool {
-    let rev = qargs[0].0 == 1;
+    let rev = qargs[0].index() == 1;
     for i in 0..4usize {
         for j in 0..4usize {
             // We compute AB and BA separately, to enable checking the relative difference

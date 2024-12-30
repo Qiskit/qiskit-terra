@@ -65,7 +65,7 @@ impl BlockOperation {
 #[pyclass]
 pub struct Block {
     pub operation: BlockOperation,
-    pub num_qubits: u32,
+    pub num_qubits: usize,
     pub num_parameters: usize,
 }
 
@@ -77,7 +77,7 @@ impl Block {
         Block {
             operation: BlockOperation::Standard { gate },
             num_qubits: gate.num_qubits(),
-            num_parameters: gate.num_params() as usize,
+            num_parameters: gate.num_params(),
         }
     }
 
@@ -85,8 +85,8 @@ impl Block {
     #[pyo3(signature = (num_qubits, num_parameters, builder,))]
     pub fn from_callable(
         py: Python,
-        num_qubits: i64,
-        num_parameters: i64,
+        num_qubits: usize,
+        num_parameters: usize,
         builder: &Bound<PyAny>,
     ) -> PyResult<Self> {
         if !builder.is_callable() {
@@ -98,8 +98,8 @@ impl Block {
             operation: BlockOperation::PyCustom {
                 builder: builder.to_object(py),
             },
-            num_qubits: num_qubits as u32,
-            num_parameters: num_parameters as usize,
+            num_qubits,
+            num_parameters,
         };
 
         Ok(block)
@@ -108,11 +108,11 @@ impl Block {
 
 // We introduce typedefs to make the types more legible. We can understand the hierarchy
 // as follows:
-// Connection: Vec<u32> -- indices that the multi-qubit gate acts on
+// Connection: Vec<usize> -- indices that the multi-qubit gate acts on
 // BlockEntanglement: Vec<Connection> -- entanglement for single block
 // LayerEntanglement: Vec<BlockEntanglement> -- entanglements for all blocks in the layer
 // Entanglement: Vec<LayerEntanglement> -- entanglement for every layer
-type BlockEntanglement = Vec<Vec<u32>>;
+type BlockEntanglement = Vec<Vec<usize>>;
 pub(super) type LayerEntanglement = Vec<BlockEntanglement>;
 
 /// Represent the entanglement in an n-local circuit.
@@ -127,7 +127,7 @@ pub struct Entanglement {
 impl Entanglement {
     /// Create an entanglement from the input of an n_local circuit.
     pub fn from_py(
-        num_qubits: u32,
+        num_qubits: usize,
         reps: usize,
         entanglement: &Bound<PyAny>,
         entanglement_blocks: &[&Block],
@@ -158,7 +158,7 @@ impl Entanglement {
 }
 
 fn unpack_entanglement(
-    num_qubits: u32,
+    num_qubits: usize,
     layer: usize,
     entanglement: &Bound<PyList>,
     entanglement_blocks: &[&Block],
@@ -166,7 +166,7 @@ fn unpack_entanglement(
     entanglement_blocks
         .iter()
         .zip(entanglement.iter())
-        .map(|(block, ent)| -> PyResult<Vec<Vec<u32>>> {
+        .map(|(block, ent)| -> PyResult<Vec<Vec<usize>>> {
             get_entanglement(num_qubits, block.num_qubits, &ent, layer)?.collect()
         })
         .collect()

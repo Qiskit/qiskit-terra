@@ -56,14 +56,14 @@ pub struct Key {
     #[pyo3(get)]
     pub name: String,
     #[pyo3(get)]
-    pub num_qubits: u32,
+    pub num_qubits: usize,
 }
 
 #[pymethods]
 impl Key {
     #[new]
     #[pyo3(signature = (name, num_qubits))]
-    fn new(name: String, num_qubits: u32) -> Self {
+    fn new(name: String, num_qubits: usize) -> Self {
         Self { name, num_qubits }
     }
 
@@ -77,7 +77,7 @@ impl Key {
         slf.to_string()
     }
 
-    fn __getnewargs__(slf: PyRef<Self>) -> (Bound<PyString>, u32) {
+    fn __getnewargs__(slf: PyRef<Self>) -> (Bound<PyString>, usize) {
         (
             PyString::new_bound(slf.py(), slf.name.as_str()),
             slf.num_qubits,
@@ -739,8 +739,8 @@ fn raise_if_param_mismatch(
 
 fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitFromPython) -> PyResult<()> {
     let op_ref = gate.view();
-    if op_ref.num_qubits() != circuit.0.num_qubits() as u32
-        || op_ref.num_clbits() != circuit.0.num_clbits() as u32
+    if op_ref.num_qubits() != circuit.0.num_qubits()
+        || op_ref.num_clbits() != circuit.0.num_clbits()
     {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \

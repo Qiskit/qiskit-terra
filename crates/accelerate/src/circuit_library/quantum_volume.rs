@@ -105,13 +105,13 @@ const UNITARY_PER_SEED: usize = 50;
 #[pyo3(signature=(num_qubits, depth, seed=None))]
 pub fn quantum_volume(
     py: Python,
-    num_qubits: u32,
+    num_qubits: usize,
     depth: usize,
     seed: Option<u64>,
 ) -> PyResult<CircuitData> {
-    let width = num_qubits as usize / 2;
+    let width = num_qubits / 2;
     let num_unitaries = width * depth;
-    let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
+    let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit::new).collect();
 
     let kwargs = PyDict::new_bound(py);
     kwargs.set_item(intern!(py, "num_qubits"), 2)?;

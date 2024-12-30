@@ -44,7 +44,8 @@ fn remove_identity_equiv(
                             let qargs: Vec<PhysicalQubit> = dag
                                 .get_qargs(inst.qubits)
                                 .iter()
-                                .map(|x| PhysicalQubit::new(x.0))
+                                .cloned()
+                                .map(PhysicalQubit::from_bit)
                                 .collect();
                             let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
                             match error_rate {
@@ -61,7 +62,8 @@ fn remove_identity_equiv(
                     let qargs: Vec<PhysicalQubit> = dag
                         .get_qargs(inst.qubits)
                         .iter()
-                        .map(|x| PhysicalQubit::new(x.0))
+                        .cloned()
+                        .map(PhysicalQubit::from_bit)
                         .collect();
                     let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
                     match error_rate {

@@ -83,7 +83,7 @@ pub fn barrier_before_final_measurements(
         #[cfg(not(feature = "cache_pygates"))]
         instruction: new_barrier.unbind(),
     };
-    let qargs: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+    let qargs: Vec<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
     #[cfg(feature = "cache_pygates")]
     {
         dag.apply_operation_back(
