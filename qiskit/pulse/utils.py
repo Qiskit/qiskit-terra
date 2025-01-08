@@ -51,7 +51,7 @@ def format_parameter_value(
         decimal: Number of digit to round returned value.
 
     Returns:
-        Value casted to non-parameter data type, when possible.
+        Value cast to non-parameter data type, when possible.
     """
     if isinstance(operand, ParameterExpression):
         try:

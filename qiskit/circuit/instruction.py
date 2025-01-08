@@ -64,14 +64,20 @@ class Instruction(Operation):
     def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
         """Create a new instruction.
 
+        .. deprecated:: 1.3
+           The parameters ``duration`` and ``unit`` are deprecated since
+           Qiskit 1.3, and they will be removed in 2.0 or more later.
+           An instruction's duration is defined in a backend's Target object.
+
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
-            unit (str): time unit of duration
+            duration (int|float): (DEPRECATED) instruction's duration. it must be
+                integer if ``unit`` is ``'dt'``
+            unit (str): (DEPRECATED) time unit of duration
             label (str or None): An optional label for identifying the instruction.
 
         Raises:
