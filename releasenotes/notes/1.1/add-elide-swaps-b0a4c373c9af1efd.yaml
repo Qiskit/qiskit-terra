@@ -2,7 +2,7 @@
 features:
   - |
     Added a new optimization transpiler pass, :class:`~.ElidePermutations`,
-    which is designed to run prior to the :ref:`layout_stage` and will
+    which is designed to run prior to the :ref:`transpiler-preset-stage-layout` and will
     optimize away any :class:`~.SwapGate`\s and
     :class:`~qiskit.circuit.library.PermutationGate`\s
     in a circuit by permuting virtual

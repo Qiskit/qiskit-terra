@@ -445,10 +445,10 @@ class TranspileLayout:
 
     The :mod:`~qiskit.transpiler` is unitary-preserving up to the "initial layout"
     and "final layout" permutations. The initial layout permutation is caused by
-    setting and applying the initial layout during the :ref:`layout_stage`.
+    setting and applying the initial layout during the :ref:`transpiler-preset-stage-layout`.
     The final layout permutation is caused by :class:`~.SwapGate` insertion during
-    the :ref:`routing_stage`. This class provides an interface to reason about these
-    permutations using a variety of helper methods.
+    the :ref:`transpiler-preset-stage-routing`. This class provides an interface to reason about
+    these permutations using a variety of helper methods.
 
     During the layout stage, the transpiler can potentially remap the order of the
     qubits in the circuit as it fits the circuit to the target backend. For example,
@@ -521,7 +521,7 @@ class TranspileLayout:
     state from the transpiler. They are defined as:
 
       * :attr:`initial_layout` - This attribute is used to model the
-        permutation caused by the :ref:`layout_stage`. It is a
+        permutation caused by the :ref:`transpiler-preset-stage-layout`. It is a
         :class:`~.Layout` object that maps the input :class:`~.QuantumCircuit`\s
         :class:`~.circuit.Qubit` objects to the position in the output
         :class:`.QuantumCircuit.qubits` list.
@@ -533,12 +533,12 @@ class TranspileLayout:
         is needed when computing the permutation of the :class:`Operator` of
         the circuit (and used by :meth:`.Operator.from_circuit`).
       * :attr:`final_layout` - This attribute is used to model the
-        permutation caused by the :ref:`routing_stage`. It is a
+        permutation caused by the :ref:`transpiler-preset-stage-routing`. It is a
         :class:`~.Layout` object that maps the output circuit's qubits from
         :class:`.QuantumCircuit.qubits` in the output circuit to their final
         positions after routing. Importantly, this only represents the
         permutation caused by inserting :class:`~.SwapGate`\s into
-        the :class:`~.QuantumCircuit` during the :ref:`routing_stage`.
+        the :class:`~.QuantumCircuit` during the :ref:`transpiler-preset-stage-routing`.
         It is **not** a mapping from the original input circuit's position
         to the final position at the end of the transpiled circuit.
         If you need this, you can use the :meth:`.final_index_layout` to generate this.

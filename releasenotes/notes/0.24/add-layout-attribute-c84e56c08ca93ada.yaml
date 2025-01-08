@@ -4,7 +4,7 @@ features:
     Added a new attribute, :attr:`~.QuantumCircuit.layout`, to the
     :class:`~.QuantumCircuit` class. This attribute is typically populated
     by :func:`~.transpile` or :class:`.PassManager.run` (when the
-    :ref:`layout_stage` and :ref:`routing_stage` are run in the
+    :ref:`transpiler-preset-stage-layout` and :ref:`routing_stage` are run in the
     :class:`~PassManager`) and contains a :class:`~.TranspileLayout` which
     contains the information about the permutation of the input circuit
     during :class:`~.transpile`.

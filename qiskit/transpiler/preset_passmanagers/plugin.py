@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """
+.. _transpiler-preset-stage-plugins:
+
 =======================================================================================
 Transpiler Stage Plugin Interface (:mod:`qiskit.transpiler.preset_passmanagers.plugin`)
 =======================================================================================
@@ -36,7 +38,9 @@ Plugin Stages
 =============
 
 Currently, there are 6 stages in the preset pass managers, all of which actively
-load external plugins via corresponding entry points.
+load external plugins via corresponding entry points.  The table below gives a quick summary of each
+stage.  For more details on the description and expectations of each stage, follow the link in the
+stages' names to the full documentation.
 
 .. list-table:: Stages
    :header-rows: 1
@@ -44,57 +48,44 @@ load external plugins via corresponding entry points.
    * - Stage Name
      - Entry Point
      - Reserved Names
-     - Description and expectations
-   * - ``init``
+     - Summary
+
+   * - :ref:`init <transpiler-preset-stage-init>`
      - ``qiskit.transpiler.init``
      - ``default``
-     - This stage runs first and is typically used for any initial logical optimization. Because most
-       layout and routing algorithms are only designed to work with 1 and 2 qubit gates, this stage
-       is also used to translate any gates that operate on more than 2 qubits into gates that only
-       operate on 1 or 2 qubits.
-   * - ``layout``
+     - High-level, logical optimizations on abstract circuits, and reduction of multi-qubit
+       operations to 1- and 2-qubit operations.
+
+   * - :ref:`layout <transpiler-preset-stage-layout>`
      - ``qiskit.transpiler.layout``
      - ``trivial``, ``dense``, ``sabre``, ``default``
-     - The output from this stage is expected to have the ``layout`` property
-       set field set with a :class:`~.Layout` object. Additionally, the circuit is
-       typically expected to be embedded so that it is expanded to include all
-       qubits and the :class:`~.ApplyLayout` pass is expected to be run to apply the
-       layout. The embedding of the :class:`~.Layout` can be generated with
-       :func:`~.generate_embed_passmanager`.
-   * - ``routing``
+     - Choose an initial mapping of virtual qubits to physical qubits, including expansion of the
+       circuit to include explicit ancillas.  This stage is sometimes combined with ``routing``.
+
+   * - :ref:`routing <transpiler-preset-stage-routing>`
      - ``qiskit.transpiler.routing``
      - ``basic``, ``stochastic``, ``lookahead``, ``sabre``
-     - The output from this stage is expected to have the circuit match the
-       connectivity constraints of the target backend. This does not necessarily
-       need to match the directionality of the edges in the target as a later
-       stage typically will adjust directional gates to match that constraint
-       (but there is no penalty for doing that in the ``routing`` stage). The output
-       of this stage is also expected to have the ``final_layout`` property set field
-       set with a :class:`~.Layout` object that maps the :class:`.Qubit` to the
-       output final position of that qubit in the circuit. If there is an
-       existing ``final_layout`` entry in the property set (such as might be set
-       by an optimization pass that introduces a permutation) it is expected
-       that the final layout will be the composition of the two layouts (this
-       can be computed using :meth:`.DAGCircuit.compose`, for example:
-       ``second_final_layout.compose(first_final_layout, dag.qubits)``).
-   * - ``translation``
+     - Insert gates into the circuit to ensure it matches the connectivity constraints of the
+       :class:`.Target`.  The inserted gates do not need to be in the target ISA yet, so are often
+       just output as ``swap`` instructions.  This stage is sometimes subsumed by ``layout``.
+
+   * - :ref:`translation <transpiler-preset-stage-translation>`
      - ``qiskit.transpiler.translation``
      - ``translator``, ``synthesis``, ``unroller``
-     - The output of this stage is expected to have every operation be a native
-        instruction on the target backend.
-   * - ``optimization``
+     - Rewrite all gates outside the target ISA to use only gates within the ISA.
+
+   * - :ref:`optimization <transpiler-preset-stage-optimization>`
      - ``qiskit.transpiler.optimization``
      - ``default``
-     - This stage is expected to perform optimization and simplification.
-       The constraints from earlier stages still apply to the output of this
-       stage. After the ``optimization`` stage is run we expect the circuit
-       to still be executable on the target.
-   * - ``scheduling``
+     - Low-level, physical-circuit-aware optimizations.  Unlike ``init``, the ``optimization`` stage
+       acts at the level of a physical circuit.
+
+   * - :ref:`scheduling <transpiler-preset-stage-scheduling>`
      - ``qiskit.transpiler.scheduling``
      - ``alap``, ``asap``, ``default``
-     - This is the last stage run and it is expected to output a scheduled
-       circuit such that all idle periods in the circuit are marked by explicit
-       :class:`~qiskit.circuit.Delay` instructions.
+     - Insert :class:`~.circuit.Delay` instructions to make the wall-clock timing of the circuit
+       fully explicit.
+
 
 Writing Plugins
 ===============
