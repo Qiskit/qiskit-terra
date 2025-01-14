@@ -68,3 +68,7 @@ class ExperimentalFeatures(enum.Flag):
             }
         }
     """
+    GLOBAL_BARRIER = enum.auto()
+    """Support exporting using golobal barrier as proposed in
+        https://github.com/Qiskit/qiskit/issues/13485
+    """
