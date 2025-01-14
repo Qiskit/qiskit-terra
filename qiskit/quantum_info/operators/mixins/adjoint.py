@@ -45,7 +45,7 @@ class AdjointMixin(ABC):
 
     @abstractmethod
     def conjugate(self) -> Self:
-        """Return the conjugate of the CLASS."""
+        """Return the complex conjugate of the CLASS."""
 
     @abstractmethod
     def transpose(self) -> Self:
