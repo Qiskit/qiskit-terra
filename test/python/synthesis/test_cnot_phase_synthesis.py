@@ -14,6 +14,7 @@
 
 import unittest
 import ddt
+from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
@@ -27,7 +28,15 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestGraySynth(QiskitTestCase):
     """Test the Gray-Synth algorithm."""
 
-    def test_gray_synth(self):
+    @ddt.data(
+        (["s", "t", "z", "s", "t", "t"],),
+        # Angles applied on PhaseGate are 'angles%numpy.pi',
+        # So, to get PhaseGate(numpy.pi) we subtract a tiny value from pi.
+        ([pi / 2, pi / 4, pi - 1e-09, pi / 2, pi / 4, pi / 4],),
+        (["s", "t", "z", "s", "t", pi / 4],),
+    )
+    @ddt.unpack
+    def test_gray_synth(self, angles):
         """Test synthesis of a small parity network via gray_synth.
 
         The algorithm should take the following matrix as an input:
@@ -40,25 +49,45 @@ class TestGraySynth(QiskitTestCase):
          [0, 1, 0, 0, 1, 0]]
 
         Along with some rotation angles:
-        ['s', 't', 'z', 's', 't', 't'])
+        ['s', 't', 'z', 's', 't', 't']
 
-        which together specify the Fourier expansion in the sum-over-paths representation
-        of a quantum circuit.
+        Equivalently, this also tests for roation angles in float, passed like this:
+        [pi/2, pi/4, pi-0.000000001, pi/2, pi/4, pi/4]
 
-        And should return the following circuit (or an equivalent one):
-                          ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
-        q_0: |0>──────────┤ X ├┤ X ├┤ T ├┤ X ├┤ X ├┤ X ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├┤ X ├┤ Z ├┤ X ├
-                          └─┬─┘└─┬─┘└───┘└─┬─┘└─┬─┘└─┬─┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘└─┬─┘└───┘└─┬─┘
-        q_1: |0>────────────┼────┼─────────■────┼────┼────┼─────────┼─────────┼────┼─────────■──
-                            │    │              │    │    │         │         │    │
-        q_2: |0>───────■────■────┼──────────────■────┼────┼─────────┼────■────┼────┼────────────
-                ┌───┐┌─┴─┐┌───┐  │                   │    │         │  ┌─┴─┐  │    │
-        q_3: |0>┤ S ├┤ X ├┤ S ├──■───────────────────┼────┼─────────■──┤ X ├──┼────┼────────────
-                └───┘└───┘└───┘                      │    │            └───┘  │    │
-        q_4: |0>─────────────────────────────────────■────┼───────────────────■────┼────────────
-                                                          │                        │
-        q_5: |0>──────────────────────────────────────────■────────────────────────■────────────
+        `S` and rotation angles together specify the Fourier expansion in the sum-over-paths
+        representation of a quantum circuit.
 
+        It should return the following circuit (or an equivalent one) for
+        ['s', 't', 'z', 's', 't', 't']:
+
+        0: ──■─────────■──────────────■─────────────────────────────■───────
+           ┌─┴─┐┌───┐  │              │                           ┌─┴─┐
+        1: ┤ X ├┤ Z ├──┼─────────■────┼────────────────────────■──┤ X ├─────
+           └───┘└───┘  │         │    │                        │  └───┘
+        2: ────────────┼─────────┼────┼────■───────────────────┼─────────■──
+           ┌───┐     ┌─┴─┐┌───┐  │  ┌─┴─┐┌─┴─┐┌───┐            │       ┌─┴─┐
+        3: ┤ S ├─────┤ X ├┤ T ├──┼──┤ X ├┤ X ├┤ S ├──■─────────┼────■──┤ X ├
+           └───┘     └───┘└───┘  │  └───┘└───┘└───┘  │         │    │  └───┘
+        4: ──────────────────────┼────■──────────────┼─────────┼────┼────■──
+                               ┌─┴─┐┌─┴─┐┌───┐     ┌─┴─┐┌───┐┌─┴─┐┌─┴─┐┌─┴─┐
+        5: ────────────────────┤ X ├┤ X ├┤ T ├─────┤ X ├┤ T ├┤ X ├┤ X ├┤ X ├
+                               └───┘└───┘└───┘     └───┘└───┘└───┘└───┘└───┘
+
+        and, should return the following circuit (or an equivalent one) for
+        [pi/2, pi/4, pi-1e-09, pi/2, pi/4, pi/4]:
+
+        0: ────■───────────────■───────────────────■────────────────────────────────────────────■───────
+             ┌─┴─┐   ┌──────┐  │                   │                                          ┌─┴─┐
+        1: ──┤ X ├───┤ P(π) ├──┼──────────────■────┼───────────────────────────────────────■──┤ X ├─────
+             └───┘   └──────┘  │              │    │                                       │  └───┘
+        2: ────────────────────┼──────────────┼────┼──────■────────────────────────────────┼─────────■──
+           ┌────────┐        ┌─┴─┐┌────────┐  │  ┌─┴─┐  ┌─┴─┐   ┌────────┐                 │       ┌─┴─┐
+        3: ┤ P(π/2) ├────────┤ X ├┤ P(π/4) ├──┼──┤ X ├──┤ X ├───┤ P(π/2) ├──■──────────────┼────■──┤ X ├
+           └────────┘        └───┘└────────┘  │  └───┘  └───┘   └────────┘  │              │    │  └───┘
+        4: ───────────────────────────────────┼────■────────────────────────┼──────────────┼────┼────■──
+                                            ┌─┴─┐┌─┴─┐┌────────┐          ┌─┴─┐┌────────┐┌─┴─┐┌─┴─┐┌─┴─┐
+        5: ─────────────────────────────────┤ X ├┤ X ├┤ P(π/4) ├──────────┤ X ├┤ P(π/4) ├┤ X ├┤ X ├┤ X ├
+                                            └───┘└───┘└────────┘          └───┘└────────┘└───┘└───┘└───┘
         """
         cnots = [
             [0, 1, 1, 0, 1, 1],
@@ -68,7 +97,6 @@ class TestGraySynth(QiskitTestCase):
             [0, 1, 0, 0, 1, 0],
             [0, 1, 0, 0, 1, 0],
         ]
-        angles = ["s", "t", "z", "s", "t", "t"]
         c_gray = synth_cnot_phase_aam(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 

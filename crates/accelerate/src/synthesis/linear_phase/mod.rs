@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod cnot_phase_synth;
 use numpy::PyReadonlyArray2;
 use pyo3::{
     prelude::*,
@@ -42,5 +43,6 @@ fn synth_cz_depth_line_mr(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<C
 
 pub fn linear_phase(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(synth_cz_depth_line_mr))?;
+    m.add_wrapped(wrap_pyfunction!(cnot_phase_synth::synth_cnot_phase_aam))?;
     Ok(())
 }

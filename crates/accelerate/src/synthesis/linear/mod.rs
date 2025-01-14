@@ -14,7 +14,7 @@ use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
-mod pmh;
+pub mod pmh;
 pub mod utils;
 
 #[pyfunction]

@@ -1,0 +1,8 @@
+---
+upgrade_synthesis:
+  - |
+    Ported :func:`~.synth_cnot_phase_aam` to Rust, which is a heuristic algorithm for 
+    synthesizing small parity networks. The newly ported Rust code has a speedup of 
+    about x345 as compared to previous python implementation when used to synthesize 
+    parity network for 120 terms of phase-polynomial with 150 Qubits.
+    
