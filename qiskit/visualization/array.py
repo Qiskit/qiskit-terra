@@ -36,7 +36,7 @@ def _num_to_latex(raw_value, decimals=15, first_term=True, coefficient=False):
     raw_value = np.around(raw_value, decimals=decimals).item()
     value = sympy.nsimplify(raw_value, rational=False)
 
-    if isinstance(value, sympy.core.numbers.Rational) and value.denominator > 50:
+    if isinstance(value, sympy.core.numbers.Rational) and value.denominator() > 50:
         # Avoid showing ugly fractions (e.g. 50498971964399/62500000000000)
         value = value.evalf()  # Display as float
 
