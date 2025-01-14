@@ -104,10 +104,14 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     )
     out_instruction._condition = None
 
-    target = circuit.assign_parameters(parameter_dict, inplace=False)
-
-    if equivalence_library is not None:
-        equivalence_library.add_equivalence(out_instruction, target)
+    if equivalence_library is None and not parameter_dict:
+        # avoid making a copy of the circuit
+        # parameter_dict is empty and we do not have to pass a copy to the equivalence library
+        target = circuit
+    else:
+        target = circuit.assign_parameters(parameter_dict, inplace=False)
+        if equivalence_library is not None:
+            equivalence_library.add_equivalence(out_instruction, target)
 
     regs = []
     qreg, creg = None, None
