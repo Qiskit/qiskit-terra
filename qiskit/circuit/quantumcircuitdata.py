@@ -114,11 +114,17 @@ class QuantumCircuitData(MutableSequence):
     def __add__(self, other):
         return list(self._circuit._data) + self.__cast(other)
 
+    def __iadd__(self, other):
+        return self.circuit._data + self.__cast(other)
+
     def __radd__(self, other):
         return self.__cast(other) + list(self._circuit._data)
 
     def __mul__(self, n):
         return list(self._circuit._data) * n
+
+    def __imul__(self, n):
+        return self.circuit._data * n
 
     def __rmul__(self, n):
         return n * list(self._circuit._data)
