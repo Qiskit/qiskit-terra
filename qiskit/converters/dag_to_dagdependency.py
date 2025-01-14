@@ -12,19 +12,29 @@
 
 """Helper function for converting a dag circuit to a dag dependency"""
 from qiskit.dagcircuit.dagdependency import DAGDependency
+from .circuit_conversion_data import CircuitConversionData
 
 
-def dag_to_dagdependency(dag, create_preds_and_succs=True):
+def dag_to_dagdependency_with_data(
+    dag, create_preds_and_succs=True, *, create_conversion_data=False
+):
     """Build a ``DAGDependency`` object from a ``DAGCircuit``.
 
     Args:
         dag (DAGCircuit): the input dag.
         create_preds_and_succs (bool): whether to construct lists of
             predecessors and successors for every node.
+        create_conversion_data (bool): whether to construct mappings
+            between nodes in the input and the output circuits.
 
-    Return:
-        DAGDependency: the DAG representing the input circuit as a dag dependency.
+    Returns:
+        A tuple consisting of the DAGDependency representation of the input
+        circuit and the additional data. This data stores mappings between
+        nodes in the input and the output circuits when ``create_conversion_data``
+        is ``True`` and ``None`` otherwise.
+
     """
+    conversion_data = CircuitConversionData() if create_conversion_data else None
 
     dagdependency = DAGDependency()
     dagdependency.name = dag.name
@@ -39,10 +49,12 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
     for register in dag.cregs.values():
         dagdependency.add_creg(register)
 
-    for node in dag.topological_op_nodes():
+    for from_node in dag.topological_op_nodes():
         # Get arguments for classical control (if any)
-        inst = node.op.copy()
-        dagdependency.add_op_node(inst, node.qargs, node.cargs)
+        inst = from_node.op.copy()
+        to_node = dagdependency.add_op_node(inst, from_node.qargs, from_node.cargs)
+        if create_conversion_data:
+            conversion_data.store_mapping(from_node, to_node)
 
     if create_preds_and_succs:
         dagdependency._add_predecessors()
@@ -52,4 +64,21 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
     dagdependency.global_phase = dag.global_phase
     dagdependency._calibrations_prop = dag._calibrations_prop
 
+    return dagdependency, conversion_data
+
+
+def dag_to_dagdependency(dag, create_preds_and_succs=True):
+    """Build a ``DAGDependency`` object from a ``DAGCircuit``.
+
+    Args:
+        dag (DAGCircuit): the input dag.
+        create_preds_and_succs (bool): whether to construct lists of
+            predecessors and successors for every node.
+
+    Return:
+        DAGDependency: the DAG representing the input circuit as a dag dependency.
+    """
+    dagdependency, _ = dag_to_dagdependency_with_data(
+        dag, create_preds_and_succs=create_preds_and_succs
+    )
     return dagdependency

@@ -443,10 +443,14 @@ class DAGDependency:
             operation (qiskit.circuit.Operation): operation as a quantum gate
             qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
+
+        Returns:
+            DAGDepNode: the newly added node.
         """
         new_node = self._create_op_node(operation, qargs, cargs)
         self._add_multi_graph_node(new_node)
         self._update_edges()
+        return new_node
 
     def _update_edges(self):
         """

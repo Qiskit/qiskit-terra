@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The :meth:`.DAGDependency.add_op_node` method now returns the newly added node.
+  - |
+    Added a new class :class:`.CircuitConversionData` to return additional information when
+    switching between :class:`.DAGCircuit` and :class:`.DAGDependency` circuit representations,
+    such as the mappings between the nodes in :class:`.DAGCircuit` and :class:`.DAGDependency`.
+  - |
+    Added a new function :func:`dag_to_dagdependency_with_data` that converts a
+    :class:`.DAGCircuit` to :class:`.DAGDependency` and returns both the constructed
+    circuit and a :class:`.CircuitConversionData` object with the additional information
+    related to the translation.

@@ -23,23 +23,25 @@ QuantumCircuit -> circuit components
 .. autofunction:: circuit_to_instruction
 .. autofunction:: circuit_to_gate
 
-QuantumCircuit <-> DagCircuit 
+QuantumCircuit <-> DagCircuit
 =============================
 
 .. autofunction:: circuit_to_dag
 .. autofunction:: dag_to_circuit
 
-QuantumCircuit <-> DagDependency 
+QuantumCircuit <-> DagDependency
 ================================
 
 .. autofunction:: dagdependency_to_circuit
 .. autofunction:: circuit_to_dagdependency
 
-DagCircuit <-> DagDependency 
+DagCircuit <-> DagDependency
 ============================
 
 .. autofunction:: dag_to_dagdependency
 .. autofunction:: dagdependency_to_dag
+.. autofunction:: dag_to_dagdependency_with_data
+
 """
 
 from .circuit_to_dag import circuit_to_dag
@@ -48,7 +50,7 @@ from .circuit_to_instruction import circuit_to_instruction
 from .circuit_to_gate import circuit_to_gate
 from .circuit_to_dagdependency import circuit_to_dagdependency
 from .dagdependency_to_circuit import dagdependency_to_circuit
-from .dag_to_dagdependency import dag_to_dagdependency
+from .dag_to_dagdependency import dag_to_dagdependency, dag_to_dagdependency_with_data
 from .dagdependency_to_dag import dagdependency_to_dag
 
 

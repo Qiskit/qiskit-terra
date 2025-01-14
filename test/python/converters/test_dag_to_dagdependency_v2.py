@@ -16,7 +16,10 @@ dag circuit to dag dependency."""
 import unittest
 
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.converters.dag_to_dagdependency_v2 import _dag_to_dagdependency_v2
+from qiskit.converters.dag_to_dagdependency_v2 import (
+    _dag_to_dagdependency_v2,
+    _dag_to_dagdependency_v2_with_data,
+)
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -60,6 +63,51 @@ class TestCircuitToDagDependencyV2(QiskitTestCase):
         self.assertEqual(dag_dependency.metadata, meta_dict)
         dag_out = dagdependency_to_dag(dag_dependency)
         self.assertEqual(dag_out.metadata, meta_dict)
+
+    def test_conversion_data_not_created_by_default(self):
+        """Test that conversion data is not created by default."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        circuit_in = QuantumCircuit(qr, cr)
+        circuit_in.h(qr[0])
+        circuit_in.h(qr[1])
+        circuit_in.measure(qr[0], cr[0])
+        circuit_in.measure(qr[1], cr[1])
+        circuit_in.x(qr[0]).c_if(cr, 0x3)
+        circuit_in.measure(qr[0], cr[0])
+        circuit_in.measure(qr[1], cr[1])
+        circuit_in.measure(qr[2], cr[2])
+        dag_in = circuit_to_dag(circuit_in)
+
+        _, conversion_data = _dag_to_dagdependency_v2_with_data(dag_in)
+        self.assertIsNone(conversion_data)
+
+    def test_conversion_data(self):
+        """Test that conversion data is created and is correct when
+        ``create_conversion_data`` is ``True``.
+        """
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        circuit_in = QuantumCircuit(qr, cr)
+        circuit_in.h(qr[0])
+        circuit_in.h(qr[1])
+        circuit_in.measure(qr[0], cr[0])
+        circuit_in.measure(qr[1], cr[1])
+        circuit_in.x(qr[0]).c_if(cr, 0x3)
+        circuit_in.measure(qr[0], cr[0])
+        circuit_in.measure(qr[1], cr[1])
+        circuit_in.measure(qr[2], cr[2])
+        dag_in = circuit_to_dag(circuit_in)
+
+        _, conversion_data = _dag_to_dagdependency_v2_with_data(dag_in, create_conversion_data=True)
+        self.assertIsNotNone(conversion_data)
+
+        # Check that mapping an op_node first forward and then backward gives back the same node.
+        for in_node in dag_in.op_nodes():
+            out_node = conversion_data.forward_map(in_node)
+            self.assertIsNotNone(out_node)
+            in_out_node = conversion_data.backward_map(out_node)
+            self.assertEqual(in_node, in_out_node)
 
 
 if __name__ == "__main__":
