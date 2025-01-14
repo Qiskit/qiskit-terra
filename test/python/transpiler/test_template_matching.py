@@ -698,6 +698,27 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertEqual(circuit_out, expected)
 
+    def test_template_match_parameter_matching(self):
+        """
+        Test that the template matching works and correctly replaces a template if there is a
+        parameter clash between it and the circuit. This should include binding a partial match with a
+        parameter. Used the rzx template ('zz3').
+        """
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cx(0, 1)
+        circuit_in.rz(0.42, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.rz(np.pi / 2, 1)
+
+        pass_ = TemplateOptimization(**rzx_templates(["zz3"]))
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        # these are NOT equal if template optimization works
+        self.assertNotEqual(circuit_in, circuit_out)
+
+        # however these are equivalent if the operators are the same
+        self.assertTrue(Operator(circuit_in).equiv(circuit_out))
+
     def test_consecutive_templates_apply(self):
         """Test the scenario where one template optimization creates an opportunity for
         another template optimization.
