@@ -9,6 +9,10 @@ license.workspace = true
 name = "qiskit_accelerate"
 doctest = false
 
+
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]
+
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
@@ -60,6 +64,3 @@ features = ["ndarray"]
 [dependencies.pulp]
 version = "0.18.22"
 features = ["macro"]
-
-[features]
-cache_pygates = ["qiskit-circuit/cache_pygates"]

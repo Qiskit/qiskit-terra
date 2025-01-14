@@ -108,7 +108,7 @@ pub(crate) fn consolidate_blocks(
                 dag.get_qargs(inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
-                let matrix = match get_matrix_from_inst(py, inst) {
+                let matrix = match get_matrix_from_inst(inst) {
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
@@ -199,7 +199,7 @@ pub(crate) fn consolidate_blocks(
                 *block_qargs.iter().min().unwrap(),
                 *block_qargs.iter().max().unwrap(),
             ];
-            let matrix = blocks_to_matrix(py, dag, &block, block_index_map).ok();
+            let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
                 if force_consolidate
                     || decomposer.num_basis_gates_inner(matrix.view()) < basis_count
@@ -253,7 +253,7 @@ pub(crate) fn consolidate_blocks(
                     first_qubits,
                 )
             {
-                let matrix = match get_matrix_from_inst(py, first_inst) {
+                let matrix = match get_matrix_from_inst(first_inst) {
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
@@ -273,7 +273,7 @@ pub(crate) fn consolidate_blocks(
                     already_in_block = true;
                 }
                 let gate = dag.dag()[*node].unwrap_operation();
-                let operator = match get_matrix_from_inst(py, gate) {
+                let operator = match get_matrix_from_inst(gate) {
                     Ok(mat) => mat,
                     Err(_) => {
                         // Set this to skip this run because we can't compute the matrix of the

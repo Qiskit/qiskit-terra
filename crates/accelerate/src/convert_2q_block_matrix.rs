@@ -31,7 +31,7 @@ use crate::euler_one_qubit_decomposer::matmul_1q;
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
+pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
     if let Some(mat) = inst.op.matrix(inst.params_view()) {
         Ok(mat)
     } else if inst.op.try_standard_gate().is_some() {
@@ -39,13 +39,15 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
             "Parameterized gates can't be consolidated",
         ))
     } else if let OperationRef::Gate(gate) = inst.op.view() {
-        Ok(QI_OPERATOR
-            .get_bound(py)
-            .call1((gate.gate.clone_ref(py),))?
-            .getattr(intern!(py, "data"))?
-            .extract::<PyReadonlyArray2<Complex64>>()?
-            .as_array()
-            .to_owned())
+        Python::with_gil(|py| {
+            Ok(QI_OPERATOR
+                .get_bound(py)
+                .call1((gate.gate.clone_ref(py),))?
+                .getattr(intern!(py, "data"))?
+                .extract::<PyReadonlyArray2<Complex64>>()?
+                .as_array()
+                .to_owned())
+        })
     } else {
         Err(QiskitError::new_err(
             "Can't compute matrix of non-unitary op",
@@ -55,7 +57,6 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
 
 /// Return the matrix Operator resulting from a block of Instructions.
 pub fn blocks_to_matrix(
-    py: Python,
     dag: &DAGCircuit,
     op_list: &[NodeIndex],
     block_index_map: [Qubit; 2],
@@ -73,7 +74,7 @@ pub fn blocks_to_matrix(
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
         let inst = dag.dag()[*node].unwrap_operation();
-        let op_matrix = get_matrix_from_inst(py, inst)?;
+        let op_matrix = get_matrix_from_inst(inst)?;
         match dag
             .get_qargs(inst.qubits)
             .iter()

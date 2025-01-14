@@ -56,6 +56,7 @@ pub mod synthesis;
 pub mod target_transpiler;
 pub mod twirling;
 pub mod two_qubit_decompose;
+pub mod two_qubit_peephole;
 pub mod uc_gate;
 pub mod unitary_synthesis;
 pub mod utils;
