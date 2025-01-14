@@ -89,6 +89,10 @@ class GMS(QuantumCircuit):
                 triangle is considered.
         """
         super().__init__(num_qubits, name="gms")
+        theta_shape = np.array(theta).shape
+        if theta_shape != (num_qubits, num_qubits):
+            theta = np.array(theta) * np.ones(shape=(num_qubits, num_qubits))
+            theta = theta.tolist()
         if not isinstance(theta, list):
             theta = [theta] * int((num_qubits**2 - 1) / 2)
         gms = QuantumCircuit(num_qubits, name="gms")

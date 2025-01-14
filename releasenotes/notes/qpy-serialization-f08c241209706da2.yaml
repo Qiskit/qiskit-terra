@@ -1,0 +1,10 @@
+---
+features_qpy:
+  - |
+    qiskit.qpy now saves and loads circuits reliably using
+    `qiskit.qpy.dump` and `qiskit.qpy.load`. Previously, an
+    error was thrown requiring a positional argument `theta` that is
+    now computed generated in the gate method.
+upgrade_qpy:
+  - |
+    Works in 1.x and may need a backport for 0.4x.
