@@ -428,7 +428,7 @@ class StagedPassManager(PassManager):
         raise NotImplementedError
 
     def __add__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def run(
         self,
