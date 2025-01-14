@@ -12,6 +12,7 @@
 
 """A pulse that is described by complex-valued sample points."""
 from __future__ import annotations
+from sys import float_info
 from typing import Any
 
 import numpy as np
@@ -74,8 +75,11 @@ class Waveform(Pulse):
         Raises:
             PulseError: If there exists a pulse sample with a norm greater than 1+epsilon.
         """
+        # On some architectures `np.abs` results in floating-point errors
+        # of 1ULP, and the discrepancy needs to be accounted for.
+        ulp = float_info.epsilon
         samples_norm = np.abs(samples)
-        to_clip = (samples_norm > 1.0) & (samples_norm <= 1.0 + epsilon)
+        to_clip = (samples_norm > 1.0) & (samples_norm <= 1.0 + epsilon + ulp)
 
         if np.any(to_clip):
             # first try normalizing by the abs value
@@ -96,9 +100,15 @@ class Waveform(Pulse):
 
             # update samples with clipped values
             samples[clip_where] = clipped_samples
-            samples_norm[clip_where] = np.abs(clipped_samples)
 
-        if np.any(samples_norm > 1.0) and self._limit_amplitude:
+            # If we're within an epsilon from 1, then the normalized norms
+            # are expected to be strictly capped at 1.0.
+            # However, this needs to be enforced via `np.clip` due to the
+            # aforementioned floating-point errors resulting from the
+            # application of `np.abs`.
+            samples_norm[clip_where] = np.clip(np.abs(clipped_samples), 0.0, 1.0)
+
+        if self.limit_amplitude and np.any(samples_norm > 1.0):
             amp = np.max(samples_norm)
             raise PulseError(
                 f"Pulse contains sample with norm {amp} greater than 1+epsilon."
