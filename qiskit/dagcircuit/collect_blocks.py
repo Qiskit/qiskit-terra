@@ -54,7 +54,7 @@ class BlockCollector:
 
         self.dag = dag
         self._pending_nodes: list[DAGOpNode | DAGDepNode] | None = None
-        self._in_degree: dict[DAGOpNode | DAGDepNode, int] | None = None
+        self._in_degree: dict[int, int] | None = None
         self._collect_from_back = False
 
         if isinstance(dag, DAGCircuit):
@@ -80,7 +80,7 @@ class BlockCollector:
         self._in_degree = {}
         for node in self._op_nodes():
             deg = len(self._direct_preds(node))
-            self._in_degree[node] = deg
+            self._in_degree[self._get_node_id(node)] = deg
             if deg == 0:
                 self._pending_nodes.append(node)
 
@@ -90,6 +90,13 @@ class BlockCollector:
             return self.dag.op_nodes()
         else:
             return self.dag.get_nodes()
+
+    def _get_node_id(self, node):
+        """Returns the id of the given node."""
+        if not self.is_dag_dependency:
+            return node._node_id
+        else:
+            return node.node_id
 
     def _direct_preds(self, node):
         """Returns direct predecessors of a node. This function takes into account the
@@ -165,8 +172,8 @@ class BlockCollector:
 
                     # update the _in_degree of node's successors
                     for suc in self._direct_succs(node):
-                        self._in_degree[suc] -= 1
-                        if self._in_degree[suc] == 0:
+                        self._in_degree[self._get_node_id(suc)] -= 1
+                        if self._in_degree[self._get_node_id(suc)] == 0:
                             new_pending_nodes.append(suc)
                 else:
                     self._pending_nodes.append(node)

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a problem in :class:`~BlockCollector`, by hashing the nodes using their
+    integer ids.
