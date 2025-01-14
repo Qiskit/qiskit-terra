@@ -2,7 +2,7 @@ name: Qiskit Neko Integration Tests
 on:
   push:
   pull_request:
-    branches: ['main', 'stable/*']
+    branches: ['main', 'stable/*', 'feature/*']
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   # Only cancel in PR mode.  In push mode, don't cancel so we don't see spurious test "failures".

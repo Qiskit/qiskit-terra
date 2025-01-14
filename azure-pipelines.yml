@@ -9,6 +9,7 @@ trigger:
       - 'main'
       - 'stable/*'
       - 'gh-readonly-queue/*'
+      - 'feature/*'
 
 pr:
   autoCancel: true
@@ -238,7 +239,7 @@ stages:
 
   # Push to main or the stable branches.  The triggering branches also need to
   # be in the triggers at the top of this file.
-  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/stable/'))) }}:
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/stable/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/'))) }}:
     - stage: "Push"
       jobs:
         - template: ".azure/test-linux.yml"

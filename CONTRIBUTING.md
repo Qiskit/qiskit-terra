@@ -718,6 +718,12 @@ that minor version on pypi. For example, stable/0.8 contains the code for the
 0.8.2 release on pypi. The API on these branches are stable and the only changes
 merged to it are bugfixes.
 
+* `feature/*` branches:
+Branches under `feature/*` are used to implement epic-level experimental features without 
+guarantee for any backward compatibility and deprecation policy.
+Branch name must be descriptive of the ongoing development, and the branch 
+must be closed after the code is merged back in the main branch.
+
 ### Release cycle
 
 In the lead up to a release there are a few things to keep in mind. Prior to
