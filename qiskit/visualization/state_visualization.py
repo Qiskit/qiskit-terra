@@ -240,11 +240,14 @@ def plot_bloch_vector(
         figsize = (5, 5)
     B = Bloch(axes=ax, font_size=font_size)
     if coord_type == "spherical":
-        r, theta, phi = bloch[0], bloch[1], bloch[2]
-        bloch[0] = r * np.sin(theta) * np.cos(phi)
-        bloch[1] = r * np.sin(theta) * np.sin(phi)
-        bloch[2] = r * np.cos(theta)
-    B.add_vectors(bloch)
+        spherical_bloch = []
+        # Legend: r, theta, phi = bloch[<r>, <theta>, <phi>]
+        spherical_bloch.append(bloch[0] * np.sin(bloch[1]) * np.cos(bloch[2]))
+        spherical_bloch.append(bloch[0] * np.sin(bloch[1]) * np.sin(bloch[2]))
+        spherical_bloch.append(bloch[0] * np.cos(bloch[1]))
+        B.add_vectors(spherical_bloch)
+    else:
+        B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
         fig = B.fig
