@@ -530,6 +530,15 @@ def _parse_pulse_args(
             )
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
+        elif isinstance(rep_time, int):
+            # check if rep_time is in backend list
+            backend_rep_times = backend.configuration().rep_times
+            if rep_time not in backend_rep_times:
+                raise QiskitError(
+                    (
+                        "Invalid repetition time. Choose from the list provided by the backend:{}"
+                    ).format(backend_rep_times)
+                )
         rep_time = int(rep_time * 1e6)  # convert sec to μs
     if parametric_pulses is None:
         parametric_pulses = getattr(backend_config, "parametric_pulses", [])
