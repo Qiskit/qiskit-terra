@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The properties `Bit.register` and `Bit.index` are removed. They were deprecated in
+    Qisit 0.25 (released on April, 2021). The qubits and bits now live only in the context of
+    :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`. So the alterntive to them is
+    to use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find 
+    all the containing registers within a circuit and the index of the bit within the 
+    circuit.
