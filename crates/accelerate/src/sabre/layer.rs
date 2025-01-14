@@ -26,6 +26,8 @@ use crate::nlayout::PhysicalQubit;
 /// makes it more efficient to do everything in terms of physical qubits, so the conversion between
 /// physical and virtual qubits via the layout happens once per inserted swap and on layer
 /// extension, not for every swap trialled.
+
+#[derive(Clone)]
 pub struct FrontLayer {
     /// Map of the (index to the) node to the qubits it acts on.
     nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::ahash::RandomState>,

@@ -247,7 +247,7 @@ class TestSabreSwap(QiskitTestCase):
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
     # The 'basic' method can't get stuck in the same way.
-    @ddt.data("lookahead", "decay")
+    @ddt.data("lookahead", "decay", "critical")
     def test_no_infinite_loop(self, method):
         """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
         circuits that get stuck in a stable local minimum of the lookahead parameters."""
@@ -371,7 +371,7 @@ class TestSabreSwap(QiskitTestCase):
         result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
         self.assertEqual(result, expected)
 
-    @ddt.data("basic", "lookahead", "decay")
+    @ddt.data("basic", "lookahead", "decay", "critical")
     def test_deterministic(self, heuristic):
         """Test that the output of the SabreSwap pass is deterministic for a given random seed."""
         width = 40

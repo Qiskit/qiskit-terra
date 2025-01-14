@@ -229,6 +229,12 @@ class SabreSwap(TransformationPass):
                 .with_lookahead(0.5, 20, SetScaling.Size)
                 .with_decay(0.001, 5)
             )
+        elif self.heuristic == "critical":
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Size)
+                .with_critical(0.5, SetScaling.Size)
+            )
         else:
             raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
         disjoint_utils.require_layout_isolated_to_component(

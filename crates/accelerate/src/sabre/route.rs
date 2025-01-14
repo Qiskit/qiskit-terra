@@ -32,7 +32,9 @@ use smallvec::{smallvec, SmallVec};
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::{NLayout, PhysicalQubit};
 
-use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
+use super::heuristic::{
+    BasicHeuristic, CriticalHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling,
+};
 use super::layer::{ExtendedSet, FrontLayer};
 use super::neighbor_table::NeighborTable;
 use super::sabre_dag::SabreDAG;
@@ -69,6 +71,9 @@ struct RoutingState<'a, 'b> {
     front_layer: FrontLayer,
     extended_set: ExtendedSet,
     decay: &'a mut [f64],
+    /// Map from the node id to the ranking of the node in terms of the number of descendants.
+    /// Ranking of 1 means the node has the most descendants.
+    descendants_rank: HashMap<NodeIndex, usize>,
     /// How many predecessors still need to be satisfied for each node index before it is at the
     /// front of the topological iteration through the nodes as they're routed.
     required_predecessors: &'a mut [u32],
@@ -281,6 +286,39 @@ impl RoutingState<'_, '_> {
         }
     }
 
+    /// Populate the `descendants_rank` map for the critical heuristic.
+    ///
+    /// This function calculates the number of descendants for each node in the DAG,
+    /// then ranks the nodes by the number of descendants, assigning a rank where
+    /// 1 represents the node with the most descendants.
+    /// The results are stored in the `descendants_rank` map, where each node ID maps to its rank.
+    /// This map is used by the critical heuristic to prioritize routing decisions.
+    fn populate_descendants_rank_map(&mut self) {
+        let mut node_id_to_descendants: HashMap<NodeIndex, usize> = HashMap::new();
+
+        // First, populate the number of descendants for each node.
+        for node in self.dag.dag.node_indices() {
+            let mut stack = vec![node];
+            let mut count = 0;
+            while let Some(n) = stack.pop() {
+                count += 1;
+                for edge in self.dag.dag.edges(n) {
+                    stack.push(edge.target());
+                }
+            }
+            node_id_to_descendants.insert(node, count);
+        }
+
+        // Sort nodes by the number of descendants and assign rankings.
+        let mut desc_list: Vec<_> = node_id_to_descendants.iter().collect();
+        desc_list.sort_by(|a, b| b.1.cmp(a.1)); // Sort in descending order of descendants
+
+        // Populate the `descendants_rank` map with rankings.
+        for (rank, (node_id, _)) in desc_list.into_iter().enumerate() {
+            self.descendants_rank.insert(*node_id, rank + 1);
+        }
+    }
+
     /// Add swaps to the current set that greedily bring the nearest node together.  This is a
     /// "release valve" mechanism; it ignores all the Sabre heuristics and forces progress, so we
     /// can't get permanently stuck.
@@ -413,6 +451,60 @@ impl RoutingState<'_, '_> {
             for (swap, score) in self.swap_scores.iter_mut() {
                 *score = (absolute_score + *score)
                     * self.decay[swap[0].index()].max(self.decay[swap[1].index()]);
+            }
+        }
+
+        if let Some(CriticalHeuristic { weight, scale }) = self.heuristic.critical {
+            let weight = match scale {
+                SetScaling::Constant => weight,
+                SetScaling::Size => {
+                    if self.descendants_rank.is_empty() {
+                        0.0
+                    } else {
+                        weight / (self.descendants_rank.len() as f64)
+                    }
+                }
+            };
+
+            for (swap, score) in self.swap_scores.iter_mut() {
+                // Check what gates can be routed after the swap
+                let mut trial_front_layer = self.front_layer.clone();
+                trial_front_layer.apply_swap(*swap);
+
+                let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
+                if let Some(node) =
+                    trial_front_layer.qubits()[swap[0].index()].and_then(|(node, other)| {
+                        self.target
+                            .coupling
+                            .contains_edge(
+                                NodeIndex::new(swap[0].index()),
+                                NodeIndex::new(other.index()),
+                            )
+                            .then_some(node)
+                    })
+                {
+                    routable_nodes.push(node);
+                }
+                if let Some(node) =
+                    trial_front_layer.qubits()[swap[1].index()].and_then(|(node, other)| {
+                        self.target
+                            .coupling
+                            .contains_edge(
+                                NodeIndex::new(swap[1].index()),
+                                NodeIndex::new(other.index()),
+                            )
+                            .then_some(node)
+                    })
+                {
+                    routable_nodes.push(node);
+                }
+
+                // For each routable node, substract 10^{-rank} from the score to prioritize routing in tie cases
+                for node in routable_nodes {
+                    if let Some(rank) = self.descendants_rank.get(&node) {
+                        *score -= weight / 10.0_f64.powi(*rank as i32);
+                    }
+                }
             }
         }
 
@@ -553,6 +645,7 @@ pub fn swap_map_trial(
         front_layer: FrontLayer::new(num_qubits),
         extended_set: ExtendedSet::new(num_qubits),
         decay: &mut vec![1.; num_qubits as usize],
+        descendants_rank: HashMap::new(),
         required_predecessors: &mut vec![0; dag.dag.node_count()],
         layout: initial_layout.clone(),
         swap_scores: Vec::with_capacity(target.coupling.edge_count()),
@@ -565,6 +658,11 @@ pub fn swap_map_trial(
             state.required_predecessors[edge.target().index()] += 1;
         }
     }
+
+    if heuristic.critical.is_some() {
+        state.populate_descendants_rank_map();
+    }
+
     state.route_reachable_nodes(&dag.first_layer);
     state.populate_extended_set();
 

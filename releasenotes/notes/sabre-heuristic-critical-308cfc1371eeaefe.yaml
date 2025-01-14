@@ -1,0 +1,24 @@
+---
+prelude: >
+    A new feature has been added to the `SabreSwap` pass in Qiskit that introduces 
+    a `CriticalHeuristic`. This heuristic allows users to prioritize routing 
+    decisions based on the criticality of operations, as determined by the number 
+    of descendant gates in the quantum circuit's Directed Acyclic Graph (DAG). 
+    This enhancement aims to minimize circuit depth by ensuring that more critical 
+    operations, which have the most dependent operations, are routed first.
+    
+features_transpiler:
+  - |
+    The `CriticalHeuristic` is a new addition to the `SabreSwap` pass in Qiskit. 
+    This heuristic ranks quantum gates based on their criticality, which is determined 
+    by the number of descendant gates they have in the circuit's DAG. Gates with more 
+    descendants are considered more critical and are prioritized during the routing process.
+    
+    This heuristic works similarly to the existing ones like "basic," "lookahead," or "decay," 
+    but with a focus on ensuring that the critical path of the quantum circuit is minimized. 
+    This can lead to more efficient routing by reducing the potential for bottlenecks in 
+    the circuit, potentially lowering overall circuit depth.
+  
+    This new heuristic gives users additional control over the routing process, enabling 
+    them to optimize their circuits by focusing on the critical paths, which can be 
+    particularly beneficial for complex quantum circuits with many dependencies.
