@@ -289,36 +289,51 @@ class Result:
         else:
             return dict_list
 
-    def get_statevector(self, experiment=None, decimals=None):
-        """Get the final statevector of an experiment.
+    def get_statevector(self, experiment=None, decimals=None, label=None):
+        """Get a saved statevector of an experiment.
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the statevector.
                 If None, does not round.
+            label (str or None): key name of save statevector used when calling
+                ``save_statevector()``. If None, returns the final statevector.
 
         Returns:
             list[complex]: list of 2^num_qubits complex amplitudes.
 
         Raises:
-            QiskitError: if there is no statevector for the experiment.
+            QiskitError: if there is no statevector for the experiment or if the given
+                statevector label is not in the result.
         """
-        try:
-            return postprocess.format_statevector(
-                self.data(experiment)["statevector"], decimals=decimals
-            )
-        except KeyError as ex:
-            raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
 
-    def get_unitary(self, experiment=None, decimals=None):
-        """Get the final unitary of an experiment.
+        if label is None:
+            _label = "statevector"
+        else:
+            _label = label
+
+        try:
+            sv = self.data(experiment)[_label]
+        except KeyError as ex:
+            label_text = "" if label is None else f'"{label}" '
+            raise QiskitError(f'No statevector {label_text}for experiment "{experiment!r}"') from ex
+
+        try:
+            return postprocess.format_statevector(sv, decimals=decimals)
+        except Exception as ex:
+            raise QiskitError(f"Error when retriving {_label}: {ex}") from ex
+
+    def get_unitary(self, experiment=None, decimals=None, label=None):
+        """Get a saved unitary of an experiment.
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the unitary.
                 If None, does not round.
+            label (str or None): key name of saved unitary used when calling
+                ``save_stateunitary()``. If None, returns the final unitary.
 
         Returns:
             list[list[complex]]: list of 2^num_qubits x 2^num_qubits complex
@@ -327,10 +342,23 @@ class Result:
         Raises:
             QiskitError: if there is no unitary for the experiment.
         """
+        if label is None:
+            _label = "unitary"
+        else:
+            _label = label
+
         try:
-            return postprocess.format_unitary(self.data(experiment)["unitary"], decimals=decimals)
+            ut = self.data(experiment)[_label]
         except KeyError as ex:
-            raise QiskitError(f'No unitary for experiment "{repr(experiment)}"') from ex
+            label_text = "" if label is None else (label + " ")
+            raise QiskitError(
+                f'No unitary {label_text} for experiment "{repr(experiment)}"'
+            ) from ex
+
+        try:
+            return postprocess.format_unitary(ut, decimals=decimals)
+        except Exception as ex:
+            raise QiskitError(f"Error when retriving {_label}: {ex}") from ex
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.

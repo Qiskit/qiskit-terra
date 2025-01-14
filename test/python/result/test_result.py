@@ -656,6 +656,42 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(statevector.dtype, np.complex128)
         np.testing.assert_almost_equal(statevector, processed_sv)
 
+    def test_circuit_statevector_with_label(self):
+        """Test retrieving saved statevector with a label."""
+        raw_statevector = np.array(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+            ],
+            dtype=np.complex_,
+        )
+        processed_sv = np.array(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+            ],
+            dtype=np.complex_,
+        )
+        data = models.ExperimentResultData(probe1=raw_statevector)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        statevector = result.get_statevector(label="probe1")
+        self.assertEqual(statevector.shape, (8,))
+        self.assertEqual(statevector.dtype, np.complex_)
+        np.testing.assert_almost_equal(statevector, processed_sv)
+
     def test_circuit_unitary_repr_without_decimal(self):
         """Test postprocessing of unitary without giving any decimals arg."""
         raw_unitary = np.array(
@@ -698,6 +734,30 @@ class TestResultOperations(QiskitTestCase):
         unitary = result.get_unitary(decimals=3)
         self.assertEqual(unitary.shape, (2, 2))
         self.assertEqual(unitary.dtype, np.complex128)
+        np.testing.assert_almost_equal(unitary, processed_unitary)
+
+    def test_circuit_unitary_with_label(self):
+        """Test retrieving unitary with a label."""
+        raw_unitary = np.array(
+            [
+                [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
+                [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
+            ],
+            dtype=np.complex_,
+        )
+        processed_unitary = np.array(
+            [
+                [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
+                [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
+            ],
+            dtype=np.complex_,
+        )
+        data = models.ExperimentResultData(probe2=raw_unitary)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        unitary = result.get_unitary(label="probe2")
+        self.assertEqual(unitary.shape, (2, 2))
+        self.assertEqual(unitary.dtype, np.complex_)
         np.testing.assert_almost_equal(unitary, processed_unitary)
 
     def test_additional_result_data(self):

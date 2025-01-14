@@ -1,0 +1,7 @@
+features:
+  - |
+    The ``get_statevector()`` and ``get_unitary()`` methods in 
+    ``qiskit.result.Result`` now have an optional ``label`` argument 
+    that can be used to retrieve labeled statevectors and unitaries 
+    saved at circuit midpoints by the ``save_statevector()`` and
+    ``save_unitary()`` methods in ``qiskit.circuit.QuantumCircuit``.
