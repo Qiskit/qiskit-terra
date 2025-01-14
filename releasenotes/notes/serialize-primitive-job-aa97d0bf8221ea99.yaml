@@ -1,0 +1,5 @@
+---
+features_primitives:
+  - |
+    To make :class:`.PrimitiveJob` serializable, ``qiskit.primitives.containers.DataBin`` has been 
+    updated to be pickleable. As a result, :class:`.PrimitiveResult` is now also pickleable.

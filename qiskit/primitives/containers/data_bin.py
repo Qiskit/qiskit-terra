@@ -103,9 +103,6 @@ class DataBin(ShapedMixin):
     def __len__(self):
         return len(self._data)
 
-    def __setattr__(self, *_):
-        raise NotImplementedError
-
     def __repr__(self):
         vals = [f"{name}={_value_repr(val)}" for name, val in self.items()]
         if self.ndim:
