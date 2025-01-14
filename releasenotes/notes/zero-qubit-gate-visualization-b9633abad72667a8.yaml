@@ -1,0 +1,6 @@
+---
+features_visualization:
+  - |
+    Added `_build_zero_qubit_gate` in latex.py, `_zero_qubit_gate` in matplotlib.py and `_set_zero_qubit_operandbox` in text.py
+    Modified _utils.py to allow 0 qubits to be passed onto visualizer
+    To allow for zero qubit operations to be rendered, specifically :class:`.GlobalPhaseGate`

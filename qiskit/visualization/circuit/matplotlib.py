@@ -113,6 +113,7 @@ class MatplotlibDrawer:
         self._qubits = qubits
         self._clbits = clbits
         self._nodes = nodes
+
         self._scale = 1.0 if scale is None else scale
 
         self._style = style
@@ -772,6 +773,14 @@ class MatplotlibDrawer:
                         else:
                             c_indxs.append(wire_map[carg])
 
+                # special case for 0 qubit, 0 cbit gates
+                if len(node.qargs) == 0 and len(node.cargs) == 0:
+                    for qarg in self._qubits:
+                        q_indxs.append(
+                            wire_map[qarg]
+                        )  # generate a map with all qubits to reserve space in drawing
+                    glob_data["next_x_index"] = 0  # sets gate to be before first layer
+
                 flow_op = isinstance(node.op, ControlFlowOp)
 
                 # qubit coordinates
@@ -1070,7 +1079,6 @@ class MatplotlibDrawer:
             # draw the gates in this layer
             for node in layer:
                 op = node.op
-
                 self._get_colors(node, node_data)
 
                 if verbose:
@@ -1119,6 +1127,10 @@ class MatplotlibDrawer:
                 # draw controlled gates
                 elif isinstance(op, ControlledGate) or mod_control:
                     self._control_gate(node, node_data, glob_data, mod_control)
+
+                # draws zero qubit gate
+                elif len(node.qargs) == 0 and len(node.cargs) == 0:
+                    self._zero_qubit_gate(node, node_data, glob_data)
 
                 # draw multi-qubit gate as final default
                 else:
@@ -1427,6 +1439,58 @@ class MatplotlibDrawer:
                 self._ax.text(
                     xpos,
                     ypos - 0.3 * HIG,
+                    node_data[node].param_text,
+                    ha="center",
+                    va="center",
+                    fontsize=self._style["sfs"],
+                    color=node_data[node].sc,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+            self._ax.text(
+                xpos,
+                gate_ypos,
+                node_data[node].gate_text,
+                ha="center",
+                va="center",
+                fontsize=self._style["fs"],
+                color=node_data[node].gt,
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
+
+    def _zero_qubit_gate(self, node, node_data, glob_data):
+        """Draw a zero-qubit operand
+        Code is similar to `_multiqubit_gate()` with wire labellings removed
+        """
+        xy = node_data[node].q_xy
+
+        xpos = min(x[0] for x in xy)
+        ypos = min(y[1] for y in xy)
+        ypos_max = max(y[1] for y in xy)
+
+        wid = max(node_data[node].width + 0.21, WID)
+        qubit_span = abs(ypos) - abs(ypos_max)
+        height = HIG + qubit_span
+
+        box = glob_data["patches_mod"].Rectangle(
+            xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
+            width=wid,
+            height=height,
+            fc=node_data[node].fc,
+            ec=node_data[node].ec,
+            linewidth=self._lwidth15,
+            zorder=PORDER_GATE,
+        )
+        self._ax.add_patch(box)
+
+        if node_data[node].gate_text:
+            gate_ypos = ypos + 0.5 * qubit_span
+            if node_data[node].param_text:
+                gate_ypos = ypos + 0.4 * height
+                self._ax.text(
+                    xpos,
+                    ypos + 0.2 * height,
                     node_data[node].param_text,
                     ha="center",
                     va="center",

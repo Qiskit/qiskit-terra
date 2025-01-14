@@ -451,6 +451,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    def test_globalphasegate(self):
+        """Test correct render of GlobalPhaseGate"""
+        pass  # TODO!
+
     def test_scale(self):
         """Tests scale
         See: https://github.com/Qiskit/qiskit-terra/issues/4179"""

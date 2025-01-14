@@ -1235,7 +1235,8 @@ class TextDrawing:
 
         elif len(node.qargs) >= 2 and not node.cargs:
             layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
-
+        elif len(node.qargs) == 0 and not node.cargs:
+            layer.set_zero_qubit_operandbox(gate_text)
         elif node.qargs and node.cargs:
             layer._set_multibox(
                 gate_text,
@@ -1644,7 +1645,6 @@ class Layer:
             OnWireBot = BoxOnQuWireBot
         else:
             raise VisualizationError("_set_multibox error!.")
-
         control_index = {}
         if controlled_edge:
             for index, qubit in enumerate(self.qubits):
@@ -1681,6 +1681,48 @@ class Layer:
                     bot_connect=bot_connect,
                     wire_label=qargs_str.pop(0),
                     conditional=conditional,
+                ),
+            )
+        return bit_indices
+
+    def _set_zero_qubit_operandbox(
+        self,
+        label,
+    ):
+        """Sets the zero qubit operand box.
+
+        Args:
+            label (str): Custom gate label
+
+        Returns:
+            List: all qubit indicies
+        """
+
+        bit_indices = sorted(i for i, x in enumerate(self.qubits) if x in self.qubits)
+        wire_label_len = len(str(len(self.qubits) - 1))
+        qargs_str = " " * wire_label_len
+        set_bit = self.set_qubit
+        OnWire = BoxOnQuWire
+        OnWireTop = BoxOnQuWireTop
+        OnWireMid = BoxOnQuWireMid
+        OnWireBot = BoxOnQuWireBot
+        box_height = max(bit_indices) - min(bit_indices) + 1
+
+        if len(self.qubits) == 1:
+            set_bit(self.qubits[0], OnWire(label))
+        else:
+
+            set_bit(self.qubits[0], OnWireTop(label, wire_label=qargs_str))
+            for order, bit_i in enumerate(range(min(bit_indices) + 1, max(bit_indices))):
+                named_bit = self.qubits[bit_i]
+                set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=qargs_str))
+
+            set_bit(
+                self.qubits[len(self.qubits) - 1],
+                OnWireBot(
+                    label,
+                    box_height,
+                    wire_label=" ",
                 ),
             )
         return bit_indices
@@ -1807,6 +1849,19 @@ class Layer:
             conditional=conditional,
             controlled_edge=controlled_edge,
         )
+
+    def set_zero_qubit_operandbox(
+        self,
+        label,
+    ):
+        """Sets the zero-qubit operand box
+
+        Args:
+            label (string): The label for the multi qubit box.
+        Return:
+            List: A list of indexes of the box.
+        """
+        return self._set_zero_qubit_operandbox(label)
 
     def connect_with(self, wire_char):
         """Connects the elements in the layer using wire_char.
