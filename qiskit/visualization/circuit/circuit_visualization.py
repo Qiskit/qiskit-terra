@@ -448,6 +448,10 @@ def _text_circuit_drawer(
 # -----------------------------------------------------------------------------
 
 
+@_optionals.HAS_KPSEWHICH.require_in_call("LaTeX circuit drawing")
+@_optionals.HAS_XYPIC.require_in_call("LaTeX circuit drawing")
+@_optionals.HAS_QCIRCUIT.require_in_call("LaTeX circuit drawing")
+@_optionals.HAS_STANDALONE.require_in_call("LaTeX circuit drawing")
 @_optionals.HAS_PDFLATEX.require_in_call("LaTeX circuit drawing")
 @_optionals.HAS_PDFTOCAIRO.require_in_call("LaTeX circuit drawing")
 @_optionals.HAS_PIL.require_in_call("LaTeX circuit drawing")
