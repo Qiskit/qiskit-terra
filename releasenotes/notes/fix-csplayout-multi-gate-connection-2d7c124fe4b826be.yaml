@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Adds a check in the CSP layout (:class:`CSPLayout()`) for multiqubit gates to ensure 3+ qubit gates
+    have qubits that are all interconnected. Refer to
+    `#7155 <https://github.com/Qiskit/qiskit/issues/7155>` for more details.

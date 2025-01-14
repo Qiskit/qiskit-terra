@@ -16,6 +16,7 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
+from itertools import combinations
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -79,13 +80,18 @@ class CSPLayout(AnalysisPass):
                 "map."
             )
         qubits = dag.qubits
-        cxs = set()
+        qubit_connections = set()
 
         from constraint import Problem, AllDifferentConstraint, RecursiveBacktrackingSolver
         from qiskit.transpiler.passes.layout._csp_custom_solver import CustomSolver
 
         for gate in dag.two_qubit_ops():
-            cxs.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+            qubit_connections.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+
+        for gate in dag.multi_qubit_ops():
+            for q0, q1 in combinations(gate.qargs, 2):
+                qubit_connections.add((qubits.index(q0), qubits.index(q1)))
+
         edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
@@ -111,7 +117,7 @@ class CSPLayout(AnalysisPass):
             def constraint(control, target):
                 return (control, target) in edges or (target, control) in edges
 
-        for pair in cxs:
+        for pair in qubit_connections:
             problem.addConstraint(constraint, [pair[0], pair[1]])
 
         solution = problem.getSolution()
