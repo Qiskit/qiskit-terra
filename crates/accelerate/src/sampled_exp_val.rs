@@ -77,14 +77,14 @@ pub fn sampled_expval_complex(
     oper_strs: Vec<String>,
     coeff: PyReadonlyArray1<Complex64>,
     dist: HashMap<String, f64>,
-) -> PyResult<f64> {
+) -> PyResult<Complex64> {
     let coeff_arr = coeff.as_slice()?;
     let out: Complex64 = oper_strs
         .into_iter()
         .enumerate()
         .map(|(idx, string)| coeff_arr[idx] * c64(bitstring_expval(&dist, string), 0.))
         .sum();
-    Ok(out.re)
+    Ok(out)
 }
 
 pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {

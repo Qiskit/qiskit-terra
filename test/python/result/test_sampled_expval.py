@@ -101,6 +101,12 @@ class TestSampledExpval(QiskitTestCase):
         result2 = sampled_expectation_value(dist, "00ZI")
         self.assertAlmostEqual(result2, 0.4376)
 
+    def test_complex(self):
+        """test that complex values can be returned"""
+        sp = SparsePauliOp.from_list([["ZZZZZ", -1j]])
+        dist = {"11111": 1}
+        self.assertAlmostEqual(sampled_expectation_value(dist, sp), 1j)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

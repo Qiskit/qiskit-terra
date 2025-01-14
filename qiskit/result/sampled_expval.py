@@ -34,7 +34,7 @@ def sampled_expectation_value(dist, oper):
                                                                        the observable
 
     Returns:
-        float: The expectation value
+        float or complex: The expectation value
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
     """
