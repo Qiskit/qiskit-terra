@@ -1,0 +1,34 @@
+---
+features_transpiler:
+  - |
+    A new :class:`.DepthHeuristic` has been introduced in the :class:`.SabreSwap` pass within the 
+    Qiskit transpiler. This heuristic functions similarly to existing heuristics like `"basic"`, 
+    `"lookahead"`, or `"decay"`, but focuses specifically on minimizing circuit depth. By penalizing 
+    swaps that would increase the circuit depth, this feature helps to route quantum circuits more 
+    efficiently with potentially reduced depth.
+
+    This new heuristic improves depth reduction for many circuits; however, one case where it
+    consistently demonstrates significant improvement is for circuits with sequentially
+    dependent interaction chains, such as QFT and GHZ circuits, where depth minimization is
+    a priority. In these cases, depth typically outperforms lookahead in reducing circuit depth.
+
+    To use this feature, specify `"depth"` as the heuristic in :class:`.SabreSwap`, just as 
+    you would with `"basic"`, `"lookahead"`, or `"decay"`. For example:
+
+    ```python
+    from qiskit.circuit.library import QFT
+    from qiskit.transpiler import CouplingMap, PassManager
+    from qiskit.transpiler.passes import SabreSwap
+
+    # Example coupling map with high connectivity
+    coupling_map = CouplingMap.from_heavy_hex(5)
+    qft_circuit = QFT(coupling_map.size(), do_swaps=False).decompose()
+
+    # Use SabreSwap with the 'depth' heuristic
+    pm = PassManager(SabreSwap(coupling_map, heuristic="depth"))
+    result = pm.run(qft_circuit)
+    ```
+
+    This enhancement provides users with the flexibility to select the heuristic best suited for their circuit, 
+    helping to improve performance by reducing overall circuit depth when depth minimization is essential.
+    

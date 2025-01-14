@@ -20,13 +20,13 @@ import ddt
 import numpy.random
 
 from qiskit.circuit import Clbit, ControlFlowOp, Qubit
-from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
+from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate, QFT
 from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
+from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap, ElidePermutations
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
@@ -207,6 +207,46 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc.num_nonlocal_gates(), 7)
 
+    def test_depth_mode(self):
+        """Tests the effectiveness of the 'depth' heuristic in reducing circuit depth compared to
+        the 'lookahead' heuristic. This test targets circuits with sequentially dependent interaction
+        chains, like QFT and GHZ, using a high-connectivity coupling map (e.g., heavy hex).
+        The depth heuristic is expected to yield lower median depths.
+
+        While this test runs multiple trials for thoroughness, one trial would generally suffice
+        because, in circuits with this structure, the randomization in SABRE has minimal effect
+        on depth results. From testing many seeds, we observe that the 'depth' heuristic consistently
+        produces circuits with lower depth compared to 'lookahead' for these types of circuits.
+        """
+
+        # Define test configurations
+        def run_heuristic_trials(circuit, coupling, num_trials=10, seed=42):
+            depths_lookahead, depths_depth = [], []
+            seeds = numpy.random.default_rng(seed).integers(0, 2**32, num_trials)
+
+            for trial_seed in seeds:
+                pm_lookahead = PassManager(SabreSwap(coupling, "lookahead", seed=trial_seed))
+                pm_depth = PassManager(SabreSwap(coupling, "depth", seed=trial_seed))
+
+                depths_lookahead.append(pm_lookahead.run(circuit).depth())
+                depths_depth.append(pm_depth.run(circuit).depth())
+
+            return depths_lookahead, depths_depth
+
+        # Test QFT circuit with 3x heavy hex coupling map
+        coupling_qft = CouplingMap.from_heavy_hex(3)
+        qft_circuit = QFT(coupling_qft.size(), do_swaps=False).decompose()
+        depths_lookahead, depths_depth = run_heuristic_trials(qft_circuit, coupling_qft)
+        self.assertLessEqual(numpy.median(depths_depth), numpy.median(depths_lookahead))
+
+        # Test GHZ circuit with 7x heavy hex coupling map
+        coupling_ghz = CouplingMap.from_heavy_hex(7)
+        ghz_circuit = QuantumCircuit(coupling_ghz.size())
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, range(1, coupling_ghz.size()))
+        depths_lookahead, depths_depth = run_heuristic_trials(ghz_circuit, coupling_ghz)
+        self.assertLessEqual(numpy.median(depths_depth), numpy.median(depths_lookahead))
+
     def test_do_not_change_cm(self):
         """Coupling map should not change.
         See https://github.com/Qiskit/qiskit-terra/issues/5675"""
@@ -246,8 +286,54 @@ class TestSabreSwap(QiskitTestCase):
         self.assertEqual(last_h.qubits, first_measure.qubits)
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
+    @ddt.data("basic", "lookahead", "decay", "depth")
+    def test_elide_permutations_equivalence(self, method):
+        """Test that after SabreSwap routing, the circuit is equivalent to the original
+        by eliding permutations and comparing with the input circuit."""
+        coupling = CouplingMap.from_line(5)
+        qr = QuantumRegister(5, "q")
+
+        # Define a circuit that requires swaps to satisfy coupling map
+        qc_orig = QuantumCircuit(qr)
+        qc_orig.cx(0, 4)
+        qc_orig.cx(1, 3)
+        qc_orig.cx(2, 3)
+
+        passmanager = PassManager([SabreSwap(coupling, heuristic=method)])
+        qc_tr = passmanager.run(qc_orig)
+
+        # Use ElidePermutations to simplify routed circuit and remove swaps
+        elide_pass = ElidePermutations()
+        simplified_dag = elide_pass.run(circuit_to_dag(qc_tr))
+
+        # Verify that simplified circuit is equivalent to original
+        self.assertEqual(dag_to_circuit(simplified_dag), qc_orig)
+
+    @ddt.data("basic", "lookahead", "decay", "depth")
+    def test_check_map_validity(self, method):
+        """Test that all operations, including swaps, in the routed circuit occur on valid
+        hardware links by using CheckMap validation."""
+        coupling = CouplingMap.from_line(5)
+        qr = QuantumRegister(5, "q")
+
+        # Define a circuit that requires swaps to satisfy coupling map
+        qc = QuantumCircuit(qr)
+        qc.cx(0, 4)
+        qc.cx(1, 3)
+        qc.cx(2, 3)
+
+        passmanager = PassManager([SabreSwap(coupling, heuristic=method)])
+        qc_tr = passmanager.run(qc)
+
+        # Check that routed circuit is correctly mapped to coupling map
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(circuit_to_dag(qc_tr))
+
+        # Assert that all operations in routed circuit comply with coupling map
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
     # The 'basic' method can't get stuck in the same way.
-    @ddt.data("lookahead", "decay")
+    @ddt.data("lookahead", "decay", "depth")
     def test_no_infinite_loop(self, method):
         """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
         circuits that get stuck in a stable local minimum of the lookahead parameters."""
@@ -371,7 +457,7 @@ class TestSabreSwap(QiskitTestCase):
         result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
         self.assertEqual(result, expected)
 
-    @ddt.data("basic", "lookahead", "decay")
+    @ddt.data("basic", "lookahead", "decay", "depth")
     def test_deterministic(self, heuristic):
         """Test that the output of the SabreSwap pass is deterministic for a given random seed."""
         width = 40

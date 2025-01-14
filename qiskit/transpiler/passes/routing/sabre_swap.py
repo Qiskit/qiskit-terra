@@ -125,7 +125,7 @@ class SabreSwap(TransformationPass):
 
             .. math::
 
-                H_{decay}=\frac{1}{\left|{F}\right|}\sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
+                H_{lookahead}=\frac{1}{\left|{F}\right|}\sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
                     + W*\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
 
             - 'decay':
@@ -140,6 +140,25 @@ class SabreSwap(TransformationPass):
                     \frac{1}{\left|{F}\right|} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]\\
                     + W *\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
                     }
+            
+            - 'depth':
+
+            This heuristic measures the combined effect of distance and 2-qubit depth 
+            resulting from an added SWAP. The distance component is consistent with the 
+            basic heuristic, while the depth component, scaled by `V`, reflects the 
+            estimated increase in 2-qubit depth per swap. For example, if each swap 
+            requires 3 CNOT gates (an increase in depth by 3) to bring qubits one 
+            distance closer, setting `V = 1/3` aligns this heuristic with the distance-based 
+            cost.
+
+            .. math::
+
+                H_{depth} = \frac{1}{\left|{F}\right|} \sum_{gate \in F} \left( 
+                    D[\pi(gate.q_1)][\pi(gate.q_2)] + V \cdot \delta(gate.q_1, gate.q_2) \right)
+
+            Here, :math:`\delta(gate.q_1, gate.q_2)` represents the estimated increase in
+            2-qubit depth from applying a swap on qubits :math:`q_1` and :math:`q_2`. The 
+            factor `V` adjusts the depth cost to be comparable with the distance metric.
         """
 
         super().__init__()
@@ -228,6 +247,12 @@ class SabreSwap(TransformationPass):
                 .with_basic(1.0, SetScaling.Size)
                 .with_lookahead(0.5, 20, SetScaling.Size)
                 .with_decay(0.001, 5)
+            )
+        elif self.heuristic == "depth":
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Size)
+                .with_depth(1 / 3, 3.0, SetScaling.Size)
             )
         else:
             raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
