@@ -400,7 +400,7 @@ class QuantumState:
 
         # Make dict of tuples
         if string_labels:
-            return dict(zip(kets, vec[inds]))
+            return dict(zip(kets, vals[inds]))
 
         return {tuple(ket): val for ket, val in zip(kets, vals[inds])}
 

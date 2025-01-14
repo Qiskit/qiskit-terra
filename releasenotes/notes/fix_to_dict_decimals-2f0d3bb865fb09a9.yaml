@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The method :meth:`.Statevector.to_dict` will now respect its ``decimals`` keyword argument, which it previously ignored.  
