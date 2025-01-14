@@ -6875,7 +6875,10 @@ class QuantumCircuit:
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return max(stop for stop in stops.values())
 
-        return 0  # If there are no instructions over bits
+        if len(stops) > 0:
+            return max(stop for stop in stops.values())
+        else:
+            return 0  # If there are no instructions over bits
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):

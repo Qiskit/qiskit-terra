@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This addresses the incorrect stop time bug #8729. See the linked issue here
+    <https://github.com/Qiskit/qiskit/issues/8729>. Also added an extra test to
+    ensure consistent functionality moving forward.

@@ -355,6 +355,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(2), 0)
         self.assertEqual(sc.qubit_start_time(0, 1), 300)
         self.assertEqual(sc.qubit_stop_time(0, 1), 1400)
+        self.assertEqual(sc.qubit_stop_time(0, 1, 2), 1400)
 
         qc.measure_all()
 
