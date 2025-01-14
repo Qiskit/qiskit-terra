@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The minimum required version of Rustworkx is now 0.15.
