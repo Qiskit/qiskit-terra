@@ -133,9 +133,10 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
         "condition_value",
         "num_ctrl_qubits",
         "ctrl_state",
+        "dirty_ancillas",
     ],
 )
-CIRCUIT_INSTRUCTION_V2_PACK = "!HHHIIBHqII"
+CIRCUIT_INSTRUCTION_V2_PACK = "!HHHIIBHqII?"
 CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
 
 

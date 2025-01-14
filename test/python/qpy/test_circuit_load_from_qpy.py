@@ -17,7 +17,7 @@ import struct
 
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate, library
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
@@ -241,6 +241,27 @@ class TestLayout(QpyCircuitTestCase):
             list(new_circuit.layout.input_qubit_mapping.values()),
         )
         self.assertEqual(tqc.layout.final_layout, new_circuit.layout.final_layout)
+
+    def test_ctrl_state_and_dirty_ancillas(self):
+        """Test control state and dirty ancillas are preserved."""
+        qc = QuantumCircuit(5)
+        for gate in [
+            library.MCXGate(2, ctrl_state=0),
+            library.MCXGate(1, ctrl_state=1),
+            library.MCXVChain(3, ctrl_state=0, dirty_ancillas=False),
+            library.MCXVChain(3, ctrl_state=0, dirty_ancillas=True),
+        ]:
+            qc.append(gate, range(gate.num_qubits))
+
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+
+        for new_inst, old_inst in zip(new_circ.data, qc.data):
+            self.assertEqual(new_inst.operation.ctrl_state, old_inst.operation.ctrl_state)
+        self.assertEqual(new_circ[2].operation._dirty_ancillas, qc[2].operation._dirty_ancillas)
+        self.assertEqual(new_circ[3].operation._dirty_ancillas, qc[3].operation._dirty_ancillas)
 
 
 class TestVersionArg(QpyCircuitTestCase):

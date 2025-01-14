@@ -372,18 +372,24 @@ def _read_instruction(
             "MCXGrayCode",
             "MCXGate",
             "MCXRecursive",
-            "MCXVChain",
         }:
             gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
+        elif gate_name == "MCXVChain":
+            gate = gate_class(
+                *params,
+                instruction.num_ctrl_qubits,
+                dirty_ancillas=instruction.dirty_ancillas,
+                label=label,
+            )
         else:
             gate = gate_class(*params, label=label)
-            if (
-                gate.num_ctrl_qubits != instruction.num_ctrl_qubits
-                or gate.ctrl_state != instruction.ctrl_state
-            ):
-                gate = gate.to_mutable()
-                gate.num_ctrl_qubits = instruction.num_ctrl_qubits
-                gate.ctrl_state = instruction.ctrl_state
+        if (
+            gate.num_ctrl_qubits != instruction.num_ctrl_qubits
+            or gate.ctrl_state != instruction.ctrl_state
+        ):
+            gate = gate.to_mutable()
+            gate.num_ctrl_qubits = instruction.num_ctrl_qubits
+            gate.ctrl_state = instruction.ctrl_state
         if condition:
             gate = gate.c_if(*condition)
     else:
@@ -805,6 +811,7 @@ def _write_instruction(
 
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
+    dirty_ancillas = getattr(instruction.operation, "_dirty_ancillas", False)
     instruction_raw = struct.pack(
         formats.CIRCUIT_INSTRUCTION_V2_PACK,
         len(gate_class_name),
@@ -817,6 +824,7 @@ def _write_instruction(
         condition_value,
         num_ctrl_qubits,
         ctrl_state,
+        dirty_ancillas,
     )
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
