@@ -1,0 +1,9 @@
+---
+features_quantum_info:
+  - |
+    Added :meth:`qiskit.quantum_info.diamond_distance` function for computing the
+    distance between two quantum channels. This is equivalent to using
+    :meth:`qiskit.quantum_info.diamond_norm` to calculate the distance of two 
+    channels: ``diamond_norm(chan1 - chan2)``. If both channels are unitary, the 
+    implementation runs an optimisation. Refer to
+    `#12341 <https://github.com/Qiskit/qiskit/issues/12341>` for more details.

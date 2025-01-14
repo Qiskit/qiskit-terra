@@ -12,6 +12,7 @@
 """Tests for operator measures."""
 
 import unittest
+import importlib.util
 from ddt import ddt
 
 import numpy as np
@@ -21,6 +22,9 @@ from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
+from qiskit.quantum_info import diamond_distance
+from qiskit.quantum_info.random import random_unitary, random_pauli, random_clifford
+from qiskit.circuit.library import RZGate
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -163,9 +167,7 @@ class TestOperatorMeasures(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_diamond_norm(self, num_qubits):
         """Test the diamond_norm for {num_qubits}-qubit pauli channel."""
-        try:
-            import cvxpy
-        except ImportError:
+        if importlib.util.find_spec("cvxpy") is None:
             # Skip test if CVXPY not installed
             self.skipTest("CVXPY not installed.")
 
@@ -178,11 +180,65 @@ class TestOperatorMeasures(QiskitTestCase):
             op = op + coeff * Choi(Operator.from_label(label))
         target = np.sum(np.abs(coeffs))
 
-        try:
-            value = diamond_norm(op)
-            self.assertAlmostEqual(value, target, places=4)
-        except cvxpy.SolverError:
-            self.skipTest("CVXPY solver failed.")
+        value = diamond_norm(op)
+        self.assertAlmostEqual(value, target, places=4)
+
+    def test_diamond_distance(self):
+        """Test the diamond_distance function for RZGates
+        with a specific set of angles."""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+        angles = np.linspace(0, 2 * np.pi, 10, endpoint=False)
+        for angle in angles:
+            op1 = Operator(RZGate(angle))
+            op2 = Operator.from_label("I")
+            d2 = np.cos(angle / 2) ** 2  # analytical formula for hull distance
+            target = np.sqrt(1 - d2) * 2
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=7)
+
+    @combine(num_qubits=[1, 2])
+    def test_diamond_distance_random(self, num_qubits):
+        """Tests the diamond_distance for random unitaries.
+        Compares results with semi-definite program."""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+
+        rng = np.random.default_rng(1234)
+        for _ in range(5):
+            op1 = random_unitary(2**num_qubits, seed=rng)
+            op2 = random_unitary(2**num_qubits, seed=rng)
+            target = diamond_norm(Choi(op1) - Choi(op2))
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
+
+    @combine(num_qubits=[1, 2])
+    def test_diamond_distance_random_pauli(self, num_qubits):
+        """Test diamond_distance for non-CP channel"""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+
+        rng = np.random.default_rng(1234)
+        for _ in range(5):
+            op1 = random_pauli(2**num_qubits, seed=rng)
+            op2 = random_pauli(2**num_qubits, seed=rng)
+            target = diamond_norm(Choi(op1) - Choi(op2))
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
+
+    @combine(num_qubits=[1, 2])
+    def test_diamond_distance_random_clifford(self, num_qubits):
+        """Test diamond_distance for non-CP channel"""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+
+        rng = np.random.default_rng(1234)
+        for _ in range(5):
+            op1 = random_clifford(2**num_qubits, seed=rng)
+            op2 = random_clifford(2**num_qubits, seed=rng)
+            target = diamond_norm(Choi(op1) - Choi(op2))
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
 
 
 if __name__ == "__main__":
