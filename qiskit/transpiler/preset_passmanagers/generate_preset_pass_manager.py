@@ -17,13 +17,7 @@ Preset pass manager generation function
 import copy
 import warnings
 
-from qiskit.circuit.controlflow import (
-    CONTROL_FLOW_OP_NAMES,
-    IfElseOp,
-    WhileLoopOp,
-    ForLoopOp,
-    SwitchCaseOp,
-)
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend import Backend
@@ -456,12 +450,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
     standard_gates = get_standard_gate_name_mapping()
     # Add control flow gates by default to basis set and name mapping
     default_gates = {"measure", "delay", "reset"}.union(CONTROL_FLOW_OP_NAMES)
-    name_mapping = {
-        "if_else": IfElseOp,
-        "while_loop": WhileLoopOp,
-        "for_loop": ForLoopOp,
-        "switch_case": SwitchCaseOp,
-    }
+    name_mapping = get_control_flow_name_mapping()
     try:
         instructions = set(basis_gates)
         for name in default_gates:

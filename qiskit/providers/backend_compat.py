@@ -21,7 +21,7 @@ from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
@@ -79,7 +79,6 @@ def _convert_to_target(
         Target,
         InstructionProperties,
     )
-    from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
     from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.gate import Gate
@@ -91,12 +90,7 @@ def _convert_to_target(
     if custom_name_mapping:
         qiskit_inst_mapping.update(custom_name_mapping)
 
-    qiskit_control_flow_mapping = {
-        "if_else": IfElseOp,
-        "while_loop": WhileLoopOp,
-        "for_loop": ForLoopOp,
-        "switch_case": SwitchCaseOp,
-    }
+    qiskit_control_flow_mapping = get_control_flow_name_mapping()
 
     in_data = {"num_qubits": configuration.num_qubits}
 

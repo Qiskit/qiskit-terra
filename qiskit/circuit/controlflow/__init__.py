@@ -26,3 +26,32 @@ from .switch_case import SwitchCaseOp, CASE_DEFAULT
 
 CONTROL_FLOW_OP_NAMES = frozenset(("for_loop", "while_loop", "if_else", "switch_case"))
 """Set of the instruction names of Qiskit's known control-flow operations."""
+
+
+def get_control_flow_name_mapping():
+    """Return a dictionary mapping the names of control-flow operations
+    to their corresponding classes."
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit.circuit import get_control_flow_name_mapping
+
+            ctrl_flow_name_map = get_control_flow_name_mapping()
+            if_else_object = ctrl_flow_name_map["if_else"]
+
+            print(if_else_object)
+
+        .. code-block:: text
+
+            <class 'qiskit.circuit.controlflow.if_else.IfElseOp'>
+    """
+
+    name_mapping = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
+    return name_mapping

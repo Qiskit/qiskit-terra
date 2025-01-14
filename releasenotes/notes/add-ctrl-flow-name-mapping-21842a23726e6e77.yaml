@@ -1,0 +1,19 @@
+---
+features_circuits:
+  - |
+    Added a new :func:`.get_control_flow_name_mapping` convenience function that returns a 
+    mapping of Qiskit's control-flow operation names to their corresponding class. 
+    Example usage:
+
+    .. code-block:: python
+
+        from qiskit.circuit import get_control_flow_name_mapping
+
+        ctrl_flow_name_map = get_control_flow_name_mapping()
+        if_else_object = ctrl_flow_name_map["if_else"]
+
+        print(if_else_object)
+
+    .. code-block:: text
+
+        <class 'qiskit.circuit.controlflow.if_else.IfElseOp'>
