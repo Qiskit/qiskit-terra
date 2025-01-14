@@ -229,27 +229,23 @@ max-line-length = 105  # default 100
 [tool.pylint."messages control"]
 disable = [
 # intentionally disabled:
-    "spelling",  # too noisy
-    "fixme", # disabled as TODOs would show up as warnings
-    "protected-access", # disabled as we don't follow the public vs private convention strictly
-    "duplicate-code", # disabled as it is too verbose
-    "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
-    "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
-    "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
-    "unnecessary-pass", # allow for methods with just "pass", for clarity
-    "unnecessary-dunder-call", # do not want to implement
-    "no-else-return",  # relax "elif" after a clause with a return
+    "consider-using-max-builtin", "consider-using-min-builtin",  # unnecessary stylistic opinion
     "docstring-first-line-empty", # relax docstring style
+    "duplicate-code", # disabled as it is too verbose
+    "fixme", # disabled as TODOs would show up as warnings
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
     "nested-min-max", # this gives false equivalencies if implemented for the current lint version
-    "consider-using-max-builtin", "consider-using-min-builtin",  # unnecessary stylistic opinion
-# TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
-#  remove from here and fix the issues. Else, move it above this section and add a comment
-#  with the rationale
+    "no-else-return",  # relax "elif" after a clause with a return
     "no-member",  # for dynamically created members
-    "not-context-manager",
-    "unnecessary-lambda-assignment",  # do not want to implement
+    "protected-access", # disabled as we don't follow the public vs private convention strictly
+    "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
+    "spelling",  # too noisy
+    "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
+    "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
+    "unnecessary-dunder-call", # do not want to implement
     "unspecified-encoding",  # do not want to implement
+    "unnecessary-lambda-assignment",  # do not want to implement
+    "unnecessary-pass", # allow for methods with just "pass", for clarity
 ]
 
 enable = [
