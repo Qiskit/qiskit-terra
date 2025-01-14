@@ -13,8 +13,10 @@
 
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
+
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Iterable, Callable
 
 from qiskit.dagcircuit import DAGDepNode
@@ -23,6 +25,149 @@ from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
+
+
+class Block(ABC):
+    """
+    Abstract block interface.
+
+    This class defines an abstract interface for reasoning about blocks of nodes
+    that can be collected from a :class:`~qiskit.dagcircuit.DAGCircuit` or
+    from a :class:`~qiskit.dagcircuit.DAGDependency` using the functionality
+    of the :class:`~BlockCollector` class.
+    """
+
+    @abstractmethod
+    def append_node(self, node: DAGOpNode | DAGDepNode) -> bool:
+        """
+        Tries to add the given node to this block.
+
+        This method should implement the logic for deciding whether the given
+        node should be added to the current block, based on the given node and the
+        block so far. The method should return ``True`` if the node should be
+        added, and ``False`` if not. In the former case, the method should also
+        update the specific block implementation to take the new into account.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def size(self) -> int:
+        """
+        This method should return the size of the block.
+
+        This method is used when filtering blocks collected by
+        ``collect_all_matching_blocks`` based on their size
+        as specified by the ``min_block_size`` argument.
+        The size of the block depends on the specific implementation
+        and does not necessarily need to correspond to the number of
+        nodes.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_nodes(self) -> list[DAGOpNode] | list[DAGDepNode] | None:
+        """
+        This method should return the list of nodes in this block if possible,
+        and ``None`` if not.
+
+        This method is primarily needed for backwards compatibility. It will not
+        be called provided that ``collect_all_matching_blocks`` is always called with
+        ``output_nodes = False`` which is now the preferred usage. If this is
+        indeed the case, the method can return ``None``.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def reverse(self) -> Block | None:
+        """
+        This method should return the block with nodes in the reversed order if possible,
+        and ``None`` if not.
+
+        This method is needed to support the ``collect_from_back = True`` option in
+        ``collect_all_matching_blocks``, in which case the nodes are iteratively
+        collected from the back of the DAG, and then their order needs to be reversed.
+        The method can return ``None`` if nodes will never be collected from the
+        back of the circuit.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def split(self, split_blocks: bool, split_layers: bool) -> list[Block]:
+        """
+        This method should return the list of blocks obtained by splitting
+        the current block if possible, and ``None`` otherwise.
+
+        This method is needed to support the ``split_blocks`` and ``split_layers``
+        options in ``collect_all_matching_blocks``, allowing the collected block
+        of nodes to be split into sub-blocks. The method can return ``None``
+        if blocks will never be split into sub-blocks.
+
+        Args:
+            split_blocks (bool): specifies to split the block into sub-blocks
+                over disconnected qubit subsets.
+            split_layers (bool): specifies to split the blocks into layers
+                of non-overlapping instructions (in other words, into depth-1
+                sub-blocks).
+
+        """
+        raise NotImplementedError
+
+
+class DefaultBlock(Block):
+    """Block class suitable for a large number of basic collection strategies."""
+
+    def __init__(self, nodes: list[DAGOpNode] | list[DAGDepNode] | None = None):
+        self.nodes = [] if nodes is None else nodes
+
+    def append_node(self, node: DAGOpNode | DAGDepNode) -> bool:
+        """Always adds the node to this block."""
+        self.nodes.append(node)
+        return True
+
+    def size(self) -> int:
+        """Returns the number of nodes in this block."""
+        return len(self.nodes)
+
+    def get_nodes(self) -> list[DAGOpNode] | list[DAGDepNode]:
+        """Returns the list of nodes in this block."""
+        return self.nodes
+
+    def reverse(self) -> DefaultBlock:
+        """Returns the block with nodes in the reversed order."""
+        return DefaultBlock(self.nodes[::-1])
+
+    def split(self, split_blocks: bool, split_layers: bool) -> list[DefaultBlock]:
+        """
+        Splits the block into sub-blocks.
+
+        Args:
+            split_blocks (bool): specifies to split the block into sub-blocks
+                over disconnected qubit subsets.
+            split_layers (bool): specifies to split the blocks into layers
+                of non-overlapping instructions (in other words, into depth-1
+                sub-blocks).
+
+        """
+
+        output_blocks = [self]
+
+        if split_layers:
+            tmp_blocks = []
+            for block in output_blocks:
+                split = split_block_into_layers(block.get_nodes())
+                for nodes in split:
+                    tmp_blocks.append(DefaultBlock(nodes))
+            output_blocks = tmp_blocks
+
+        if split_blocks:
+            tmp_blocks = []
+            for block in output_blocks:
+                split = BlockSplitter().run(block.get_nodes())
+                for nodes in split:
+                    tmp_blocks.append(DefaultBlock(nodes))
+            output_blocks = tmp_blocks
+
+        return output_blocks
 
 
 class BlockCollector:
@@ -139,19 +284,25 @@ class BlockCollector:
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(self, filter_fn: Callable) -> list[DAGOpNode | DAGDepNode]:
+    def collect_matching_block(
+        self, filter_fn: Callable, block_class=DefaultBlock, output_nodes=True
+    ) -> Block | list[DAGOpNode | DAGDepNode]:
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
+
         Examples of this include collecting blocks of swap gates,
         blocks of linear gates (CXs and SWAPs), blocks of Clifford gates, blocks of single-qubit gates,
         blocks of two-qubit gates, etc.  Here 'iteratively' means that once a node is collected,
         the ``_in_degree`` of each of its immediate successor is decreased by 1, allowing more nodes
         to become input and to be eligible for collecting into the current block.
+
         Returns the block of collected nodes.
         """
-        current_block = []
+
         unprocessed_pending_nodes = self._pending_nodes
         self._pending_nodes = []
+
+        current_block = block_class()
 
         # Iteratively process unprocessed_pending_nodes:
         # - any node that does not match filter_fn is added to pending_nodes
@@ -160,9 +311,7 @@ class BlockCollector:
         while unprocessed_pending_nodes:
             new_pending_nodes = []
             for node in unprocessed_pending_nodes:
-                if filter_fn(node):
-                    current_block.append(node)
-
+                if filter_fn(node) and current_block.append_node(node):
                     # update the _in_degree of node's successors
                     for suc in self._direct_succs(node):
                         self._in_degree[suc] -= 1
@@ -172,7 +321,7 @@ class BlockCollector:
                     self._pending_nodes.append(node)
             unprocessed_pending_nodes = new_pending_nodes
 
-        return current_block
+        return current_block.get_nodes() if output_nodes else current_block
 
     def collect_all_matching_blocks(
         self,
@@ -181,10 +330,15 @@ class BlockCollector:
         min_block_size=2,
         split_layers=False,
         collect_from_back=False,
+        block_class=DefaultBlock,
+        output_nodes=True,
     ):
-        """Collects all blocks that match a given filtering function filter_fn.
-        This iteratively finds the largest block that does not match filter_fn,
-        then the largest block that matches filter_fn, and so on, until no more uncollected
+        """Collects all blocks that match a given filtering function ``filter_fn``
+        and as further refined by the specifics of the block class ``block_class``
+        used to collect the blocks.
+
+        This iteratively finds the largest block that does not match ``filter_fn``,
+        then the largest block that matches ``filter_fn``, and so on, until no more uncollected
         nodes remain. Intuitively, finding larger blocks of non-matching nodes helps to
         find larger blocks of matching nodes later on.
 
@@ -199,11 +353,20 @@ class BlockCollector:
         that is collect blocks from the outputs towards the inputs of the circuit.
 
         Returns the list of matching blocks only.
+
+        The preferred way to use this function is to specify the block class ``block_class``
+        used for block collection and set ``output_nodes = False``, in which case this
+        function returns the list of blocks of type ``block_class``. However, for backward
+        compatibility, the option ``output_nodes = True`` is also supported, in which case
+        the blocks are represented by lists of nodes.
         """
 
         def not_filter_fn(node):
             """Returns the opposite of filter_fn."""
             return not filter_fn(node)
+
+        if not issubclass(block_class, Block):
+            raise DAGCircuitError("Invalid block class.")
 
         # Note: the collection direction must be specified before setting in-degrees
         self._collect_from_back = collect_from_back
@@ -212,34 +375,44 @@ class BlockCollector:
         # Iteratively collect non-matching and matching blocks.
         matching_blocks: list[list[DAGOpNode | DAGDepNode]] = []
         while self._have_uncollected_nodes():
-            self.collect_matching_block(not_filter_fn)
-            matching_block = self.collect_matching_block(filter_fn)
-            if matching_block:
+            self.collect_matching_block(
+                filter_fn=not_filter_fn,
+                output_nodes=True,
+            )
+            matching_block = self.collect_matching_block(
+                filter_fn=filter_fn, block_class=block_class, output_nodes=False
+            )
+            if matching_block.size() >= min_block_size:
                 matching_blocks.append(matching_block)
 
-        # If the option split_layers is set, refine blocks by splitting them into layers
-        # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
-        if split_layers:
+        if split_blocks or split_layers:
             tmp_blocks = []
             for block in matching_blocks:
-                tmp_blocks.extend(split_block_into_layers(block))
-            matching_blocks = tmp_blocks
-
-        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-        # disconnected qubit subsets.
-        if split_blocks:
-            tmp_blocks = []
-            for block in matching_blocks:
-                tmp_blocks.extend(BlockSplitter().run(block))
+                sub_blocks = block.split(split_blocks=split_blocks, split_layers=split_layers)
+                if sub_blocks is None:
+                    raise DAGCircuitError(
+                        "The block class does not implement the method ``split``."
+                    )
+                tmp_blocks.extend(sub_blocks)
             matching_blocks = tmp_blocks
 
         # If we are collecting from the back, both the order of the blocks
         # and the order of nodes in each block should be reversed.
         if self._collect_from_back:
-            matching_blocks = [block[::-1] for block in matching_blocks[::-1]]
+            matching_blocks = [block.reverse() for block in matching_blocks[::-1]]
+            if any(block is None for block in matching_blocks):
+                raise DAGCircuitError("The block class does not implement the method ``reverse``.")
 
         # Keep only blocks with at least min_block_sizes.
-        matching_blocks = [block for block in matching_blocks if len(block) >= min_block_size]
+        matching_blocks = [block for block in matching_blocks if block.size() >= min_block_size]
+
+        if output_nodes:
+            matching_blocks_as_nodes = [block.get_nodes() for block in matching_blocks]
+            if any(nodes is None for nodes in matching_blocks_as_nodes):
+                raise DAGCircuitError(
+                    "The block class does not implement the method ``get_nodes``."
+                )
+            return matching_blocks_as_nodes
 
         return matching_blocks
 

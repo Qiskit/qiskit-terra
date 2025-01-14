@@ -12,6 +12,7 @@
 
 """Test functionality to collect, split and consolidate blocks from DAGCircuits."""
 
+# pylint: disable=missing-function-docstring, unused-argument
 
 import unittest
 
@@ -24,14 +25,22 @@ from qiskit.converters import (
     dagdependency_to_circuit,
 )
 from qiskit.circuit import QuantumCircuit, Measure, Clbit
-from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
+from qiskit.dagcircuit import DAGCircuitError
+from qiskit.dagcircuit.collect_blocks import (
+    Block,
+    DefaultBlock,
+    BlockCollector,
+    BlockSplitter,
+    BlockCollapser,
+)
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCollectBlocks(QiskitTestCase):
-    """Tests to verify correctness of collecting, splitting, and consolidating blocks
+    """
+    Tests to verify correctness of collecting, splitting, and consolidating blocks
     from DAGCircuit and DAGDependency. Additional tests appear as a part of
-    CollectLinearFunctions and CollectCliffords passes.
+    CollectLinearFunctions, CollectCliffords, and StarPreRouting passes.
     """
 
     def test_collect_gates_from_dagcircuit_1(self):
@@ -97,6 +106,30 @@ class TestCollectBlocks(QiskitTestCase):
         # including all CX-gates into the same block
         self.assertEqual(len(blocks), 2)
 
+    def test_collect_gates_from_dagcircuit_native(self):
+        """Test collecting CX gates from DAGCircuits into DefaultBlocks."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.z(0)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name == "cx",
+            split_blocks=False,
+            min_block_size=2,
+            output_nodes=False,
+        )
+
+        # The middle z-gate leads to two blocks of size 2 each
+        self.assertEqual(len(blocks), 2)
+        self.assertIsInstance(blocks[0], DefaultBlock)
+        self.assertIsInstance(blocks[1], DefaultBlock)
+        self.assertEqual(len(blocks[0].nodes), 2)
+        self.assertEqual(len(blocks[1].nodes), 2)
+
     def test_collect_gates_from_dagdependency_1(self):
         """Test collecting CX gates from DAGDependency."""
         qc = QuantumCircuit(5)
@@ -112,7 +145,6 @@ class TestCollectBlocks(QiskitTestCase):
             split_blocks=False,
             min_block_size=1,
         )
-
         # The middle z-gate commutes with CX-gates, which leads to a single block of length 4
         self.assertEqual(len(blocks), 1)
         self.assertEqual(len(blocks[0]), 4)
@@ -136,6 +168,28 @@ class TestCollectBlocks(QiskitTestCase):
         # All the gates are part of a single block
         self.assertEqual(len(blocks), 1)
         self.assertEqual(len(blocks[0]), 5)
+
+    def test_collect_gates_from_dagdependency_native(self):
+        """Test collecting CX gates from DAGCircuits into DefaultBlocks."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.z(0)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+
+        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name == "cx",
+            split_blocks=False,
+            min_block_size=2,
+            output_nodes=False,
+        )
+
+        # The middle z-gate leads to two blocks of size 2 each
+        self.assertEqual(len(blocks), 1)
+        self.assertIsInstance(blocks[0], DefaultBlock)
+        self.assertEqual(len(blocks[0].nodes), 4)
 
     def test_collect_and_split_gates_from_dagcircuit(self):
         """Test collecting and splitting blocks from DAGCircuit."""
@@ -961,6 +1015,142 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(collapsed_qc.data), 1)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 1)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 2)
+
+
+class InvalidBlock:
+    """An example of an invalid block class that does not subclass Block."""
+
+    def append_node(self, node):
+        return True
+
+    def size(self):
+        return 0
+
+    def get_nodes(self):
+        return None
+
+    def reverse(self):
+        return None
+
+    def split(self, split_blocks, split_layers):
+        return None
+
+
+class DummyBlock(Block):
+    """An example of a block class that only implements the bare necessary methods."""
+
+    def __init__(self):
+        self.nodes = []
+
+    def append_node(self, node):
+        self.nodes.append(node)
+        return True
+
+    def size(self):
+        return len(self.nodes)
+
+    def get_nodes(self):
+        return None
+
+    def reverse(self):
+        return None
+
+    def split(self, split_blocks, split_layers):
+        return None
+
+
+class TestCollectBlocksWithBlockClasses(QiskitTestCase):
+    """Additional tests for specifying block classes."""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.z(0)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+
+        self.dag = circuit_to_dag(qc)
+
+    def test_raises_when_not_block_subclass(self):
+        """Block collection should raise."""
+
+        block_collector = BlockCollector(self.dag)
+
+        with self.assertRaises(DAGCircuitError):
+            _ = block_collector.collect_all_matching_blocks(
+                block_class=InvalidBlock,
+                output_nodes=False,
+                filter_fn=lambda node: node.op.name == "cx",
+                min_block_size=2,
+                split_blocks=False,
+                collect_from_back=False,
+            )
+
+    def test_no_reverse_method_ok(self):
+        """Block collection should work."""
+
+        block_collector = BlockCollector(self.dag)
+
+        blocks = block_collector.collect_all_matching_blocks(
+            block_class=DummyBlock,
+            output_nodes=False,
+            filter_fn=lambda node: node.op.name == "cx",
+            min_block_size=2,
+            split_blocks=False,
+            collect_from_back=False,
+        )
+
+        self.assertEqual(len(blocks), 2)
+        self.assertIsInstance(blocks[0], DummyBlock)
+        self.assertIsInstance(blocks[1], DummyBlock)
+
+    def test_no_reverse_method_raises(self):
+        """Block collection should raise."""
+
+        block_collector = BlockCollector(self.dag)
+
+        with self.assertRaises(DAGCircuitError):
+            _ = block_collector.collect_all_matching_blocks(
+                block_class=DummyBlock,
+                output_nodes=False,
+                filter_fn=lambda node: node.op.name == "cx",
+                min_block_size=2,
+                split_blocks=False,
+                collect_from_back=True,
+            )
+
+    def test_no_split_method_raises(self):
+        """Block collection should raise."""
+
+        block_collector = BlockCollector(self.dag)
+
+        with self.assertRaises(DAGCircuitError):
+            _ = block_collector.collect_all_matching_blocks(
+                block_class=DummyBlock,
+                output_nodes=False,
+                filter_fn=lambda node: node.op.name == "cx",
+                min_block_size=2,
+                split_blocks=True,
+                collect_from_back=False,
+            )
+
+    def test_get_nodes_method_raises(self):
+        """Block collection should raise."""
+
+        block_collector = BlockCollector(self.dag)
+
+        with self.assertRaises(DAGCircuitError):
+            _ = block_collector.collect_all_matching_blocks(
+                block_class=DummyBlock,
+                output_nodes=True,
+                filter_fn=lambda node: node.op.name == "cx",
+                min_block_size=2,
+                split_blocks=True,
+                collect_from_back=False,
+            )
 
 
 if __name__ == "__main__":

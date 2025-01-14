@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Extends the functionality of the :class:`~BlockCollector` class to collect
+    nodes of a DAG into blocks represented by user-specified classes. The new
+    class :class:`~qiskit.dagcircuit.collect_blocks.Block` defines an abstract
+    interface that a user-specified block class should satisfy in order to use
+    it for block collection, and the new class
+    :class:`~qiskit.dagcircuit.collect_blocks.DefaultBlock` implements such a
+    class that is useful for various simple block collection strategies.
+    The key new feature is that the check whether a node should be added to the
+    given block may now depend on the block collected so far.
