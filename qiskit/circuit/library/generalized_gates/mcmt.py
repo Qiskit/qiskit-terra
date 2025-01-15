@@ -49,7 +49,7 @@ class MCMT(QuantumCircuit):
     :class:`~qiskit.circuit.library.MCMTVChain`.
     """
 
-    @deprecate_func(since="1.3", additional_msg="Use MCMTGate instead.", pending=True)
+    @deprecate_func(since="1.4", additional_msg="Use MCMTGate instead.")
     def __init__(
         self,
         gate: Gate | Callable[[QuantumCircuit, circuit.Qubit, circuit.Qubit], circuit.Instruction],
@@ -76,7 +76,7 @@ class MCMT(QuantumCircuit):
             warnings.warn(
                 "Passing a callable to MCMT is pending deprecation since Qiskit 1.3. Pass a "
                 "gate instance or the gate name instead, e.g. pass 'h' instead of QuantumCircuit.h.",
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             gate = gate.__name__
@@ -84,7 +84,7 @@ class MCMT(QuantumCircuit):
             warnings.warn(
                 "Passing a QuantumCircuit is pending deprecation since Qiskit 1.3. Pass a gate "
                 "or turn the circuit into a gate using the ``to_gate`` method, instead.",
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             gate = gate.to_gate()
@@ -157,9 +157,8 @@ class MCMTVChain(MCMT):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use MCMTGate with the V-chain synthesis plugin instead.",
-        pending=True,
     )
     def __init__(
         self,
@@ -276,7 +275,7 @@ class MCMTGate(ControlledGate):
             warnings.warn(
                 "Passing a controlled gate to MCMT is pending deprecation since Qiskit 1.3. Pass a "
                 "single-qubit gate instance or the gate name instead, e.g. pass 'h' instead of 'ch'.",
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             base_gate = gate.base_gate

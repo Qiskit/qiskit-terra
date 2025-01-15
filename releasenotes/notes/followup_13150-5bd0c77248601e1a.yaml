@@ -1,0 +1,6 @@
+---
+deprecations_circuits:
+  - |
+    The Multiple-Control-Multiple-Target in :class:`~qiskit.circuit.library.generalized_gates.MCMT` is now deprecated
+    and replaced by :class:`MCMTGate`, which is a proper :class:`Gate` subclass.
+  
