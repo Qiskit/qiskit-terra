@@ -1,0 +1,8 @@
+---
+deprecations_synthesis:
+  - |
+    The argument ``atomic_evolution`` in the constructor for the classes
+    :class:`.LieTrotter`, :class:`.ProductFormula`, and :class:`.SuzukiTrotter`
+    is a callable with a different signature now: from
+    ``Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]`` to
+    ``Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]``.

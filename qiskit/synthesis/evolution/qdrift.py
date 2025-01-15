@@ -43,7 +43,7 @@ class QDrift(ProductFormula):
 
     @deprecate_arg(
         name="atomic_evolution",
-        since="1.2",
+        since="1.4",
         predicate=lambda callable: callable is not None
         and len(inspect.signature(callable).parameters) == 2,
         deprecation_description=(
@@ -54,7 +54,6 @@ class QDrift(ProductFormula):
             "Instead you should update your 'atomic_evolution' function to be of the following "
             "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
         ),
-        pending=True,
     )
     def __init__(
         self,
