@@ -3576,6 +3576,18 @@ class QuantumCircuit:
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
 
+    # return counts per operation for every qubit in the QuantumCircuit
+    # every element of the list corresponds to one qubit in the QuantumCitcuit
+    # and every such element is a hashmap with the operation-name as the key and
+    # the number of such operations in that qubit as value.
+    def count_ops_with_qubits(self) -> list:
+        """Count each operation kind in the circuit, along with the qubits used in those operations.
+
+        Returns:
+            list: a breakdown of how many operations of each kind, along with the qubits involved.
+        """
+        return self._data.operations_with_qubits()
+
     def num_nonlocal_gates(self) -> int:
         """Return number of non-local gates (i.e. involving 2+ qubits).
 
