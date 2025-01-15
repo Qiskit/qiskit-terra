@@ -454,6 +454,24 @@ Sampler V1
    BackendSampler
    SamplerResult
 
+
+Containers
+----------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+  BitArray
+  DataBin
+  PrimitiveResult
+  PubResult
+  EstimatorPubLike
+  SamplerPubLike
+  SamplerPubResult
+  BindingsArrayLike
+  ObservableLike
+  ObservablesArrayLike
+
 """
 
 from .backend_estimator import BackendEstimator

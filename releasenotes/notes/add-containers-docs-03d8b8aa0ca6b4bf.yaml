@@ -1,0 +1,4 @@
+---
+other:
+  - |
+    Added documentation for `BitArray`, `DataBin`, `PrimitiveResult`, `PubResult`, `EstimatorPubLike`, `SamplerPubLike`, `SamplerPubResult`, `BindingsArrayLike`, `ObservableLike`, and `ObservablesArrayLike`.
