@@ -1,0 +1,5 @@
+---
+deprecations_visualization:
+  - |
+    The timeline drawer :func:`~qiskit.visualization.timeline.interface.draw` now needs a ``target``
+    to get the duration of instructions. From Qiskit 2.0 on, ``target`` will be required and fail if not specified.

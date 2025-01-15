@@ -369,7 +369,7 @@ def draw(
         warnings.warn(
             "Target is not specified. In Qiskit 2.0.0 this will be required to get the duration of "
             "instructions.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
 
