@@ -111,16 +111,31 @@ fn apply_synth_dag(
     out_qargs: &[Qubit],
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
+    let mut out_dag_concat = out_dag.as_concat();
     for out_node in synth_dag.topological_op_nodes()? {
-        let mut out_packed_instr = synth_dag.dag()[out_node].unwrap_operation().clone();
+        let out_packed_instr = synth_dag.dag()[out_node].unwrap_operation();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
             .map(|qarg| out_qargs[qarg.0 as usize])
             .collect();
-        out_packed_instr.qubits = out_dag.qargs_interner.insert(&mapped_qargs);
-        out_dag.push_back(py, out_packed_instr)?;
+        out_dag_concat.apply_operation_back(
+            py,
+            out_packed_instr.op.clone(),
+            Some(mapped_qargs.into()),
+            Some(
+                synth_dag
+                    .cargs_interner()
+                    .get(out_packed_instr.clbits)
+                    .into(),
+            ),
+            out_packed_instr.params.clone().map(|param| *param),
+            out_packed_instr.extra_attrs.clone(),
+            #[cfg(feature = "cache_pygates")]
+            None,
+        );
     }
+    out_dag_concat.end();
     out_dag.add_global_phase(py, &synth_dag.get_global_phase())?;
     Ok(())
 }
@@ -131,29 +146,29 @@ fn apply_synth_sequence(
     out_qargs: &[Qubit],
     sequence: &TwoQubitUnitarySequence,
 ) -> PyResult<()> {
-    let mut instructions = Vec::with_capacity(sequence.gate_sequence.gates().len());
+    let mut concat_dag = out_dag.as_concat();
     for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
         let gate_node = match gate {
             None => sequence.decomp_gate.operation.standard_gate(),
             Some(gate) => *gate,
         };
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
-        let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
-            Some(_) => Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect())),
-            None => Some(Box::new(sequence.decomp_gate.params.clone())),
+        let new_params: Option<SmallVec<[Param; 3]>> = match gate {
+            Some(_) => Some(params.iter().map(|p| Param::Float(*p)).collect()),
+            None => Some(sequence.decomp_gate.params.clone()),
         };
-        let instruction = PackedInstruction {
-            op: PackedOperation::from_standard(gate_node),
-            qubits: out_dag.qargs_interner.insert(&mapped_qargs),
-            clbits: out_dag.cargs_interner.get_default(),
-            params: new_params,
-            extra_attrs: ExtraInstructionAttributes::default(),
+        concat_dag.apply_operation_back(
+            py,
+            PackedOperation::from_standard(gate_node),
+            Some(mapped_qargs.into()),
+            None,
+            new_params,
+            ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        };
-        instructions.push(instruction);
+            None,
+        );
     }
-    out_dag.extend(py, instructions.into_iter())?;
+    concat_dag.end();
     out_dag.add_global_phase(py, &Param::Float(sequence.gate_sequence.global_phase()))?;
     Ok(())
 }
@@ -1065,17 +1080,27 @@ fn reversed_synth_su4_dag(
 
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
+    let mut target_dag_concat = target_dag.as_concat();
     for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag.dag()[node].unwrap_operation().clone();
+        let inst = synth_dag.dag()[node].unwrap_operation();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
             .get(inst.qubits)
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
-        inst.qubits = target_dag.qargs_interner.insert_owned(qubits);
-        target_dag.push_back(py, inst)?;
+        target_dag_concat.apply_operation_back(
+            py,
+            inst.op.clone(),
+            Some(qubits.into()),
+            Some(synth_dag.cargs_interner().get(inst.clbits).into()),
+            inst.params.clone().map(|param| *param),
+            inst.extra_attrs.clone(),
+            #[cfg(feature = "cache_pygates")]
+            None,
+        );
     }
+    target_dag_concat.end();
     Ok(target_dag)
 }
 
