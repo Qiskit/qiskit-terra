@@ -262,6 +262,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-stack"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf6fa63092e3ca9f602f6500fddd05502412b748c4c4682938565b44eb9e0066"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -334,9 +343,9 @@ dependencies = [
  "bytemuck",
  "coe-rs",
  "dbgf",
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "equator 0.4.1",
- "faer-entity",
+ "faer-entity 0.19.2",
  "gemm",
  "libm",
  "matrixcompare",
@@ -351,6 +360,28 @@ dependencies = [
  "rayon",
  "reborrow",
  "serde",
+]
+
+[[package]]
+name = "faer"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c23c499be0d3ad8167878497cd114ec5ff356556652c651eb5f209a1579032d2"
+dependencies = [
+ "bytemuck",
+ "coe-rs",
+ "dbgf",
+ "dyn-stack 0.11.0",
+ "equator 0.4.1",
+ "faer-entity 0.20.1",
+ "gemm",
+ "generativity",
+ "libm",
+ "nano-gemm",
+ "num-complex",
+ "num-traits",
+ "paste",
+ "reborrow",
 ]
 
 [[package]]
@@ -369,13 +400,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "faer-ext"
-version = "0.2.0"
+name = "faer-entity"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf30f6ae73f372c0e0cf7556c44e50f1eee0a714d71396091613d68c43625c9"
+checksum = "072f96f1bc8b2b30dfc26c086baeadb63aae08019b1ed84721809b9fd2006685"
 dependencies = [
- "faer",
- "ndarray",
+ "bytemuck",
+ "coe-rs",
+ "libm",
+ "num-complex",
+ "num-traits",
+ "pulp",
+ "reborrow",
+]
+
+[[package]]
+name = "faer-ext"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f92bf75258e2a62712ca6d058e8ce2e70c7837ea931612d31a96ec696736976"
+dependencies = [
+ "faer 0.20.1",
+ "ndarray 0.16.1",
  "num-complex",
 ]
 
@@ -391,7 +437,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e400f2ffd14e7548356236c35dc39cad6666d833a852cb8a8f3f28029359bb03"
 dependencies = [
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "gemm-c32",
  "gemm-c64",
  "gemm-common",
@@ -411,7 +457,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10dc4a6176c8452d60eac1a155b454c91c668f794151a303bf3c75ea2874812d"
 dependencies = [
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "gemm-common",
  "num-complex",
  "num-traits",
@@ -426,7 +472,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc2032ce2c0bb150da0256338759a6fb01ca056f6dfe28c4d14af32d7f878f6f"
 dependencies = [
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "gemm-common",
  "num-complex",
  "num-traits",
@@ -442,7 +488,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90fd234fc525939654f47b39325fd5f55e552ceceea9135f3aa8bdba61eabef6"
 dependencies = [
  "bytemuck",
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "half",
  "num-complex",
  "num-traits",
@@ -461,7 +507,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fc3652651f96a711d46b8833e1fac27a864be4bdfa81a374055f33ddd25c0c6"
 dependencies = [
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "gemm-common",
  "gemm-f32",
  "half",
@@ -479,7 +525,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbc51c44ae3defd207e6d9416afccb3c4af1e7cef5e4960e4c720ac4d6f998e"
 dependencies = [
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "gemm-common",
  "num-complex",
  "num-traits",
@@ -494,7 +540,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f37fc86e325c2415a4d0cab8324a0c5371ec06fc7d2f9cb1636fcfc9536a8d8"
 dependencies = [
- "dyn-stack",
+ "dyn-stack 0.10.0",
  "gemm-common",
  "num-complex",
  "num-traits",
@@ -502,6 +548,12 @@ dependencies = [
  "raw-cpuid",
  "seq-macro",
 ]
+
+[[package]]
+name = "generativity"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5881e4c3c2433fe4905bb19cfd2b5d49d4248274862b68c27c33d9ba4e13f9ec"
 
 [[package]]
 name = "generic-array"
@@ -775,13 +827,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
+dependencies = [
+ "matrixmultiply",
+ "num-complex",
+ "num-integer",
+ "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
+ "rawpointer",
+]
+
+[[package]]
 name = "ndarray_einsum_beta"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "668b3abeae3e0637740340e0e32a9bf9308380e146ea6797950f9ff16e88d88a"
 dependencies = [
  "lazy_static",
- "ndarray",
+ "ndarray 0.15.6",
  "num-traits",
  "regex",
 ]
@@ -844,7 +911,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edb929bc0da91a4d85ed6c0a84deaa53d411abfb387fc271124f91bf6b89f14e"
 dependencies = [
  "libc",
- "ndarray",
+ "ndarray 0.15.6",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -989,6 +1056,15 @@ name = "portable-atomic"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc9c68a3f6da06753e9335d63e27f6b9754dd1920d941135b7ea8224f141adb2"
+
+[[package]]
+name = "portable-atomic-util"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8a2f0d8d040d7848a709caf78912debcc3f33ee4b3cac47d73d1e1069e83507"
+dependencies = [
+ "portable-atomic",
+]
 
 [[package]]
 name = "ppv-lite86"
@@ -1155,12 +1231,12 @@ dependencies = [
  "ahash 0.8.11",
  "approx 0.5.1",
  "bytemuck",
- "faer",
+ "faer 0.19.4",
  "faer-ext",
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
- "ndarray",
+ "ndarray 0.15.6",
  "ndarray_einsum_beta",
  "num-bigint",
  "num-complex",
@@ -1190,7 +1266,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
- "ndarray",
+ "ndarray 0.15.6",
  "num-complex",
  "numpy",
  "pyo3",
@@ -1423,7 +1499,7 @@ dependencies = [
  "fixedbitset",
  "hashbrown 0.14.5",
  "indexmap",
- "ndarray",
+ "ndarray 0.15.6",
  "num-traits",
  "petgraph",
  "priority-queue",
