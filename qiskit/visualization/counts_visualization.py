@@ -61,6 +61,7 @@ def plot_histogram(
     figsize=None,
     color=None,
     number_to_keep=None,
+    ignore_under=None,
     sort="asc",
     target_string=None,
     legend=None,
@@ -82,6 +83,8 @@ def plot_histogram(
             applies to each dataset individually, which may result in more bars than
             ``number_to_keep + 1``.  The ``number_to_keep`` applies to the total values, rather than
             the x-axis sort.
+        ignore_under (int): The count of values below which to ignore the bitstrings. It will return
+            only those bitstrings which have count greater or equal to ``ignore_under``.
         sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
             `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
             will be sorted by the number of counts for each bitstring.
@@ -138,6 +141,8 @@ def plot_histogram(
             # one bitstring to the other) from a target string.
             hist2 = plot_histogram(counts, sort='hamming', target_string='001')
     """
+    if ignore_under is not None:
+        data = {key: count for key, count in data.items() if count > (ignore_under - 1)}
     if not isinstance(data, list):
         data = [data]
 

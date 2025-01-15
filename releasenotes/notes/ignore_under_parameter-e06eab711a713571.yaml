@@ -1,0 +1,14 @@
+---
+features_visualization:
+  - |
+    New parameter added to the function plot_histogram. Paramerer is named `ignore_under`. 
+    The introduction of this parameter ignores the values in the data dictionary values
+    strictly lower than `ignore_under`. This will solve the sparsity problem faced by the
+    function when the data contains a lot of small values returning an unreadable histogram.
+
+
+fixes:
+  - |
+    Fixes sparsity problem wit the histograms ``foo()``. Refer to
+    `#13066 <https://github.com/Qiskit/qiskit/issues/13066>` for more
+    details.
