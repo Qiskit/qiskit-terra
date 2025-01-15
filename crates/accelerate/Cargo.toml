@@ -63,3 +63,4 @@ features = ["macro"]
 
 [features]
 cache_pygates = ["qiskit-circuit/cache_pygates"]
+gil-refs = ["pyo3/gil-refs"]

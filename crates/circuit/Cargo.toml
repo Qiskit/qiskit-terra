@@ -39,3 +39,4 @@ features = ["union"]
 
 [features]
 cache_pygates = []
+gil-refs = ["pyo3/gil-refs"]

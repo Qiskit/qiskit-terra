@@ -14,3 +14,6 @@ num-bigint.workspace = true
 hashbrown.workspace = true
 pyo3.workspace = true
 qiskit-circuit.workspace = true
+
+[features]
+gil-refs = ["pyo3/gil-refs"]

@@ -66,18 +66,15 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                         } else if DIAGONAL_2Q_GATES.contains(&gate)
                             || DIAGONAL_3Q_GATES.contains(&gate)
                         {
-                            let successors = dag.quantum_successors(predecessor);
-                            let remove_s = successors
-                                .map(|s| {
-                                    let node_s = &dag.dag()[s];
-                                    if let NodeType::Operation(inst_s) = node_s {
-                                        inst_s.op.name() == "measure"
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .all(|ok_to_remove| ok_to_remove);
-                            if remove_s {
+                            let mut successors = dag.quantum_successors(predecessor);
+                            if successors.all(|s| {
+                                let node_s = &dag.dag()[s];
+                                if let NodeType::Operation(inst_s) = node_s {
+                                    inst_s.op.name() == "measure"
+                                } else {
+                                    false
+                                }
+                            }) {
                                 nodes_to_remove.push(predecessor);
                             }
                         }

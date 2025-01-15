@@ -18,3 +18,6 @@ ahash.workspace = true
 [dependencies.pyo3]
 workspace = true
 features = ["py-clone"]
+
+[features]
+gil-refs = ["pyo3/gil-refs"]
