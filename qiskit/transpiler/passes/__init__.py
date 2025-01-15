@@ -116,6 +116,7 @@ Scheduling
    TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
+   ContextAwareDynamicalDecoupling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
@@ -290,6 +291,7 @@ from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
+from .scheduling import ContextAwareDynamicalDecoupling
 
 # additional utility passes
 from .utils import CheckMap

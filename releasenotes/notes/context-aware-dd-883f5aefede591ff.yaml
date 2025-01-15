@@ -1,0 +1,35 @@
+---
+features_transpiler:
+  - |
+    Added the :class:`.ContextAwareDynamicalDecoupling` pass, which implements
+    a context-aware dynamical decoupling based on Walsh-Hadamard sequences.
+    The inserted delay sequences will be mutually orthogonal to sequences on
+    neighboring qubits, and take into account control/target spectators of CX
+    and ECR gates. See `arXiv:2403.06852 <https://arxiv.org/abs/2403.06852>`_
+    for more information.
+
+    Example::
+
+        from qiskit.circuit.library import QFT
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes import ALAPScheduleAnalysis, ContextAwareDynamicalDecoupling
+        from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+        from qiskit_ibm_runtime.fake_provider import FakeSherbrooke
+
+        num_qubits = 10
+        circuit = QFT(num_qubits)
+        circuit.measure_all()
+
+        target = FakeSherbrooke().target
+
+        pm = generate_preset_pass_manager(optimization_level=2, target=target)
+        dd = PassManager([
+            ALAPScheduleAnalysis(target=target),
+            ContextAwareDynamicalDecoupling(target=target),
+        ])
+
+        transpiled = pm.run(circuit)
+        with_dd = dd.run(transpiled)
+
+        print(with_dd.draw(idle_wires=False))
+
