@@ -1,0 +1,17 @@
+---
+upgrade_providers:
+  - |
+    The abstract base classes ``Provider`` and ``ProviderV1`` have been deprecated since Qiskit 1.1 and they are now removed.
+    The abstraction provided by these interface definitions were not providing a huge value, solely just the attributes
+    ``name``, ``backends``, and a ``get_backend()``. A _provider_, as a concept, will continue existing as a collection
+    of backends. If you're implementing a provider currently you can adjust your
+    code by simply removing ``ProviderV1`` as the parent class of your
+    implementation. As part of this you probably would want to add an
+    implementation of ``get_backend`` for backwards compatibility. For example::
+        def get_backend(self, name=None, **kwargs):
+          backend = self.backends(name, **kwargs)
+          if len(backends) > 1:
+              raise QiskitBackendNotFoundError("More than one backend matches the criteria")
+          if not backends:
+              raise QiskitBackendNotFoundError("No backend matches the criteria")
+          return backends[0]

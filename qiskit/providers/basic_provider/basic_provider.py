@@ -23,7 +23,6 @@ import logging
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
 
@@ -35,7 +34,7 @@ logger = logging.getLogger(__name__)
 SIMULATORS = [BasicSimulator]
 
 
-class BasicProvider(ProviderV1):
+class BasicProvider:
     """Provider for test simulators."""
 
     def __init__(self) -> None:
@@ -44,12 +43,33 @@ class BasicProvider(ProviderV1):
         # Populate the list of test backends (simulators)
         self._backends = self._verify_backends()
 
-    def get_backend(self, name: str | None = None, **kwargs) -> Backend:
-        return super().get_backend(name=name, **kwargs)
+    def get_backend(self, name=None, **kwargs):
+        """Return a single backend matching the specified filtering.
+        Args:
+            name (str): name of the backend.
+            **kwargs: dict used for filtering.
+        Returns:
+            Backend: a backend matching the filtering.
+        Raises:
+            QiskitBackendNotFoundError: if no backend could be found or
+                more than one backend matches the filtering criteria.
+        """
+        backends = self.backends(name, **kwargs)
+        if len(backends) > 1:
+            raise QiskitBackendNotFoundError("More than one backend matches the criteria")
+        if not backends:
+            raise QiskitBackendNotFoundError("No backend matches the criteria")
+        return backends[0]
 
-    def backends(
-        self, name: str | None = None, filters: Callable | None = None, **kwargs
-    ) -> list[Backend]:
+    def backends(self, name: str | None = None, filters: Callable | None = None) -> list[Backend]:
+        """Return a list of backends matching the specified filtering.
+        Args:
+            name: name of the backend.
+            filters: callable for filtering.
+        Returns:
+            list[Backend]: a list of Backends that match the filtering
+                criteria.
+        """
         backends = self._backends.values()
         if name:
             available = [
@@ -59,7 +79,7 @@ class BasicProvider(ProviderV1):
                 raise QiskitBackendNotFoundError(
                     f"The '{name}' backend is not installed in your system."
                 )
-        return filter_backends(backends, filters=filters, **kwargs)
+        return filter_backends(backends, filters=filters)
 
     def _verify_backends(self) -> OrderedDict[str, Backend]:
         """

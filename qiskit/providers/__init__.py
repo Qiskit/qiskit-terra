@@ -75,15 +75,6 @@ mandatory/the minimum version).
 Abstract Classes
 ================
 
-Provider
---------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Provider
-   ProviderV1
-
 Backend
 -------
 
@@ -672,7 +663,7 @@ quasi-probabilities directly from mthree in the result. Doing this would
 enable algorithms to get the best results with
 mitigation applied directly from your backends. You can refer to the
 documentation in :mod:`qiskit.primitives` on how to write custom
-implementations. Also the built-in implementations: :class:`~.Sampler`,
+implementations. Also, the built-in implementations: :class:`~.Sampler`,
 :class:`~.Estimator`, :class:`~.BackendSampler`, and :class:`~.BackendEstimator`
 can serve as references/models on how to implement these as well.
 
@@ -781,8 +772,6 @@ to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
 
 # Providers interface
-from qiskit.providers.provider import Provider
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.backend import BackendV2

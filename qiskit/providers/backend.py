@@ -20,7 +20,6 @@ from abc import abstractmethod
 import datetime
 from typing import List, Union, Iterable, Tuple
 
-from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
 from qiskit.utils import deprecate_func
@@ -87,7 +86,7 @@ class BackendV1(Backend, ABC):
         Args:
             configuration (BackendConfiguration): A backend configuration
                 object for the backend object.
-            provider (qiskit.providers.Provider): Optionally, the provider
+            provider: Optionally, the provider
                 object that this Backend comes from.
             fields: kwargs for the values to use to override the default
                 options.
@@ -160,10 +159,10 @@ class BackendV1(Backend, ABC):
         return None
 
     def provider(self):
-        """Return the backend Provider.
+        """Return the backend provider.
 
         Returns:
-            Provider: the Provider responsible for the backend.
+            provider: the provider responsible for the backend.
         """
         return self._provider
 
@@ -327,7 +326,7 @@ class BackendV2(Backend, ABC):
 
     def __init__(
         self,
-        provider: Provider = None,
+        provider=None,
         name: str = None,
         description: str = None,
         online_date: datetime.datetime = None,
@@ -337,9 +336,8 @@ class BackendV2(Backend, ABC):
         """Initialize a BackendV2 based backend
 
         Args:
-            provider: An optional backwards reference to the
-                :class:`~qiskit.providers.Provider` object that the backend
-                is from
+            provider: An optional backwards reference to the provider
+                object that the backend is from
             name: An optional name for the backend
             description: An optional description of the backend
             online_date: An optional datetime the backend was brought online
@@ -633,10 +631,10 @@ class BackendV2(Backend, ABC):
 
     @property
     def provider(self):
-        """Return the backend Provider.
+        """Return the backend provider.
 
         Returns:
-            Provider: the Provider responsible for the backend.
+            provider: the provider responsible for the backend.
         """
         return self._provider
 

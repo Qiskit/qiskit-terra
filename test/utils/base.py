@@ -235,8 +235,7 @@ class QiskitTestCase(BaseTestCase):
         # due to importing the instances from the top-level qiskit namespace.
         from qiskit.providers.basic_provider import BasicProvider
 
-        with self.assertWarns(DeprecationWarning):
-            BasicProvider()._backends = BasicProvider()._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
