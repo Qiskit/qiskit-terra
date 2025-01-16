@@ -41,6 +41,7 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.calibration_entries import CalibrationPublisher, ScheduleDef
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
@@ -2100,3 +2101,20 @@ class TestTargetFromConfiguration(QiskitTestCase):
         cmap = CouplingMap.from_line(15)
         with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
+
+
+class TestFakeTarget(QiskitTestCase):
+    """Test the fake target class."""
+
+    def test_fake_instantiation(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget(coupling_map=cmap)
+        self.assertEqual(target.num_qubits, 0)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_from_configuration(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget.from_configuration(coupling_map=cmap)
+        self.assertNotEqual(target, None)
+        self.assertEqual(target.num_qubits, 2)
+        self.assertEqual(target.build_coupling_map(), cmap)

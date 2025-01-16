@@ -248,9 +248,14 @@ class HighLevelSynthesis(TransformationPass):
         self._basis_gates = basis_gates
         self._min_qubits = min_qubits
 
-        self._top_level_only = self._basis_gates is None and self._target is None
+        # When basis gates haven't been provided as an input, and
+        # there are no target basis gates (None or empty list),
+        # treat as "top level only" (no HLS).
+        self._top_level_only = (self._basis_gates is None or len(self._basis_gates) == 0) and (
+            self._target is None or len(self._target.operation_names) == 0
+        )
 
-        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        # Account for when target exists but target.num_qubits is None (BasicSimulator case)
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
@@ -842,8 +847,13 @@ class HighLevelSynthesis(TransformationPass):
         )
 
     def _instruction_supported(self, name: str, qubits: tuple[int] | None) -> bool:
-        # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if self._target is None or self._target.num_qubits is None:
+        # Do not use target's method when there is no target, target.num_qubits is
+        # None (BasicSimulator), or target.operation_names is an empty list.
+        if (
+            self._target is None
+            or self._target.num_qubits is None
+            or len(self._target.operation_names) == 0
+        ):
             return name in self._device_insts
         return self._target.instruction_supported(operation_name=name, qargs=qubits)
 

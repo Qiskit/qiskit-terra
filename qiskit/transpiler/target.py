@@ -24,6 +24,7 @@ import warnings
 
 from typing import Optional, List, Any
 from collections.abc import Mapping
+import copy
 import datetime
 import io
 import logging
@@ -1317,3 +1318,49 @@ def target_to_backend_properties(target: Target):
             return BackendProperties.from_dict(properties_dict)
     else:
         return None
+
+
+class _FakeTarget(Target):
+    """
+    Pseudo-target class for INTERNAL use in the transpilation pipeline.
+    It's essentially an empty :class:`.Target` instance with a a `coupling_map`
+    argument that allows to store connectivity constraints without basis gates.
+    This is intended to replace the use of loose constraints in the pipeline.
+    """
+
+    def __init__(self, coupling_map=None, **kwargs):
+        super().__init__(**kwargs)
+        if coupling_map is None or isinstance(coupling_map, CouplingMap):
+            self._coupling_map = coupling_map
+        else:
+            self._coupling_map = CouplingMap(coupling_map)
+
+    def __len__(self):
+        return len(self._gate_map)
+
+    def build_coupling_map(self, *args, **kwargs):  # pylint: disable=unused-argument
+        return copy.deepcopy(self._coupling_map)
+
+    def instruction_supported(self, *args, **kwargs):
+        """Checks whether an instruction is supported by the
+        Target based on instruction name and qargs. Note that if there are no
+        basis gates in the Target, this method will always return ``True``.
+        """
+        if len(self.operation_names) == 0:
+            return True
+        else:
+            return super().instruction_supported(*args, **kwargs)
+
+    @classmethod
+    def from_configuration(
+        cls,
+        *args,
+        num_qubits: int | None = None,
+        coupling_map: CouplingMap | list | None = None,
+        **kwargs,
+    ) -> _FakeTarget:
+
+        if num_qubits is None and coupling_map is not None:
+            num_qubits = len(coupling_map.graph)
+
+        return cls(num_qubits=num_qubits, coupling_map=coupling_map, *args, **kwargs)

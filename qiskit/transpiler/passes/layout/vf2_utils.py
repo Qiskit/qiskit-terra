@@ -201,7 +201,7 @@ def build_average_error_map(target, properties, coupling_map):
     # running the fallback heuristic
     if not built and target is not None and coupling_map is None:
         coupling_map = target.build_coupling_map()
-    if not built and coupling_map is not None:
+    if not built and coupling_map is not None and num_qubits is not None:
         for qubit in range(num_qubits):
             avg_map.add_error(
                 (qubit, qubit),
