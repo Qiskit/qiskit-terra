@@ -1172,9 +1172,9 @@ class TestSparseObservable(QiskitTestCase):
             base += AllowRightArithmetic()
 
     def test_add_failures(self):
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(4) + SparseObservable.zero(6)
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(6) + SparseObservable.zero(4)
 
     def test_sub_simple(self):
@@ -1283,9 +1283,9 @@ class TestSparseObservable(QiskitTestCase):
             base -= AllowRightArithmetic()
 
     def test_sub_failures(self):
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(4) - SparseObservable.zero(6)
-        with self.assertRaisesRegex(ValueError, "incompatible numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             _ = SparseObservable.zero(6) - SparseObservable.zero(4)
 
     @ddt.idata(single_cases())
