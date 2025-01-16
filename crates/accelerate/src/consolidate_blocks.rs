@@ -116,7 +116,7 @@ pub(crate) fn consolidate_blocks(
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;
-                dag.substitute_node_with_py_op(py, inst_node, &unitary_gate, false)?;
+                dag.substitute_node_with_py_op(py, inst_node, &unitary_gate)?;
                 continue;
             }
         }
@@ -261,7 +261,7 @@ pub(crate) fn consolidate_blocks(
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;
-                dag.substitute_node_with_py_op(py, first_inst_node, &unitary_gate, false)?;
+                dag.substitute_node_with_py_op(py, first_inst_node, &unitary_gate)?;
                 continue;
             }
             let qubit = first_qubits[0];

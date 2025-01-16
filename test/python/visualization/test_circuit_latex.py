@@ -92,21 +92,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
-    def test_4597(self):
-        """Test cregbundle and conditional gates.
-        See: https://github.com/Qiskit/qiskit-terra/pull/4597"""
-        filename = self._get_resource_path("test_latex_4597.tex")
-        qr = QuantumRegister(3, "q")
-        cr = ClassicalRegister(3, "c")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[2]).c_if(cr, 2)
-        circuit.draw(output="latex_source", cregbundle=True)
-
-        circuit_drawer(circuit, filename=filename, output="latex_source")
-
-        self.assertEqualToReference(filename)
-
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path("test_latex_deep.tex")
@@ -125,35 +110,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         for qubit in range(39):
             circuit.h(qubit)
             circuit.cx(qubit, 39)
-
-        circuit_drawer(circuit, filename=filename, output="latex_source")
-
-        self.assertEqualToReference(filename)
-
-    def test_teleport(self):
-        """Test draw teleport circuit."""
-        filename = self._get_resource_path("test_latex_teleport.tex")
-        qr = QuantumRegister(3, "q")
-        cr = ClassicalRegister(3, "c")
-        circuit = QuantumCircuit(qr, cr)
-        # Prepare an initial state
-        circuit.u(0.3, 0.2, 0.1, [qr[0]])
-        # Prepare a Bell pair
-        circuit.h(qr[1])
-        circuit.cx(qr[1], qr[2])
-        # Barrier following state preparation
-        circuit.barrier(qr)
-        # Measure in the Bell basis
-        circuit.cx(qr[0], qr[1])
-        circuit.h(qr[0])
-        circuit.measure(qr[0], cr[0])
-        circuit.measure(qr[1], cr[1])
-        # Apply a correction
-        with self.assertWarns(DeprecationWarning):
-            circuit.z(qr[2]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[2]).c_if(cr, 2)
-        circuit.measure(qr[2], cr[2])
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -194,23 +150,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(qr)
         circuit.h(qr)
         circuit.h(qr)
-
-        circuit_drawer(circuit, filename=filename, output="latex_source")
-
-        self.assertEqualToReference(filename)
-
-    def test_conditional(self):
-        """Test that circuits with conditionals draw correctly"""
-        filename = self._get_resource_path("test_latex_conditional.tex")
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit(qr, cr)
-
-        # check gates are shifted over accordingly
-        circuit.h(qr)
-        circuit.measure(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr, 2)
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -565,21 +504,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
-    def test_meas_condition(self):
-        """Tests measure with a condition"""
-
-        filename = self._get_resource_path("test_latex_meas_condition.tex")
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0])
-        circuit.measure(qr[0], cr[0])
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[1]).c_if(cr, 1)
-        circuit_drawer(circuit, filename=filename, output="latex_source")
-
-        self.assertEqualToReference(filename)
-
     def test_inst_with_cbits(self):
         """Test custom instructions with classical bits"""
 
@@ -596,36 +520,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
-    def test_cif_single_bit(self):
-        """Tests conditioning gates on single classical bit"""
-
-        filename = self._get_resource_path("test_latex_cif_single_bit.tex")
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr[1], 0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[1]).c_if(cr[0], 1)
-        circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
-
-        self.assertEqualToReference(filename)
-
-    def test_cif_single_bit_cregbundle(self):
-        """Tests conditioning gates on single classical bit with cregbundle"""
-
-        filename = self._get_resource_path("test_latex_cif_single_bit_bundle.tex")
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr[1], 0)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[1]).c_if(cr[0], 1)
-        circuit_drawer(circuit, cregbundle=True, filename=filename, output="latex_source")
-
-        self.assertEqualToReference(filename)
-
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
         filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
@@ -637,67 +531,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
-    def test_measures_with_conditions(self):
-        """Test that a measure containing a condition displays"""
-        filename1 = self._get_resource_path("test_latex_meas_cond_false.tex")
-        filename2 = self._get_resource_path("test_latex_meas_cond_true.tex")
-        qr = QuantumRegister(2, "qr")
-        cr1 = ClassicalRegister(2, "cr1")
-        cr2 = ClassicalRegister(2, "cr2")
-        circuit = QuantumCircuit(qr, cr1, cr2)
-        circuit.h(0)
-        circuit.h(1)
-        circuit.measure(0, cr1[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit.measure(1, cr2[0]).c_if(cr1, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(0).c_if(cr2, 3)
-        circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
-        circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
-        self.assertEqualToReference(filename1)
-        self.assertEqualToReference(filename2)
-
-    def test_measures_with_conditions_with_bits(self):
-        """Condition and measure on single bits cregbundle true"""
-        filename1 = self._get_resource_path("test_latex_meas_cond_bits_false.tex")
-        filename2 = self._get_resource_path("test_latex_meas_cond_bits_true.tex")
-        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
-        cr = ClassicalRegister(2, "cr")
-        crx = ClassicalRegister(3, "cs")
-        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(0).c_if(crx[1], 0)
-        circuit.measure(0, bits[3])
-        circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
-        circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
-        self.assertEqualToReference(filename1)
-        self.assertEqualToReference(filename2)
-
-    def test_conditions_with_bits_reverse(self):
-        """Test that gates with conditions and measures work with bits reversed"""
-        filename = self._get_resource_path("test_latex_cond_reverse.tex")
-        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
-        cr = ClassicalRegister(2, "cr")
-        crx = ClassicalRegister(3, "cs")
-        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(0).c_if(bits[3], 0)
-        circuit_drawer(
-            circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source"
-        )
-        self.assertEqualToReference(filename)
-
-    def test_sidetext_with_condition(self):
-        """Test that sidetext gates align properly with a condition"""
-        filename = self._get_resource_path("test_latex_sidetext_condition.tex")
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
-        circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
-        self.assertEqualToReference(filename)
-
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
         filename = self._get_resource_path("test_latex_idle_wires_barrier.tex")
@@ -705,27 +538,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(2)
         circuit.barrier()
         circuit_drawer(circuit, idle_wires=False, filename=filename, output="latex_source")
-        self.assertEqualToReference(filename)
-
-    def test_wire_order(self):
-        """Test the wire_order option to latex drawer"""
-        filename = self._get_resource_path("test_latex_wire_order.tex")
-        qr = QuantumRegister(4, "q")
-        cr = ClassicalRegister(4, "c")
-        cr2 = ClassicalRegister(2, "ca")
-        circuit = QuantumCircuit(qr, cr, cr2)
-        circuit.h(0)
-        circuit.h(3)
-        circuit.x(1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(3).c_if(cr, 12)
-        circuit_drawer(
-            circuit,
-            cregbundle=False,
-            wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
-            filename=filename,
-            output="latex_source",
-        )
         self.assertEqualToReference(filename)
 
 

@@ -21,7 +21,6 @@ use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
     circuit_instruction::CircuitInstruction,
-    circuit_instruction::ExtraInstructionAttributes,
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::{DAGCircuit, NodeType},
     dag_node::{DAGNode, DAGOpNode},
@@ -400,7 +399,7 @@ fn has_calibration_for_op_node(
                     qubits: py_args.unbind(),
                     clbits: PyTuple::empty_bound(py).unbind(),
                     params: packed_inst.params_view().iter().cloned().collect(),
-                    extra_attrs: packed_inst.extra_attrs.clone(),
+                    label: packed_inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: packed_inst.py_op.clone(),
                 },
@@ -474,7 +473,7 @@ fn apply_operation_back(
         qargs,
         &[],
         param,
-        ExtraInstructionAttributes::default(),
+        None,
         #[cfg(feature = "cache_pygates")]
         None,
     )?;

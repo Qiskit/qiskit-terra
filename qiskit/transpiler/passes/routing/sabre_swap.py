@@ -301,8 +301,6 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
             cargs_bits = set(node.cargs)
-            if node.condition is not None:
-                cargs_bits.update(condition_resources(node.condition).clbits)
             if node.is_control_flow() and isinstance(node.op, SwitchCaseOp):
                 target = node.op.target
                 if isinstance(target, Clbit):

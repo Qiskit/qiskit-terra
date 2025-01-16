@@ -14,7 +14,6 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::BARRIER;
 use qiskit_circuit::operations::{Operation, PyInstruction};
@@ -92,7 +91,7 @@ pub fn barrier_before_final_measurements(
             qargs.as_slice(),
             &[],
             None,
-            ExtraInstructionAttributes::new(label, None, None, None),
+            label,
             Some(new_barrier.unbind()),
         )?;
     }
@@ -104,7 +103,7 @@ pub fn barrier_before_final_measurements(
             qargs.as_slice(),
             &[],
             None,
-            ExtraInstructionAttributes::new(label, None, None, None),
+            label,
         )?;
     }
     for inst in final_packed_ops {

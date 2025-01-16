@@ -184,7 +184,6 @@ Additional Passes
    MinimumPoint
    ContainsInstruction
    GatesInBasis
-   ConvertConditionsToIfOps
    UnrollForLoops
    FilterOpNodes
 """
@@ -305,6 +304,5 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
-from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
 from .utils import FilterOpNodes

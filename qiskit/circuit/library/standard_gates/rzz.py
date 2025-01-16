@@ -90,11 +90,9 @@ class RZZGate(Gate):
 
     _standard_gate = StandardGate.RZZGate
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZZ gate."""
-        super().__init__("rzz", 2, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("rzz", 2, [theta], label=label)
 
     def _define(self):
         """

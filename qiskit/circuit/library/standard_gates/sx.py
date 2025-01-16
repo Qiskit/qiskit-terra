@@ -67,9 +67,9 @@ class SXGate(SingletonGate):
 
     _standard_gate = StandardGate.SXGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
-        super().__init__("sx", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sx", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -171,9 +171,9 @@ class SXdgGate(SingletonGate):
 
     _standard_gate = StandardGate.SXdgGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
-        super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sxdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -276,8 +276,6 @@ class CSXGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSX gate."""
@@ -289,8 +287,6 @@ class CSXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)

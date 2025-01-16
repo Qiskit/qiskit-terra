@@ -258,8 +258,8 @@ class BaseSchedulerTransform(TransformationPass):
 
         self.target = target
 
-    @staticmethod
     def _get_node_duration(
+        self,
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
@@ -271,7 +271,10 @@ class BaseSchedulerTransform(TransformationPass):
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             duration = dag._calibrations_prop[node.op.name][cal_key].duration
         else:
-            duration = node.op.duration
+            try:
+                duration = self.durations.get(node.op, node.qargs)
+            except TranspilerError:
+                duration = None
 
         if isinstance(node.op, Reset):
             warnings.warn(

@@ -73,7 +73,7 @@ pub(super) fn compose_transforms<'a>(
             } else {
                 Some(gate_obj.params)
             },
-            gate_obj.extra_attrs,
+            gate_obj.label.map(|x| *x),
             #[cfg(feature = "cache_pygates")]
             Some(gate.into()),
         )?;

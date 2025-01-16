@@ -176,16 +176,6 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
-    def test_swap_condition(self):
-        """Test swap elision doesn't touch conditioned swap."""
-        qc = QuantumCircuit(3, 3)
-        qc.h(0)
-        with self.assertWarns(DeprecationWarning):
-            qc.swap(0, 1).c_if(qc.clbits[0], 0)
-        qc.cx(0, 1)
-        res = self.swap_pass(qc)
-        self.assertEqual(res, qc)
-
     def test_permutation_in_middle(self):
         """Test permutation in middle of bell is elided."""
         qc = QuantumCircuit(3, 3)

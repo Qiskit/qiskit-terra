@@ -183,66 +183,6 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, header)
 
-    def test_circuit_with_conditionals(self):
-        """Verify disassemble sets conditionals correctly."""
-        qr = QuantumRegister(2)
-        cr1 = ClassicalRegister(1)
-        cr2 = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr1, cr2)
-        qc.measure(qr[0], cr1)  # Measure not required for a later conditional
-        qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr[1]).c_if(cr2, 3)
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-            circuits, run_config_out, header = disassemble(qobj)
-        run_config_out = RunConfig(**run_config_out)
-        self.assertEqual(run_config_out.n_qubits, 2)
-        self.assertEqual(run_config_out.memory_slots, 3)
-        self.assertEqual(len(circuits), 1)
-        self.assertEqual(circuits[0], qc)
-        self.assertEqual({}, header)
-
-    def test_circuit_with_simple_conditional(self):
-        """Verify disassemble handles a simple conditional on the only bits."""
-        qr = QuantumRegister(1)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr[0]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-            circuits, run_config_out, header = disassemble(qobj)
-        run_config_out = RunConfig(**run_config_out)
-        self.assertEqual(run_config_out.n_qubits, 1)
-        self.assertEqual(run_config_out.memory_slots, 1)
-        self.assertEqual(len(circuits), 1)
-        self.assertEqual(circuits[0], qc)
-        self.assertEqual({}, header)
-
-    def test_circuit_with_single_bit_conditions(self):
-        """Verify disassemble handles a simple conditional on a single bit of a register."""
-        # This circuit would fail to perfectly round-trip if 'cr' below had only one bit in it.
-        # This is because the format of QasmQobj is insufficient to disambiguate single-bit
-        # conditions from conditions on registers with only one bit. Since single-bit conditions are
-        # mostly a hack for the QasmQobj format at all, `disassemble` always prefers to return the
-        # register if it can.  It would also fail if registers overlap.
-        qr = QuantumRegister(1)
-        cr = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr[0]).c_if(cr[0], 1)
-
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-            circuits, run_config_out, header = disassemble(qobj)
-        run_config_out = RunConfig(**run_config_out)
-        self.assertEqual(run_config_out.n_qubits, len(qr))
-        self.assertEqual(run_config_out.memory_slots, len(cr))
-        self.assertEqual(len(circuits), 1)
-        self.assertEqual(circuits[0], qc)
-        self.assertEqual({}, header)
-
     def test_circuit_with_mcx(self):
         """Verify disassemble handles mcx gate - #6271."""
         qr = QuantumRegister(5)
@@ -255,72 +195,6 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         run_config_out = RunConfig(**run_config_out)
         self.assertEqual(run_config_out.n_qubits, 5)
         self.assertEqual(run_config_out.memory_slots, 5)
-        self.assertEqual(len(circuits), 1)
-        self.assertEqual(circuits[0], qc)
-        self.assertEqual({}, header)
-
-    def test_multiple_conditionals_multiple_registers(self):
-        """Verify disassemble handles multiple conditionals and registers."""
-        qr = QuantumRegister(3)
-        cr1 = ClassicalRegister(3)
-        cr2 = ClassicalRegister(5)
-        cr3 = ClassicalRegister(6)
-        cr4 = ClassicalRegister(1)
-
-        qc = QuantumCircuit(qr, cr1, cr2, cr3, cr4)
-        qc.x(qr[1])
-        qc.h(qr)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(qr[1], qr[0]).c_if(cr3, 14)
-        with self.assertWarns(DeprecationWarning):
-            qc.ccx(qr[0], qr[2], qr[1]).c_if(cr4, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr).c_if(cr1, 3)
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-            circuits, run_config_out, header = disassemble(qobj)
-        run_config_out = RunConfig(**run_config_out)
-        self.assertEqual(run_config_out.n_qubits, 3)
-        self.assertEqual(run_config_out.memory_slots, 15)
-        self.assertEqual(len(circuits), 1)
-        self.assertEqual(circuits[0], qc)
-        self.assertEqual({}, header)
-
-    def test_circuit_with_bit_conditional_1(self):
-        """Verify disassemble handles conditional on a single bit."""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr[0]).c_if(cr[1], True)
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-            circuits, run_config_out, header = disassemble(qobj)
-        run_config_out = RunConfig(**run_config_out)
-        self.assertEqual(run_config_out.n_qubits, 2)
-        self.assertEqual(run_config_out.memory_slots, 2)
-        self.assertEqual(len(circuits), 1)
-        self.assertEqual(circuits[0], qc)
-        self.assertEqual({}, header)
-
-    def test_circuit_with_bit_conditional_2(self):
-        """Verify disassemble handles multiple single bit conditionals."""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        cr1 = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr, cr1)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr[0]).c_if(cr1[1], False)
-        with self.assertWarns(DeprecationWarning):
-            qc.h(qr[1]).c_if(cr[0], True)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(qr[0], qr[1]).c_if(cr1[0], False)
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(qc)
-            circuits, run_config_out, header = disassemble(qobj)
-        run_config_out = RunConfig(**run_config_out)
-        self.assertEqual(run_config_out.n_qubits, 2)
-        self.assertEqual(run_config_out.memory_slots, 4)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)

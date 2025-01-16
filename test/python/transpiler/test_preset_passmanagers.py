@@ -1238,37 +1238,6 @@ class TestTranspileLevelsSwap(QiskitTestCase):
 
 
 @ddt
-class TestOptimizationWithCondition(QiskitTestCase):
-    """Test optimization levels with condition in the circuit"""
-
-    @data(0, 1, 2, 3)
-    def test_optimization_condition(self, level):
-        """Test optimization levels with condition in the circuit"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(cr, 1)
-        backend = GenericBackendV2(
-            num_qubits=20,
-            coupling_map=TOKYO_CMAP,
-            basis_gates=["id", "u1", "u2", "u3", "cx"],
-            seed=42,
-        )
-        circ = transpile(qc, backend, optimization_level=level)
-        self.assertIsInstance(circ, QuantumCircuit)
-
-    def test_input_dag_copy(self):
-        """Test substitute_node_with_dag input_dag copy on condition"""
-        qc = QuantumCircuit(2, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(qc.cregs[0], 1)
-        qc.cx(1, 0)
-        circ = transpile(qc, basis_gates=["u3", "cz"])
-        self.assertIsInstance(circ, QuantumCircuit)
-
-
-@ddt
 class TestOptimizationOnSize(QiskitTestCase):
     """Test the optimization levels for optimization based on
     both size and depth of the circuit.

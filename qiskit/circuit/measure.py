@@ -26,7 +26,7 @@ class Measure(SingletonInstruction):
         Args:
             label: optional string label for this instruction.
         """
-        super().__init__("measure", 1, 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("measure", 1, 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 

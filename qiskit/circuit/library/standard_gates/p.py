@@ -78,11 +78,9 @@ class PhaseGate(Gate):
 
     _standard_gate = StandardGate.PhaseGate
 
-    def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("p", 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -208,8 +206,6 @@ class CPhaseGate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CPhase gate."""
@@ -221,8 +217,6 @@ class CPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -342,8 +336,6 @@ class MCPhaseGate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new MCPhase gate."""
@@ -355,8 +347,6 @@ class MCPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):

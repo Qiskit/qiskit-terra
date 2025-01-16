@@ -58,9 +58,9 @@ class TGate(SingletonGate):
 
     _standard_gate = StandardGate.TGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("t", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -135,9 +135,9 @@ class TdgGate(SingletonGate):
 
     _standard_gate = StandardGate.TdgGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("tdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 

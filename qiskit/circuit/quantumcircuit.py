@@ -2085,13 +2085,7 @@ class QuantumCircuit:
             def map_vars(op):
                 n_op = op
                 is_control_flow = isinstance(n_op, ControlFlowOp)
-                if (
-                    not is_control_flow
-                    and (condition := getattr(n_op, "_condition", None)) is not None
-                ):
-                    n_op = n_op.copy() if n_op is op and copy else n_op
-                    n_op.condition = variable_mapper.map_condition(condition)
-                elif is_control_flow:
+                if is_control_flow:
                     n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
                     if isinstance(n_op, (IfElseOp, WhileLoopOp)):
                         n_op.condition = variable_mapper.map_condition(n_op._condition)
@@ -2585,8 +2579,8 @@ class QuantumCircuit:
 
             * all the qubits and clbits must already exist in the circuit and there can be no
               duplicates in the list.
-            * any control-flow operations or classically conditioned instructions must act only on
-              variables present in the circuit.
+            * any control-flow operations instructions must act only on variables present in the
+              circuit.
             * the circuit must not be within a control-flow builder context.
 
         .. note::
@@ -3620,23 +3614,13 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = instruction.qubits + instruction.clbits
-                num_qargs = len(args) + (
-                    1 if getattr(instruction.operation, "_condition", None) else 0
-                )
+                num_qargs = len(args)
 
             if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if not unitary_only:
-                    for bit in instruction.operation.condition_bits:
-                        idx = bit_indices[bit]
-                        for k in range(num_sub_graphs):
-                            if idx in sub_graphs[k]:
-                                graphs_touched.append(k)
-                                break
-
                 for item in args:
                     reg_int = bit_indices[item]
                     for k in range(num_sub_graphs):
@@ -6377,7 +6361,8 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0, True)
+                with qc.if_test((0, True)):
+                    qc.break_loop()
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -6903,8 +6888,7 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
         # unwrap :obj:`.ClassicalRegister` instances into lists, and in general it should not allow
-        # iterables or broadcasting.  It is expected to be used as a callback for things like
-        # :meth:`.InstructionSet.c_if` to check the validity of their arguments.
+        # iterables or broadcasting.
         if isinstance(specifier, Clbit):
             if specifier not in self.circuit._clbit_indices:
                 raise CircuitError(f"Clbit {specifier} is not present in this circuit.")

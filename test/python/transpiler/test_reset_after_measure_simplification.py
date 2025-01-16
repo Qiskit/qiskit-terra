@@ -31,8 +31,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         ans_qc = QuantumCircuit(1, 1)
         ans_qc.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            ans_qc.x(0).c_if(ans_qc.clbits[0], 1)
+        with ans_qc.if_test((ans_qc.clbits[0], 1)):
+            ans_qc.x(0)
         self.assertEqual(new_qc, ans_qc)
 
     def test_simple_null(self):
@@ -58,8 +58,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         ans_qc = QuantumCircuit(qr, cr1, cr2)
         ans_qc.measure(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            ans_qc.x(0).c_if(cr2[0], 1)
+        with ans_qc.if_test((cr2[0], 1)):
+            ans_qc.x(0)
 
         self.assertEqual(new_qc, ans_qc)
 
@@ -85,8 +85,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         ans_qc = QuantumCircuit(1, 2)
         ans_qc.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            ans_qc.x(0).c_if(ans_qc.clbits[0], 1)
+        with ans_qc.if_test((ans_qc.clbits[0], 1)):
+            ans_qc.x(0)
         ans_qc.reset(0)
         self.assertEqual(new_qc, ans_qc)
 
@@ -103,8 +103,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         ans_qc = QuantumCircuit(2, 2)
         ans_qc.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            ans_qc.x(0).c_if(Clbit(ClassicalRegister(2, "c"), 0), 1)
+        with ans_qc.if_test((Clbit(ClassicalRegister(2, "c"), 0), 1)):
+            ans_qc.x(0)
         ans_qc.reset(1)
         ans_qc.measure(1, 1)
 
@@ -154,8 +154,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         base_expected = QuantumCircuit(1, 1)
         base_expected.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            base_expected.x(0).c_if(0, True)
+        with base_expected.if_test((0, True)):
+            base_expected.x(0)
 
         test = QuantumCircuit(1, 1)
         test.if_else(
@@ -184,8 +184,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         base_expected = QuantumCircuit(1, 1)
         base_expected.measure(0, 0)
-        with self.assertWarns(DeprecationWarning):
-            base_expected.x(0).c_if(0, True)
+        with base_expected.if_test((0, True)):
+            base_expected.x(0)
 
         body_test = QuantumCircuit(1, 1)
         body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)

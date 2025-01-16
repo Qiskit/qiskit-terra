@@ -490,10 +490,6 @@ class _SingletonInstructionOverrides(Instruction):
         instruction._params = _frozenlist(instruction._params)
         return instruction
 
-    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
-    def c_if(self, classical, val):
-        return self.to_mutable().c_if(classical, val)
-
     def copy(self, name=None):
         if name is None:
             return self
@@ -513,8 +509,7 @@ class SingletonInstruction(Instruction, _SingletonBase, overrides=_SingletonInst
     memory footprint of multiple instructions.
 
     The exception to be aware of with this class though are the :class:`~.circuit.Instruction`
-    attributes :attr:`~.Instruction.label`, :attr:`~.Instruction.condition`,
-    :attr:`~.Instruction.duration`, and :attr:`~.Instruction.unit` which can be set differently for
+    attribute :attr:`~.Instruction.label` which can be set differently for
     specific instances of gates.  For :class:`SingletonInstruction` usage to be sound setting these
     attributes is not available and they can only be set at creation time, or on an object that has
     been specifically made mutable using :meth:`~.Instruction.to_mutable`. If any of these
@@ -589,8 +584,8 @@ def stdlib_singleton_key(*, num_ctrl_qubits: int = 0):
 
     if num_ctrl_qubits:
 
-        def key(label=None, ctrl_state=None, *, duration=None, unit="dt", _base_label=None):
-            if label is None and duration is None and unit == "dt" and _base_label is None:
+        def key(label=None, ctrl_state=None, _base_label=None):
+            if label is None and _base_label is None:
                 # Normalisation; we want all types for the control state to key the same.
                 ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
                 return (ctrl_state,)
@@ -598,8 +593,8 @@ def stdlib_singleton_key(*, num_ctrl_qubits: int = 0):
 
     else:
 
-        def key(label=None, *, duration=None, unit="dt"):
-            if label is None and duration is None and unit == "dt":
+        def key(label=None):
+            if label is None:
                 return ()
             return None
 

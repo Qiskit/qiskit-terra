@@ -243,34 +243,18 @@ class TestCollectBlocks(QiskitTestCase):
         qc.x(0)
         qc.x(1)
         qc.cx(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(1).c_if(0, 1)
+        with qc.if_test((0, 1)):
+            qc.x(1)
         qc.x(0)
         qc.x(1)
         qc.cx(0, 1)
 
-        # If the filter_function does not look at conditions, we should collect all
-        # gates into the block.
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
             lambda node: node.op.name in ["x", "cx"],
             split_blocks=False,
             min_block_size=1,
         )
-        self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 7)
-
-        # If the filter_function does look at conditions, we should not collect the middle
-        # conditional gate (note that x(1) following the measure is collected into the first
-        # block).
-        block_collector = BlockCollector(circuit_to_dag(qc))
-        with self.assertWarns(DeprecationWarning):
-            blocks = block_collector.collect_all_matching_blocks(
-                lambda node: node.op.name in ["x", "cx"]
-                and not getattr(node.op, "condition", None),
-                split_blocks=False,
-                min_block_size=1,
-            )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)
@@ -283,26 +267,12 @@ class TestCollectBlocks(QiskitTestCase):
         qc.x(0)
         qc.x(1)
         qc.cx(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(1).c_if(0, 1)
+        with qc.if_test((0, 1)):
+            qc.x(1)
         qc.x(0)
         qc.x(1)
         qc.cx(0, 1)
 
-        # If the filter_function does not look at conditions, we should collect all
-        # gates into the block.
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
-        blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"],
-            split_blocks=False,
-            min_block_size=1,
-        )
-        self.assertEqual(len(blocks), 1)
-        self.assertEqual(len(blocks[0]), 7)
-
-        # If the filter_function does look at conditions, we should not collect the middle
-        # conditional gate (note that x(1) following the measure is collected into the first
-        # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
         with self.assertWarns(DeprecationWarning):
             blocks = block_collector.collect_all_matching_blocks(
@@ -550,13 +520,13 @@ class TestCollectBlocks(QiskitTestCase):
         condition."""
 
         qc = QuantumCircuit(4, 3)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(0, 1)
+        with qc.if_test((0, 1)):
+            qc.cx(0, 1)
         qc.cx(2, 3)
         qc.cx(1, 2)
         qc.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(2, 3).c_if(1, 0)
+        with qc.if_test((1, 0)):
+            qc.cx(2, 3)
 
         dag = circuit_to_dag(qc)
 
@@ -589,13 +559,13 @@ class TestCollectBlocks(QiskitTestCase):
         under conditions, using DAGDependency."""
 
         qc = QuantumCircuit(4, 3)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(0, 1)
+        with qc.if_test((0, 1)):
+            qc.cx(0, 1)
         qc.cx(2, 3)
         qc.cx(1, 2)
         qc.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(2, 3).c_if(1, 0)
+        with qc.if_test((1, 0)):
+            qc.cx(2, 3)
 
         dag = circuit_to_dagdependency(qc)
 
@@ -632,13 +602,13 @@ class TestCollectBlocks(QiskitTestCase):
         cbit = Clbit()
 
         qc = QuantumCircuit(qreg, creg, [cbit])
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg[1], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(2, 3).c_if(cbit, 0)
+        with qc.if_test((creg[1], 1)):
+            qc.cx(0, 1)
+        with qc.if_test((cbit, 0)):
+            qc.cx(2, 3)
         qc.cx(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg[2], 1)
+        with qc.if_test((creg[2], 1)):
+            qc.cx(0, 1)
 
         dag = circuit_to_dag(qc)
 
@@ -675,13 +645,13 @@ class TestCollectBlocks(QiskitTestCase):
         cbit = Clbit()
 
         qc = QuantumCircuit(qreg, creg, [cbit])
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg[1], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(2, 3).c_if(cbit, 0)
+        with qc.if_test((creg[1], 1)):
+            qc.cx(0, 1)
+        with qc.if_test((cbit, 0)):
+            qc.cx(2, 3)
         qc.cx(1, 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(creg[2], 1)
+        with qc.if_test((creg[2], 1)):
+            qc.cx(0, 1)
 
         dag = circuit_to_dag(qc)
 

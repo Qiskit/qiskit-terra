@@ -68,6 +68,17 @@ class BasePadding(TransformationPass):
         super().__init__()
         self.target = target
 
+    def get_duration(self, node):
+        if not self.target:
+            return None
+        props_dict = self.target.get(node.name)
+        if not props_dict:
+            return None
+        props = props.get(tuple(node.qargs))
+        if not props:
+            return None
+        return props.duration
+
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
 
@@ -112,7 +123,7 @@ class BasePadding(TransformationPass):
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
-                t1 = t0 + node.op.duration
+                t1 = t0 + self.get_duration(node)
                 circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):

@@ -92,8 +92,12 @@ def _make_expr_key(bit_indices):
 
 
 def _condition_op_eq(node1, node2, bit_indices1, bit_indices2):
-    cond1 = node1.condition
-    cond2 = node2.condition
+    cond1 = None
+    cond2 = None
+    if node1.is_control_flow():
+        cond1 = node1.op.condition
+    if node2.is_control_flow():
+        cond2 = node2.op.condition
     if isinstance(cond1, expr.Expr) and isinstance(cond2, expr.Expr):
         if not expr.structurally_equivalent(
             cond1, cond2, _make_expr_key(bit_indices1), _make_expr_key(bit_indices2)

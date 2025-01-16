@@ -73,9 +73,9 @@ class YGate(SingletonGate):
 
     _standard_gate = StandardGate.YGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
-        super().__init__("y", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("y", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -208,8 +208,6 @@ class CYGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CY gate."""
@@ -221,8 +219,6 @@ class CYGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=YGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)

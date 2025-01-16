@@ -373,7 +373,7 @@ def _extract_nodes(nodes, dag):
         qubit_indices = [dag.find_bit(qubit).index for qubit in node.qargs]
         classical_bit_indices = set()
 
-        if node.condition is not None:
+        if getattr(node, "condition", None) is not None:
             classical_bit_indices.update(condition_resources(node.op.condition).clbits)
 
         if isinstance(node.op, SwitchCaseOp):

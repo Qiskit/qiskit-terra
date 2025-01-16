@@ -15,7 +15,6 @@ use std::f64::consts::PI;
 use std::vec;
 
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::get_std_gate_class;
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, Qubit};
@@ -441,44 +440,17 @@ impl StandardGate {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        extra_attrs: &ExtraInstructionAttributes,
+        label: Option<&Box<String>>,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty_bound(py),
             params => PyTuple::new_bound(py, params),
         };
-        let (label, unit, duration, condition) = (
-            extra_attrs.label(),
-            extra_attrs.unit(),
-            extra_attrs.duration(),
-            extra_attrs.condition(),
-        );
-        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
-            let kwargs = [("label", label.to_object(py))].into_py_dict_bound(py);
-            let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
-            let mut mutable = false;
-            if let Some(condition) = condition {
-                if !mutable {
-                    out = out.call_method0(py, "to_mutable")?;
-                    mutable = true;
-                }
-                out.setattr(py, "condition", condition)?;
-            }
-            if let Some(duration) = duration {
-                if !mutable {
-                    out = out.call_method0(py, "to_mutable")?;
-                    mutable = true;
-                }
-                out.setattr(py, "_duration", duration)?;
-            }
-            if let Some(unit) = unit {
-                if !mutable {
-                    out = out.call_method0(py, "to_mutable")?;
-                }
-                out.setattr(py, "_unit", unit)?;
-            }
-            Ok(out)
+        if label.is_some() {
+            let kwargs =
+                [("label", label.map(|x| x.as_ref()).to_object(py))].into_py_dict_bound(py);
+            gate_class.call_bound(py, args, Some(&kwargs))
         } else {
             gate_class.call_bound(py, args, None)
         }

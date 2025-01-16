@@ -135,7 +135,7 @@ impl DAGOpNode {
             qubits: qargs.unbind(),
             clbits: cargs.unbind(),
             params: py_op.params,
-            extra_attrs: py_op.extra_attrs,
+            label: py_op.label,
             #[cfg(feature = "cache_pygates")]
             py_op: op.unbind().into(),
         };
@@ -291,7 +291,7 @@ impl DAGOpNode {
             qubits: self.instruction.qubits.clone_ref(py),
             clbits: self.instruction.clbits.clone_ref(py),
             params: self.instruction.params.clone(),
-            extra_attrs: self.instruction.extra_attrs.clone(),
+            label: self.instruction.label.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
@@ -307,7 +307,7 @@ impl DAGOpNode {
         let res = op.extract::<OperationFromPython>()?;
         self.instruction.operation = res.operation;
         self.instruction.params = res.params;
-        self.instruction.extra_attrs = res.extra_attrs;
+        self.instruction.label = res.label;
         #[cfg(feature = "cache_pygates")]
         {
             self.instruction.py_op = op.clone().unbind().into();
@@ -369,28 +369,7 @@ impl DAGOpNode {
 
     #[getter]
     fn label(&self) -> Option<&str> {
-        self.instruction.extra_attrs.label()
-    }
-
-    #[getter]
-    fn condition(&self, py: Python) -> Option<PyObject> {
-        self.instruction
-            .extra_attrs
-            .condition()
-            .map(|x| x.clone_ref(py))
-    }
-
-    #[getter]
-    fn duration(&self, py: Python) -> Option<PyObject> {
-        self.instruction
-            .extra_attrs
-            .duration()
-            .map(|x| x.clone_ref(py))
-    }
-
-    #[getter]
-    fn unit(&self) -> Option<&str> {
-        self.instruction.extra_attrs.unit()
+        self.instruction.label.as_ref().map(|x| x.as_str())
     }
 
     /// Is the :class:`.Operation` contained in this node a Qiskit standard gate?
@@ -421,7 +400,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_label(&mut self, val: Option<String>) {
-        self.instruction.extra_attrs.set_label(val);
+        self.instruction.label = val.map(|x| Box::new(x));
     }
 
     #[getter]

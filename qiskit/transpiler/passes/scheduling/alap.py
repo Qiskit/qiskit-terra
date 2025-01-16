@@ -72,43 +72,9 @@ class ALAPSchedule(BaseSchedulerTransform):
             # the physical meaning of t0 and t1 is flipped here.
             if isinstance(node.op, self.CONDITIONAL_SUPPORTED):
                 t0q = max(idle_before[q] for q in node.qargs)
-                if node.op.condition_bits:
-                    # conditional is bit tricky due to conditional_latency
-                    t0c = max(idle_before[c] for c in node.op.condition_bits)
-                    # Assume following case (t0c > t0q):
-                    #
-                    #                |t0q
-                    # Q ░░░░░░░░░░░░░▒▒▒
-                    # C ░░░░░░░░▒▒▒▒▒▒▒▒
-                    #           |t0c
-                    #
-                    # In this case, there is no actual clbit read before gate.
-                    #
-                    #             |t0q' = t0c - conditional_latency
-                    # Q ░░░░░░░░▒▒▒░░▒▒▒
-                    # C ░░░░░░▒▒▒▒▒▒▒▒▒▒
-                    #         |t1c' = t0c + conditional_latency
-                    #
-                    # rather than naively doing
-                    #
-                    #        |t1q' = t0c + duration
-                    # Q ░░░░░▒▒▒░░░░░▒▒▒
-                    # C ░░▒▒░░░░▒▒▒▒▒▒▒▒
-                    #     |t1c' = t0c + duration + conditional_latency
-                    #
-                    t0 = max(t0q, t0c - op_duration)
-                    t1 = t0 + op_duration
-                    for clbit in node.op.condition_bits:
-                        idle_before[clbit] = t1 + self.conditional_latency
-                else:
-                    t0 = t0q
-                    t1 = t0 + op_duration
+                t0 = t0q
+                t1 = t0 + op_duration
             else:
-                if node.op.condition_bits:
-                    raise TranspilerError(
-                        f"Conditional instruction {node.op.name} is not supported in ALAP scheduler."
-                    )
-
                 if isinstance(node.op, Measure):
                     # clbit time is always right (alap) justified
                     t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)

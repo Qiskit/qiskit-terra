@@ -62,9 +62,9 @@ class SGate(SingletonGate):
 
     _standard_gate = StandardGate.SGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("s", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -174,9 +174,9 @@ class SdgGate(SingletonGate):
 
     _standard_gate = StandardGate.SdgGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -290,8 +290,6 @@ class CSGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CS gate."""
@@ -303,9 +301,7 @@ class CSGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=SGate(label=_base_label),
-            duration=duration,
             _base_label=_base_label,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -378,8 +374,6 @@ class CSdgGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSdg gate."""
@@ -391,8 +385,6 @@ class CSdgGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=SdgGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)

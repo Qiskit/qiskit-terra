@@ -1,0 +1,23 @@
+---
+upgrade_circuits:
+  - |
+    The deprecated attributes for :class:`.Instruction` and :class:`.Gate`: ``duration`` and ``unit``.
+
+  - |
+    The deprecated attribute for :class:`.Instruction` and :class:`.Gate`: ``condition`` has been
+    removed
+  - |
+    The deprecated methods for :class:`.Instruction` and :class:`.Gate`: ``c_if`` and ``condition_bits``
+    have been removed.
+  - |
+    The deprecated methods ``InstructionSet.c_if`` has been removed.
+upgrade_transpiler:
+  - |
+    The :class:`.ResetAfterMeasureSimplification` transpiler pass now will use an :class:`.IfElseOp`
+    to condition the execution of the :class:`.XGate` instead of setting a ``condition`` attribute
+    on the gate. This is because the ``condition`` attribute has been removed from the Qiskit data model.
+  - |
+    The deprecated ``ConvertConditionsToIfOps`` transpiler pass has been removed. The underlying
+    ``condition`` attribute of :class:`.Instruction` class has been removed so this transpiler pass
+    no longer had anything to convert from. Instead you should directly use :class:`.IfElseOp` to
+    classically condition the execution of an operation.

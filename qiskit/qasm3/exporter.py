@@ -1006,13 +1006,14 @@ class QASM3Builder:
                     f" but received '{instruction.operation}'"
                 )
 
-            if instruction.operation._condition is None:
+            cond = getattr(instruction.operation, "_condition", None)
+            if cond is None:
                 statements.extend(nodes)
             else:
                 body = ast.ProgramBlock(nodes)
                 statements.append(
                     ast.BranchingStatement(
-                        self.build_expression(_lift_condition(instruction.operation._condition)),
+                        self.build_expression(_lift_condition(cond)),
                         body,
                     )
                 )

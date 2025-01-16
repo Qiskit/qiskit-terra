@@ -56,8 +56,8 @@ class BaseScheduler(AnalysisPass):
             )
         self.property_set["node_start_time"] = {}
 
-    @staticmethod
     def _get_node_duration(
+        self,
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
@@ -73,12 +73,11 @@ class BaseScheduler(AnalysisPass):
                 # to see here
                 duration = dag._calibrations_prop[node.op.name][cal_key].duration
 
-            # Note that node duration is updated (but this is analysis pass)
-            op = node.op.to_mutable()
-            op.duration = duration
-            dag.substitute_node(node, op, propagate_condition=False)
         else:
-            duration = node.duration
+            try:
+                duration = self.durations.get(node.op, node.qargs)
+            except TranspilerError:
+                duration = None
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

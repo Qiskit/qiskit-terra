@@ -21,60 +21,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 @ddt.ddt
 class TestExprConstructors(QiskitTestCase):
-    def test_lift_legacy_condition(self):
-        cr = ClassicalRegister(3, "c")
-        clbit = Clbit()
-
-        inst = Instruction("custom", 1, 0, [])
-        with self.assertWarns(DeprecationWarning):
-            inst.c_if(cr, 7)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                expr.lift_legacy_condition(inst.condition),
-                expr.Binary(
-                    expr.Binary.Op.EQUAL,
-                    expr.Var(cr, types.Uint(cr.size)),
-                    expr.Value(7, types.Uint(cr.size)),
-                    types.Bool(),
-                ),
-            )
-
-        inst = Instruction("custom", 1, 0, [])
-        with self.assertWarns(DeprecationWarning):
-            inst.c_if(cr, 255)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                expr.lift_legacy_condition(inst.condition),
-                expr.Binary(
-                    expr.Binary.Op.EQUAL,
-                    expr.Cast(expr.Var(cr, types.Uint(cr.size)), types.Uint(8), implicit=True),
-                    expr.Value(255, types.Uint(8)),
-                    types.Bool(),
-                ),
-            )
-
-        inst = Instruction("custom", 1, 0, [])
-        with self.assertWarns(DeprecationWarning):
-            inst.c_if(clbit, False)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                expr.lift_legacy_condition(inst.condition),
-                expr.Unary(
-                    expr.Unary.Op.LOGIC_NOT,
-                    expr.Var(clbit, types.Bool()),
-                    types.Bool(),
-                ),
-            )
-
-        inst = Instruction("custom", 1, 0, [])
-        with self.assertWarns(DeprecationWarning):
-            inst.c_if(clbit, True)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(
-                expr.lift_legacy_condition(inst.condition),
-                expr.Var(clbit, types.Bool()),
-            )
-
     def test_value_lifts_qiskit_scalars(self):
         cr = ClassicalRegister(3, "c")
         self.assertEqual(expr.lift(cr), expr.Var(cr, types.Uint(cr.size)))

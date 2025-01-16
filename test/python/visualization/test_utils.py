@@ -313,53 +313,6 @@ class TestVisualizationUtils(QiskitTestCase):
             r_exp, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
         )
 
-    def test_get_layered_instructions_op_with_cargs(self):
-        """Test _get_layered_instructions op with cargs right of measure
-                ┌───┐┌─┐
-        q_0: |0>┤ H ├┤M├─────────────
-                └───┘└╥┘┌───────────┐
-        q_1: |0>──────╫─┤0          ├
-                      ║ │  add_circ │
-         c_0: 0 ══════╩═╡0          ╞
-                        └───────────┘
-         c_1: 0 ═════════════════════
-        """
-        qc = QuantumCircuit(2, 2)
-        qc.h(0)
-        qc.measure(0, 0)
-        qc_2 = QuantumCircuit(1, 1, name="add_circ")
-        with self.assertWarns(DeprecationWarning):
-            qc_2.h(0).c_if(qc_2.cregs[0], 1)
-        qc_2.measure(0, 0)
-        # This append calls ends up calling .to_instruction() which calls
-        # .c_if() internally
-        with self.assertWarns(DeprecationWarning):
-            qc.append(qc_2, [1], [0])
-
-        (_, _, layered_ops) = _utils._get_layered_instructions(qc)
-
-        expected = [
-            {("h", (Qubit(QuantumRegister(2, "q"), 0),), ())},
-            {
-                (
-                    "measure",
-                    (Qubit(QuantumRegister(2, "q"), 0),),
-                    (Clbit(ClassicalRegister(2, "c"), 0),),
-                )
-            },
-            {
-                (
-                    "add_circ",
-                    (Qubit(QuantumRegister(2, "q"), 1),),
-                    (Clbit(ClassicalRegister(2, "c"), 0),),
-                )
-            },
-        ]
-
-        self.assertEqual(
-            expected, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
-        )
-
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_nomathmode(self):
         """Test generate latex label default."""

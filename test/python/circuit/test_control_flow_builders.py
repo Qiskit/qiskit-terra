@@ -190,50 +190,6 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
-        with self.subTest("if/c_if"):
-            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            with test.if_test((cr1, 0)):
-                with self.assertWarns(DeprecationWarning):
-                    test.x(0).c_if(cr2, 0)
-                with self.assertWarns(DeprecationWarning):
-                    test.z(0).c_if(cr3, 0)
-
-            true_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
-            with self.assertWarns(DeprecationWarning):
-                true_body.x(0).c_if(cr2, 0)
-            with self.assertWarns(DeprecationWarning):
-                true_body.z(0).c_if(cr3, 0)
-
-            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            expected.if_test((cr1, 0), true_body, [qr[0]], clbits + list(cr1))
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-        with self.subTest("while/else/c_if"):
-            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            with test.while_loop((cr1, 0)):
-                with test.if_test((cr2, 0)) as else_:
-                    with self.assertWarns(DeprecationWarning):
-                        test.x(0).c_if(cr3, 0)
-                with else_:
-                    with self.assertWarns(DeprecationWarning):
-                        test.z(0).c_if(cr4, 0)
-
-            true_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
-            with self.assertWarns(DeprecationWarning):
-                true_body.x(0).c_if(cr3, 0)
-            false_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
-            with self.assertWarns(DeprecationWarning):
-                false_body.z(0).c_if(cr4, 0)
-
-            while_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
-            while_body.if_else((cr2, 0), true_body, false_body, [qr[0]], clbits)
-
-            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            expected.while_loop((cr1, 0), while_body, [qr[0]], clbits + list(cr1))
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
         with self.subTest("switch/if"):
             test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
             with test.switch(cr1) as case_:
@@ -655,23 +611,23 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         test = QuantumCircuit(qr, *cr)
         with test.if_test((cr[0], 0)) as else_:
-            with self.assertWarns(DeprecationWarning):
-                test.h(0).c_if(cr[1], 0)
+            test.h(0)
+            qc.measure(0, cr[1])
             # Test repetition.
-            with self.assertWarns(DeprecationWarning):
-                test.h(0).c_if(cr[1], 0)
+            test.h(0)
+            qc.measure(0, cr[1])
         with else_:
-            with self.assertWarns(DeprecationWarning):
-                test.h(0).c_if(cr[2], 0)
+            test.h(0)
+            qc.measure(0, cr[2])
 
         true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
-        with self.assertWarns(DeprecationWarning):
-            true_body.h(qr[0]).c_if(cr[1], 0)
-        with self.assertWarns(DeprecationWarning):
-            true_body.h(qr[0]).c_if(cr[1], 0)
+        true_body.h(qr[0])
+        qc.measure(0, cr[1])
+        true_body.h(qr[0])
+        true_bod.measure(0, cr[1])
         false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
-        with self.assertWarns(DeprecationWarning):
-            false_body.h(qr[0]).c_if(cr[2], 0)
+        false_body.h(qr[0])
+        false_body.measure(0, cr[2])
 
         expected = QuantumCircuit(qr, *cr)
         expected.if_else(
@@ -1040,48 +996,6 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
-    def test_break_continue_accept_c_if(self, loop_operation):
-        """Test that ``break`` and ``continue`` statements accept :meth:`.Instruction.c_if` calls,
-        and that these propagate through correctly."""
-        qubits = [Qubit(), Qubit()]
-        clbits = [Clbit(), Clbit()]
-
-        with self.subTest("for"):
-            test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(range(2)):
-                test.h(0)
-                with self.assertWarns(DeprecationWarning):
-                    loop_operation(test).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], [clbits[1]])
-            body.h(qubits[0])
-            with self.assertWarns(DeprecationWarning):
-                loop_operation(body).c_if(clbits[1], 0)
-
-            expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(range(2), None, body, [qubits[0]], [clbits[1]])
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-        with self.subTest("while"):
-            cond = (clbits[0], 0)
-            test = QuantumCircuit(qubits, clbits)
-            with test.while_loop(cond):
-                test.h(0)
-                with self.assertWarns(DeprecationWarning):
-                    loop_operation(test).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0])
-            with self.assertWarns(DeprecationWarning):
-                loop_operation(body).c_if(clbits[1], 0)
-
-            expected = QuantumCircuit(qubits, clbits)
-            expected.while_loop(cond, body, [qubits[0]], clbits)
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-    @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_only_expand_to_nearest_loop(self, loop_operation):
         """Test that a ``break`` or ``continue`` nested in more than one loop only expands as far as
         the inner loop scope, not further."""
@@ -1248,8 +1162,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 # full width of the loop do so.
                 with test.if_test(cond_inner):
                     pass
-                with self.assertWarns(DeprecationWarning):
-                    test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
             loop_operation(true_body1)
@@ -1259,8 +1173,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_body = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
             loop_body.if_test(cond_inner, true_body1, [qubits[0]], [clbits[0], clbits[2]])
             loop_body.if_test(cond_inner, true_body2, [], [clbits[0]])
-            with self.assertWarns(DeprecationWarning):
-                loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, [qubits[0]], [clbits[0], clbits[2]])
@@ -1278,8 +1192,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                     pass
                 with else_:
                     pass
-                with self.assertWarns(DeprecationWarning):
-                    test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[2]])
             true_body1.h(qubits[1])
@@ -1294,8 +1208,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_inner, true_body1, false_body1, [qubits[0], qubits[1]], [clbits[0], clbits[2]]
             )
             loop_body.if_else(cond_inner, true_body2, false_body2, [], [clbits[0]])
-            with self.assertWarns(DeprecationWarning):
-                loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(
@@ -1311,8 +1225,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                     loop_operation(test)
                 with test.if_test(cond_inner):
                     pass
-                with self.assertWarns(DeprecationWarning):
-                    test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], clbits[0], clbits[1], clbits[2]])
             loop_operation(true_body1)
@@ -1324,8 +1238,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_inner, true_body1, [qubits[0]], [clbits[0], clbits[1], clbits[2]]
             )
             loop_body.if_test(cond_inner, true_body2, [], [clbits[0]])
-            with self.assertWarns(DeprecationWarning):
-                loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(
@@ -1345,8 +1259,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                     pass
                 with else_:
                     pass
-                with self.assertWarns(DeprecationWarning):
-                    test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[1], clbits[2]])
             true_body1.h(qubits[1])
@@ -1365,8 +1279,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 [clbits[0], clbits[1], clbits[2]],
             )
             loop_body.if_else(cond_inner, true_body2, false_body2, [], [clbits[0]])
-            with self.assertWarns(DeprecationWarning):
-                loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(
@@ -1394,8 +1308,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.switch(clbits[0]) as case:
                 with case(case.DEFAULT):
                     pass
-            with self.assertWarns(DeprecationWarning):
-                test.h(0).c_if(clbits[2], 0)
+            with test.if_test((clbits[2], 0)):
+                test.h(0)
 
         body0 = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
         loop_operation(body0)
@@ -1406,8 +1320,8 @@ class TestControlFlowBuilders(QiskitTestCase):
         loop_body = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
         loop_body.switch(clbits[0], [(0, body0), (1, body1)], [qubits[0]], [clbits[0], clbits[2]])
         loop_body.switch(clbits[0], [(CASE_DEFAULT, body2)], [], [clbits[0]])
-        with self.assertWarns(DeprecationWarning):
-            loop_body.h(qubits[0]).c_if(clbits[2], 0)
+        with loop_body.if_test((clbits[2], 0)):
+            loop_body.h(qubits[0])
 
         expected = QuantumCircuit(qubits, clbits)
         expected.for_loop(range(2), None, loop_body, [qubits[0]], [clbits[0], clbits[2]])

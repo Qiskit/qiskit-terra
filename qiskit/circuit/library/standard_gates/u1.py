@@ -95,11 +95,9 @@ class U1Gate(Gate):
 
     _standard_gate = StandardGate.U1Gate
 
-    def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new U1 gate."""
-        super().__init__("u1", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -235,8 +233,6 @@ class CU1Gate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU1 gate."""
@@ -248,8 +244,6 @@ class CU1Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U1Gate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -400,8 +394,6 @@ class MCU1Gate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new MCU1 gate."""
@@ -413,8 +405,6 @@ class MCU1Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U1Gate(lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):

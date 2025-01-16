@@ -57,8 +57,7 @@ class TestCircuitRandom(QiskitTestCase):
     def test_large_conditional(self):
         """Test that conditions do not fail with large conditionals.  Regression test of gh-6994."""
         # The main test is that this call actually returns without raising an exception.
-        with self.assertWarns(DeprecationWarning):
-            circ = random_circuit(64, 2, conditional=True, seed=0)
+        circ = random_circuit(64, 2, conditional=True, seed=0)
         # Test that at least one instruction had a condition generated.  It's possible that this
         # fails due to very bad luck with the random seed - if so, change the seed to ensure that a
         # condition _is_ generated, because we need to test that generation doesn't error.

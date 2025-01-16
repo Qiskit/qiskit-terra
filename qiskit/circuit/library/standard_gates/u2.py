@@ -94,12 +94,9 @@ class U2Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import

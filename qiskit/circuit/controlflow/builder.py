@@ -284,7 +284,9 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The same instruction instance that was passed, but mutated to propagate the tracked
             changes to this class.
         """
-        instruction._condition = self._condition
+        cond = getattr(self, "_condition", None)
+        if cond is not None:
+            instruction._condition = cond
         return instruction
 
     # Provide some better error messages, just in case something goes wrong during development and

@@ -63,9 +63,9 @@ class SwapGate(SingletonGate):
 
     _standard_gate = StandardGate.SwapGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [], label=label, duration=duration, unit=unit)
+        super().__init__("swap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -225,13 +225,9 @@ class CSwapGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSWAP gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "cswap",
             3,
@@ -240,8 +236,6 @@ class CSwapGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SwapGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)

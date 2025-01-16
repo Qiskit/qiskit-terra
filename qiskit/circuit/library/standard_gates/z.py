@@ -76,9 +76,9 @@ class ZGate(SingletonGate):
 
     _standard_gate = StandardGate.ZGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("z", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -191,8 +191,6 @@ class CZGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CZ gate."""
@@ -204,8 +202,6 @@ class CZGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -293,8 +289,6 @@ class CCZGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CCZ gate."""
@@ -306,8 +300,6 @@ class CCZGate(SingletonControlledGate):
             num_ctrl_qubits=2,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)

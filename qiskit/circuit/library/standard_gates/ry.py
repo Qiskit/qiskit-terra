@@ -55,10 +55,12 @@ class RYGate(Gate):
     _standard_gate = StandardGate.RYGate
 
     def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
     ):
         """Create new RY gate."""
-        super().__init__("ry", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):
         """
@@ -212,8 +214,6 @@ class CRYGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRY gate."""
@@ -225,8 +225,6 @@ class CRYGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RYGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):

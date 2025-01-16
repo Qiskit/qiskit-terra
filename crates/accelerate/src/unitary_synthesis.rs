@@ -22,7 +22,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
@@ -147,7 +147,7 @@ fn apply_synth_sequence(
             qubits: out_dag.qargs_interner.insert(&mapped_qargs),
             clbits: out_dag.cargs_interner.get_default(),
             params: new_params,
-            extra_attrs: ExtraInstructionAttributes::default(),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         };
@@ -284,7 +284,7 @@ fn py_run_main_loop(
                 qubits: packed_instr.qubits,
                 clbits: packed_instr.clbits,
                 params: (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
-                extra_attrs: new_node_op.extra_attrs,
+                label: new_node_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: new_node.unbind().into(),
             };
@@ -323,7 +323,7 @@ fn py_run_main_loop(
                                 &[qubit],
                                 &[],
                                 Some(new_params),
-                                ExtraInstructionAttributes::default(),
+                                None,
                                 #[cfg(feature = "cache_pygates")]
                                 None,
                             )?;

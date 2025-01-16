@@ -1030,31 +1030,6 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_ops(), expected)
 
-    def test_repeat(self):
-        """Test repeating the circuit works."""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.barrier()
-        with self.assertWarns(DeprecationWarning):
-            qc.h(0).c_if(cr, 1)
-
-        with self.subTest("repeat 0 times"):
-            rep = qc.repeat(0)
-            self.assertEqual(rep, QuantumCircuit(qr, cr))
-
-        with self.subTest("repeat 3 times"):
-            with self.assertWarns(DeprecationWarning):
-                inst = qc.to_instruction()
-            ref = QuantumCircuit(qr, cr)
-            for _ in range(3):
-                ref.append(inst, ref.qubits, ref.clbits)
-            with self.assertWarns(DeprecationWarning):
-                rep = qc.repeat(3)
-            self.assertEqual(rep, ref)
-
     @data(0, 1, 4)
     def test_repeat_global_phase(self, num):
         """Test the global phase is properly handled upon repeat."""
@@ -1289,28 +1264,6 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_bits(), expected)
 
-    def test_reverse_bits_with_registerless_bits(self):
-        """Test reversing order of registerless bits."""
-        q0 = Qubit()
-        q1 = Qubit()
-        c0 = Clbit()
-        c1 = Clbit()
-        qc = QuantumCircuit([q0, q1], [c0, c1])
-        qc.h(0)
-        qc.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(0).c_if(1, True)
-        qc.measure(0, 0)
-
-        expected = QuantumCircuit([c1, c0], [q1, q0])
-        expected.h(1)
-        expected.cx(1, 0)
-        with self.assertWarns(DeprecationWarning):
-            expected.x(1).c_if(0, True)
-        expected.measure(1, 1)
-
-        self.assertEqual(qc.reverse_bits(), expected)
-
     def test_reverse_bits_with_registers_and_bits(self):
         """Test reversing order of bits with registers and registerless bits."""
         qr = QuantumRegister(2, "a")
@@ -1391,48 +1344,6 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.x(0)
 
         self.assertFalse(qc1 == qc2)
-
-    def test_compare_circuits_with_single_bit_conditions(self):
-        """Test that circuits with single-bit conditions can be compared correctly."""
-        qreg = QuantumRegister(1, name="q")
-        creg = ClassicalRegister(1, name="c")
-        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.clbits[-1], True)
-        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.clbits[-1], True)
-        self.assertEqual(qc1, qc2)
-
-        # Order of operations transposed.
-        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.clbits[-1], True)
-        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.clbits[-1], True)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.cregs[0], 1)
-        self.assertNotEqual(qc1, qc2)
-
-        # Single-bit condition values not the same.
-        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc1.x(0).c_if(qc1.clbits[-1], True)
-        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.cregs[0], 1)
-        with self.assertWarns(DeprecationWarning):
-            qc2.x(0).c_if(qc2.clbits[-1], False)
-        self.assertNotEqual(qc1, qc2)
 
     def test_compare_a_circuit_with_none(self):
         """Test to compare that a circuit is different to None."""

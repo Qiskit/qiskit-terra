@@ -78,11 +78,9 @@ class RYYGate(Gate):
 
     _standard_gate = StandardGate.RYYGate
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RYY gate."""
-        super().__init__("ryy", 2, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""

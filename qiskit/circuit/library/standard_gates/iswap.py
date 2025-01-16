@@ -88,9 +88,9 @@ class iSwapGate(SingletonGate):
 
     _standard_gate = StandardGate.ISwapGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
-        super().__init__("iswap", 2, [], label=label, duration=duration, unit=unit)
+        super().__init__("iswap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 

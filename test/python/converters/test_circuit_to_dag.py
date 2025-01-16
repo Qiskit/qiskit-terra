@@ -34,8 +34,6 @@ class TestCircuitToDag(QiskitTestCase):
         circuit_in.h(qr[1])
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit_in.x(qr[0]).c_if(cr, 0x3)
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
@@ -63,8 +61,7 @@ class TestCircuitToDag(QiskitTestCase):
         `condition` are correctly transferred."""
         # The control-flow builder interface always includes any classical wires in the blocks of
         # the operation, so we test by using manually constructed blocks that don't do that.  It's
-        # not required by the `QuantumCircuit` model (just like `c_if` instructions don't expand
-        # their `cargs`).
+        # not required by the `QuantumCircuit` model.
         inner = QuantumCircuit(1)
         inner.x(0)
         cr1 = ClassicalRegister(2, "a")

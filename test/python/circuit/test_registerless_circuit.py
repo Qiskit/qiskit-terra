@@ -190,20 +190,6 @@ class TestGatesOnWires(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-    def test_circuit_conditional(self):
-        """Test conditional on wires."""
-        qreg = QuantumRegister(2)
-        creg = ClassicalRegister(4)
-        circuit = QuantumCircuit(qreg, creg)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(0).c_if(creg, 3)
-
-        expected = QuantumCircuit(qreg, creg)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg[0]).c_if(creg, 3)
-
-        self.assertEqual(circuit, expected)
-
     def test_circuit_qwire_out_of_range(self):
         """Fail if quantum wire is out of range."""
         qreg = QuantumRegister(2)
@@ -329,23 +315,6 @@ class TestGatesOnWireRange(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-    def test_circuit_conditional(self):
-        """Test conditional on wires."""
-        qreg0 = QuantumRegister(2)
-        qreg1 = QuantumRegister(2)
-        creg = ClassicalRegister(2)
-        circuit = QuantumCircuit(qreg0, qreg1, creg)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(range(1, 3)).c_if(creg, 3)
-
-        expected = QuantumCircuit(qreg0, qreg1, creg)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg0[1]).c_if(creg, 3)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg1[0]).c_if(creg, 3)
-
-        self.assertEqual(circuit, expected)
-
     def test_circuit_qwire_out_of_range(self):
         """Fail if quantum wire is out of range."""
         qreg = QuantumRegister(2)
@@ -465,23 +434,6 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-    def test_circuit_conditional(self):
-        """Test conditional on wires."""
-        qreg0 = QuantumRegister(2)
-        qreg1 = QuantumRegister(2)
-        creg = ClassicalRegister(2)
-        circuit = QuantumCircuit(qreg0, qreg1, creg)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(slice(1, 3)).c_if(creg, 3)
-
-        expected = QuantumCircuit(qreg0, qreg1, creg)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg0[1]).c_if(creg, 3)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg1[0]).c_if(creg, 3)
-
-        self.assertEqual(circuit, expected)
-
     def test_circuit_qwire_out_of_range(self):
         """Fail if quantum wire is out of range."""
         qreg = QuantumRegister(2)
@@ -502,42 +454,3 @@ class TestGatesOnWireSlice(QiskitTestCase):
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
         self.assertRaises(CircuitError, circuit.h, numpy_arr)  # circuit.h(numpy_arr)
-
-
-class TestBitConditional(QiskitTestCase):
-    """Test gates with single bit conditionals."""
-
-    def test_bit_conditional_single_gate(self):
-        """Test circuit with a single gate conditioned on a bit."""
-        qreg = QuantumRegister(1)
-        creg = ClassicalRegister(2)
-        circuit = QuantumCircuit(qreg, creg)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(0).c_if(0, True)
-
-        expected = QuantumCircuit(qreg, creg)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg[0]).c_if(creg[0], True)
-        self.assertEqual(circuit, expected)
-
-    def test_bit_conditional_multiple_gates(self):
-        """Test circuit with multiple gates conditioned on individual bits."""
-        qreg = QuantumRegister(2)
-        creg = ClassicalRegister(2)
-        creg1 = ClassicalRegister(1)
-        circuit = QuantumCircuit(qreg, creg, creg1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(0).c_if(0, True)
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(1).c_if(1, False)
-        with self.assertWarns(DeprecationWarning):
-            circuit.cx(1, 0).c_if(2, True)
-
-        expected = QuantumCircuit(qreg, creg, creg1)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg[0]).c_if(creg[0], True)
-        with self.assertWarns(DeprecationWarning):
-            expected.h(qreg[1]).c_if(creg[1], False)
-        with self.assertWarns(DeprecationWarning):
-            expected.cx(qreg[1], qreg[0]).c_if(creg1[0], True)
-        self.assertEqual(circuit, expected)

@@ -57,9 +57,9 @@ class HGate(SingletonGate):
 
     _standard_gate = StandardGate.HGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new H gate."""
-        super().__init__("h", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("h", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -196,8 +196,6 @@ class CHGate(SingletonControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CH gate."""
@@ -209,8 +207,6 @@ class CHGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=HGate(label=_base_label),
-            duration=duration,
-            unit=unit,
             _base_label=_base_label,
         )
 

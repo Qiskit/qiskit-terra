@@ -49,9 +49,9 @@ class IGate(SingletonGate):
 
     _standard_gate = StandardGate.IGate
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("id", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 

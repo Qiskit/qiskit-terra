@@ -135,19 +135,6 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(q_circuit.name, new_circ.name)
         self.assertDeprecatedBitProperties(q_circuit, new_circ)
 
-    def test_circuit_with_conditional(self):
-        """Test that instructions with conditions are correctly serialized."""
-        qc = QuantumCircuit(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(0).c_if(qc.cregs[0], 1)
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circ = load(qpy_file)[0]
-        self.assertEqual(qc, new_circ)
-        self.assertDeprecatedBitProperties(qc, new_circ)
-
     def test_int_parameter(self):
         """Test that integer parameters are correctly serialized."""
         qc = QuantumCircuit(1)
@@ -679,24 +666,6 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_circuit_with_conditional_with_label(self):
-        """Test that instructions with conditions are correctly serialized."""
-        qc = QuantumCircuit(1, 1)
-        gate = XGate(label="My conditional x gate")
-        with self.assertWarns(DeprecationWarning):
-            gate.c_if(qc.cregs[0], 1)
-        qc.append(gate, [0])
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circ = load(qpy_file)[0]
-        self.assertEqual(qc, new_circ)
-        self.assertEqual(
-            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
-        )
-        self.assertDeprecatedBitProperties(qc, new_circ)
-
     def test_initialize_qft(self):
         """Test that initialize with a complex statevector and qft work."""
         k = 5
@@ -766,14 +735,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(qr, cr, name="Reset Test")
         qc.x(0)
         qc.measure(0, cr[0])
-        with self.assertWarns(DeprecationWarning):
-            qc.x(0).c_if(cr[0], 1)
+        with qc.if_test((cr[0], 1)):
+            qc.x(0)
         qc.measure(0, cr[1])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circ = load(qpy_file)[0]
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(
             [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
@@ -1151,8 +1119,8 @@ class TestLoadFromQPY(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
@@ -1169,8 +1137,8 @@ class TestLoadFromQPY(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            with self.assertWarns(DeprecationWarning):
-                qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)

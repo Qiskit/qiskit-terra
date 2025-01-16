@@ -124,7 +124,7 @@ pub fn dag_to_circuit(
                             .map(|param| param.clone_ref(py))
                             .collect(),
                     )),
-                    extra_attrs: instr.extra_attrs.clone(),
+                    label: instr.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
                 })
