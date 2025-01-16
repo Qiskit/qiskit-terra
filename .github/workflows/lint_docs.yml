@@ -1,0 +1,58 @@
+---
+name: Lint and Docs
+on:
+  workflow_call:
+    
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+jobs:
+  docs:
+    if: github.repository_owner == 'Qiskit'
+    name: Docs
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    - name: Install ubuntu docs dependencies
+      run: tools/install_ubuntu_docs_dependencies.sh
+    - name: Run docs
+      run: tox -e docs
+    - name: Clean up docs detritus
+      run: rm -rf docs/_build/html/{.doctrees,.buildinfo}
+    - name: Store built documentation artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: qiskit-docs
+        path: |
+          ./docs/_build/html/*
+        if-no-files-found: error
+  lint:
+    if: github.repository_owner == 'Qiskit'
+    name: Lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    - name: Install ubuntu docs dependencies
+      run: tools/install_ubuntu_docs_dependencies.sh
+    - name: Run lint
+      run: tox -e lint
+        
