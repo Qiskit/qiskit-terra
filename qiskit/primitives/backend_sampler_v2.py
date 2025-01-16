@@ -33,7 +33,7 @@ from qiskit.primitives.containers import (
     SamplerPubLike,
     SamplerPubResult,
 )
-from qiskit.primitives.containers.bit_array import _min_num_bytes
+from qiskit.primitives.containers.bit_packing import min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.providers.backend import BackendV1, BackendV2
@@ -283,12 +283,12 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
             _MeasureInfo(
                 creg_name=name,
                 num_bits=num_bits,
-                num_bytes=_min_num_bytes(num_bits),
+                num_bytes=min_num_bytes(num_bits),
                 start=start,
             )
         )
         max_num_bits = max(max_num_bits, start + num_bits)
-    return meas_info, _min_num_bytes(max_num_bits)
+    return meas_info, min_num_bytes(max_num_bits)
 
 
 def _prepare_memory(results: list[Result]) -> list[ResultMemory]:

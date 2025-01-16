@@ -36,7 +36,7 @@ from .containers import (
     SamplerPubLike,
 )
 from .containers.sampler_pub import SamplerPub
-from .containers.bit_array import _min_num_bytes
+from .containers.bit_packing import min_num_bytes
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
@@ -225,7 +225,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
         _MeasureInfo(
             creg_name=name,
             num_bits=num_bits,
-            num_bytes=_min_num_bytes(num_bits),
+            num_bytes=min_num_bytes(num_bits),
             qreg_indices=indices[name],
         )
         for name, num_bits in num_bits_dict.items()

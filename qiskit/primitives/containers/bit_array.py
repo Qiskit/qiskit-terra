@@ -27,33 +27,12 @@ from numpy.typing import NDArray
 from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, sampled_expectation_value
 
+from .bit_packing import pack_bits, unpack_bits, slice_packed_bits, min_num_bytes
 from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
 # this lookup table tells you how many bits are 1 in each uint8 value
 _WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
-
-
-def _min_num_bytes(num_bits: int) -> int:
-    """Return the minimum number of bytes needed to store ``num_bits``."""
-    return num_bits // 8 + (num_bits % 8 > 0)
-
-
-def _unpack(bit_array: BitArray) -> NDArray[np.uint8]:
-    arr = np.unpackbits(bit_array.array, axis=-1, bitorder="big")
-    arr = arr[..., -1 : -bit_array.num_bits - 1 : -1]
-    return arr
-
-
-def _pack(arr: NDArray[np.uint8]) -> tuple[NDArray[np.uint8], int]:
-    arr = arr[..., ::-1]
-    num_bits = arr.shape[-1]
-    pad_size = -num_bits % 8
-    if pad_size > 0:
-        pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
-        arr = np.pad(arr, pad_width, constant_values=0)
-    arr = np.packbits(arr, axis=-1, bitorder="big")
-    return arr, num_bits
 
 
 class BitArray(ShapedMixin):
@@ -83,7 +62,7 @@ class BitArray(ShapedMixin):
             raise TypeError(f"Input array must have dtype uint8, not {array.dtype}.")
         if array.ndim < 2:
             raise ValueError("The input array must have at least two axes.")
-        if array.shape[-1] != (expected := _min_num_bytes(num_bits)):
+        if array.shape[-1] != (expected := min_num_bytes(num_bits)):
             raise ValueError(f"The input array is expected to have {expected} bytes per shot.")
 
         self._array = array
@@ -191,7 +170,8 @@ class BitArray(ShapedMixin):
 
     @staticmethod
     def from_bool_array(
-        array: NDArray[np.bool_], order: Literal["big", "little"] = "big"
+        array: NDArray[np.bool_],
+        order: Literal["big", "little"] = "big",
     ) -> "BitArray":
         """Construct a new bit array from an array of bools.
 
@@ -201,29 +181,22 @@ class BitArray(ShapedMixin):
                 correspond to the most significant bits or the least significant bits of each
                 bitstring, respectively.
 
+        Raises:
+            ValueError: If input array does not have at least 2 dimensions.
+            ValueError: If ``order`` is invalid.
+
         Returns:
             A new bit array.
         """
         array = np.asarray(array, dtype=bool)
-
         if array.ndim < 2:
             raise ValueError("Expecting at least two dimensions.")
-
-        if order == "little":
-            # np.unpackbits assumes "big"
-            array = array[..., ::-1]
-        elif order != "big":
+        if order not in ["little", "big"]:
             raise ValueError(
                 f"unknown value for order: '{order}'. Valid values are 'big' and 'little'."
             )
-        num_bits = array.shape[-1]
-        if remainder := (-num_bits) % 8:
-            # unpackbits pads with zeros on the wrong side with respect to what we want, so
-            # we manually pad to the nearest byte
-            pad = np.zeros(shape_tuple(array.shape[:-1], remainder), dtype=bool)
-            array = np.concatenate([pad, array], axis=-1)
-
-        return BitArray(np.packbits(array, axis=-1), num_bits=num_bits)
+        packed, num_bits = pack_bits(array, bitorder=order)
+        return BitArray(packed, num_bits=num_bits)
 
     @staticmethod
     def from_counts(
@@ -309,7 +282,7 @@ class BitArray(ShapedMixin):
             if num_bits == 0:
                 num_bits = 1
 
-        num_bytes = _min_num_bytes(num_bits)
+        num_bytes = min_num_bytes(num_bits)
         data = b"".join(val.to_bytes(num_bytes, "big") for val in ints)
         array = np.frombuffer(data, dtype=np.uint8, count=len(data))
         return BitArray(array.reshape(-1, num_bytes), num_bits)
@@ -444,13 +417,7 @@ class BitArray(ShapedMixin):
                 raise IndexError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
-        # This implementation introduces a temporary 8x memory overhead due to bit
-        # unpacking. This could be fixed using bitwise functions, at the expense of a
-        # more complicated implementation.
-        arr = _unpack(self)
-        arr = arr[..., indices]
-        arr, num_bits = _pack(arr)
-        return BitArray(arr, num_bits)
+        return BitArray(slice_packed_bits(self.array, indices, self.num_bits), len(indices))
 
     def slice_shots(self, indices: int | Sequence[int]) -> "BitArray":
         """Return a bit array sliced along the shots axis of some indices of interest.
@@ -516,10 +483,7 @@ class BitArray(ShapedMixin):
 
         if len(selection) != num_indices:
             raise ValueError("Lengths of indices and selection do not match.")
-
-        num_bytes = self._array.shape[-1]
         indices = np.asarray(indices)
-
         if num_indices > 0:
             if indices.max() >= self.num_bits:
                 raise IndexError(
@@ -536,35 +500,10 @@ class BitArray(ShapedMixin):
         if num_indices == 0:
             return flattened
 
-        # Make negative bit indices positive:
-        indices %= self.num_bits
-
-        # Handle special-case of contradictory conditions:
-        if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:
-            return BitArray(np.empty((0, num_bytes), dtype=np.uint8), num_bits=self.num_bits)
-
-        # Recall that creg[0] is the LSb:
-        byte_significance, bit_significance = np.divmod(indices, 8)
-        # least-significant byte is at last position:
-        byte_idx = (num_bytes - 1) - byte_significance
-        # least-significant bit is at position 0:
-        bit_offset = bit_significance.astype(np.uint8)
-
-        # Get bitpacked representation of `indices` (bitmask):
-        bitmask = np.zeros(num_bytes, dtype=np.uint8)
-        np.bitwise_or.at(bitmask, byte_idx, np.uint8(1) << bit_offset)
-
-        # Get bitpacked representation of `selection` (desired bitstring):
-        selection_bytes = np.zeros(num_bytes, dtype=np.uint8)
-        ## This assumes no contradictions present, since those were already checked for:
-        np.bitwise_or.at(
-            selection_bytes, byte_idx, np.asarray(selection, dtype=np.uint8) << bit_offset
-        )
-
-        return BitArray(
-            flattened._array[((flattened._array & bitmask) == selection_bytes).all(axis=-1)],
-            num_bits=self.num_bits,
-        )
+        postselect_values = slice_packed_bits(flattened.array, indices, flattened.num_bits)
+        postselect_target = pack_bits(selection, bitorder="little")[0]
+        postselect_index = np.logical_and.reduce(postselect_values == postselect_target, axis=-1)
+        return BitArray(flattened.array[postselect_index], self.num_bits)
 
     def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
         """Compute the expectation values of the provided observables, broadcasted against
@@ -716,26 +655,33 @@ class BitArray(ShapedMixin):
             ValueError: If any bit arrays has a different number of shots.
             ValueError: If any bit arrays has a different shape.
         """
-        if len(bit_arrays) == 0:
+        num_ba = len(bit_arrays)
+        if num_ba == 0:
             raise ValueError("Need at least one bit array to stack")
         num_shots = bit_arrays[0].num_shots
         shape = bit_arrays[0].shape
+        num_bits = 0
+        ba_indices = []
         for i, ba in enumerate(bit_arrays):
             if ba.num_shots != num_shots:
                 raise ValueError(
-                    "All bit arrays must have same number of shots, "
-                    f"but the bit array at index 0 has {num_shots} shots "
-                    f"and the bit array at index {i} has {ba.num_shots} shots."
+                    "All bit arrays must have same number of shots, but the "
+                    f"bit array at index 0 has {num_shots} shots and the "
+                    f"bit array at index {num_ba - 1 - i} has {ba.num_shots} shots."
                 )
             if ba.shape != shape:
                 raise ValueError(
-                    "All bit arrays must have same shape, "
-                    f"but the bit array at index 0 has shape {shape} "
-                    f"and the bit array at index {i} has shape {ba.shape}."
+                    "All bit arrays must have same shape, but the "
+                    f"bit array at index 0 has shape {shape} and the "
+                    f"bit array at index {num_ba - 1 - i} has shape {ba.shape}."
                 )
-        # This implementation introduces a temporary 8x memory overhead due to bit
-        # unpacking. This could be fixed using bitwise functions, at the expense of a
-        # more complicated implementation.
-        data = np.concatenate([_unpack(ba) for ba in bit_arrays], axis=-1)
-        data, num_bits = _pack(data)
+            # Get bit indices in concatenated num bits range
+            ba_indices.append(range(num_bits, num_bits + ba.num_bits))
+            num_bits += ba.num_bits
+
+        # Repack each bit array onto its intended bits in concatenated bit array
+        data = sum(
+            pack_bits(unpack_bits(ba.array, ba.num_bits), indices, num_bits=num_bits)[0]
+            for ba, indices in zip(bit_arrays, ba_indices)
+        )
         return BitArray(data, num_bits)

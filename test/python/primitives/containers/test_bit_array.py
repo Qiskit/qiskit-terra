@@ -801,7 +801,9 @@ class BitArrayTestCase(QiskitTestCase):
                         self.assertEqual(len(answer), 0)
                     else:
                         self.assertGreater(len(answer), 0)
-                    np.testing.assert_equal(postselected_bools, answer)
+                    np.testing.assert_equal(
+                        postselected_bools, answer, err_msg=f"case {name} failed"
+                    )
 
             error_cases = [
                 ("aboverange", [0, 6, 10], [True, True, False], IndexError),
