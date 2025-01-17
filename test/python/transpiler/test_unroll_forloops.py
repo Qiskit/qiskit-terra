@@ -135,7 +135,8 @@ class TestUnrollForLoops(QiskitTestCase):
             circuit.h(0)
             circuit.cx(0, 1)
             circuit.measure(0, 0)
-            circuit.break_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                circuit.break_loop().c_if(0, True)
 
         passmanager = PassManager()
         passmanager.append(UnrollForLoops())

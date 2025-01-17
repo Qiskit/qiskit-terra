@@ -56,7 +56,7 @@ class _DAGDependencyV2:
 
     Bell circuit with no measurement.
 
-    .. parsed-literal::
+    .. code-block:: text
 
               ┌───┐
         qr_0: ┤ H ├──■──

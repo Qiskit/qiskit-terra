@@ -17,8 +17,10 @@ import numpy as np
 from qiskit import circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAcquire(QiskitTestCase):
     """Acquisition tests."""
 
@@ -85,6 +87,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(hash_1, hash_2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDelay(QiskitTestCase):
     """Delay tests."""
 
@@ -121,6 +124,7 @@ class TestDelay(QiskitTestCase):
         self.assertEqual(op_delay, op_identity)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSetFrequency(QiskitTestCase):
     """Set frequency tests."""
 
@@ -155,6 +159,7 @@ class TestSetFrequency(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestShiftFrequency(QiskitTestCase):
     """Shift frequency tests."""
 
@@ -191,6 +196,7 @@ class TestShiftFrequency(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSetPhase(QiskitTestCase):
     """Test the instruction construction."""
 
@@ -226,6 +232,7 @@ class TestSetPhase(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
 
@@ -261,6 +268,7 @@ class TestShiftPhase(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSnapshot(QiskitTestCase):
     """Snapshot tests."""
 
@@ -276,9 +284,11 @@ class TestSnapshot(QiskitTestCase):
         self.assertEqual(repr(snapshot), "Snapshot(test_name, state, name='test_name')")
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         """Setup play tests."""
         super().setUp()
@@ -304,6 +314,7 @@ class TestPlay(QiskitTestCase):
             instructions.Play(self.pulse_op, channels.AcquireChannel(0))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDirectives(QiskitTestCase):
     """Test pulse directives."""
 

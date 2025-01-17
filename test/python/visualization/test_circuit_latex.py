@@ -30,9 +30,9 @@ from qiskit.circuit.library import (
     CPhaseGate,
     HamiltonianGate,
     Isometry,
+    iqp,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit
-from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
@@ -99,7 +99,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.x(qr[2]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[2]).c_if(cr, 2)
         circuit.draw(output="latex_source", cregbundle=True)
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
@@ -148,8 +149,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.measure(qr[1], cr[1])
         # Apply a correction
-        circuit.z(qr[2]).c_if(cr, 1)
-        circuit.x(qr[2]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[2]).c_if(cr, 2)
         circuit.measure(qr[2], cr[2])
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
@@ -206,7 +209,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         # check gates are shifted over accordingly
         circuit.h(qr)
         circuit.measure(qr, cr)
-        circuit.h(qr[0]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr, 2)
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -291,7 +295,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         filename = self._get_resource_path("test_latex_big_gates.tex")
         qr = QuantumRegister(6, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(IQP([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
+        circuit.append(iqp([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
 
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),
@@ -570,7 +574,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
-        circuit.h(qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr, 1)
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
@@ -598,8 +603,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr[1], 0)
-        circuit.x(qr[1]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[1]).c_if(cr[0], 1)
         circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
@@ -611,8 +618,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr[1], 0)
-        circuit.x(qr[1]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[1]).c_if(cr[0], 1)
         circuit_drawer(circuit, cregbundle=True, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
@@ -639,8 +648,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(0)
         circuit.h(1)
         circuit.measure(0, cr1[1])
-        circuit.measure(1, cr2[0]).c_if(cr1, 1)
-        circuit.h(0).c_if(cr2, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.measure(1, cr2[0]).c_if(cr1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(0).c_if(cr2, 3)
         circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
         circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
         self.assertEqualToReference(filename1)
@@ -654,7 +665,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(crx[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(crx[1], 0)
         circuit.measure(0, bits[3])
         circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
         circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
@@ -668,7 +680,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(bits[3], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(bits[3], 0)
         circuit_drawer(
             circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source"
         )
@@ -680,7 +693,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
         circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
         self.assertEqualToReference(filename)
 
@@ -703,7 +717,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 12)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 12)
         circuit_drawer(
             circuit,
             cregbundle=False,

@@ -1,0 +1,6 @@
+---
+features_quantum_info:
+  - |
+    Added a new argument ``assume_unitary`` to :meth:`qiskit.quantum_info.Operator.power`.
+    When ``True``, we use a faster method based on Schur's decomposition to raise an
+    ``Operator`` to a fractional power.

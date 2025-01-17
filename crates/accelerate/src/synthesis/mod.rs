@@ -10,9 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod clifford;
+pub mod clifford;
+mod evolution;
 pub mod linear;
 pub mod linear_phase;
+mod multi_controlled;
 mod permutation;
 
 use pyo3::prelude::*;
@@ -33,6 +35,14 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let clifford_mod = PyModule::new_bound(m.py(), "clifford")?;
     clifford::clifford(&clifford_mod)?;
     m.add_submodule(&clifford_mod)?;
+
+    let mc_mod = PyModule::new_bound(m.py(), "multi_controlled")?;
+    multi_controlled::multi_controlled(&mc_mod)?;
+    m.add_submodule(&mc_mod)?;
+
+    let evolution_mod = PyModule::new_bound(m.py(), "evolution")?;
+    evolution::evolution(&evolution_mod)?;
+    m.add_submodule(&evolution_mod)?;
 
     Ok(())
 }

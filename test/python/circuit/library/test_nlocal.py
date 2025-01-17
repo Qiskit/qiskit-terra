@@ -20,12 +20,18 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit import transpile
-from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression, Gate
 from qiskit.circuit.library import (
+    n_local,
+    efficient_su2,
+    real_amplitudes,
+    excitation_preserving,
+    pauli_two_design,
     NLocal,
     TwoLocal,
     RealAmplitudes,
     ExcitationPreserving,
+    HGate,
     XGate,
     CRXGate,
     CCXGate,
@@ -45,8 +51,21 @@ from qiskit.quantum_info import Operator
 from qiskit.exceptions import QiskitError
 
 from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
+from qiskit._accelerate.circuit_library import Block
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+class Gato(Gate):
+    """A custom gate."""
+
+    def __init__(self, x, y):
+        super().__init__("meow", 1, [x, y])
+
+    def _define(self):
+        x, y = self.params
+        self.definition = QuantumCircuit(1)
+        self.definition.p(x + y, 0)
 
 
 @ddt
@@ -469,6 +488,388 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(ref, expected)
 
+    def test_inplace_assignment_with_cache(self):
+        """Test parameters are correctly re-bound in the cached gates.
+
+        This test requires building with the Rust feature "cache_pygates" enabled, otherwise
+        it does not test what it is supposed to.
+
+        Regression test of #13478.
+        """
+        qc = EfficientSU2(2, flatten=True)
+        binds = [1.25] * qc.num_parameters
+
+        qc.assign_parameters(binds, inplace=True)
+        bound_op = qc.data[0].operation
+        self.assertAlmostEqual(bound_op.params[0], binds[0])
+
+
+@ddt
+class TestNLocalFunction(QiskitTestCase):
+    """Test the n_local circuit library function."""
+
+    def test_empty_blocks(self):
+        """Test passing no rotation and entanglement blocks."""
+        circuit = n_local(2, rotation_blocks=[], entanglement_blocks=[])
+        expected = QuantumCircuit(2)
+
+        self.assertEqual(expected, circuit)
+
+    def test_invalid_custom_block(self):
+        """Test constructing a block from callable but not with a callable."""
+        my_block = QuantumCircuit(2)
+        with self.assertRaises(QiskitError):
+            _ = Block.from_callable(2, 0, my_block)
+
+    def test_str_blocks(self):
+        """Test passing blocks as strings."""
+        circuit = n_local(2, "h", "ecr", reps=2)
+        expected = QuantumCircuit(2)
+        for _ in range(2):
+            expected.h([0, 1])
+            expected.ecr(0, 1)
+        expected.h([0, 1])
+
+        self.assertEqual(expected, circuit)
+
+    def test_stdgate_blocks(self):
+        """Test passing blocks as standard gates."""
+        circuit = n_local(2, HGate(), CRXGate(Parameter("x")), reps=2)
+
+        param_iter = iter(circuit.parameters)
+        expected = QuantumCircuit(2)
+        for _ in range(2):
+            expected.h([0, 1])
+            expected.crx(next(param_iter), 0, 1)
+        expected.h([0, 1])
+
+        self.assertEqual(expected, circuit)
+
+    def test_invalid_str_blocks(self):
+        """Test passing blocks as invalid string raises."""
+        with self.assertRaises(ValueError):
+            _ = n_local(2, "h", "iamnotanexisting2qgateeventhoughiwanttobe")
+
+    def test_gate_blocks(self):
+        """Test passing blocks as gates."""
+        x = ParameterVector("x", 2)
+        my_gate = Gato(*x)
+
+        circuit = n_local(4, my_gate, "cx", "linear", reps=3)
+
+        expected_cats = 4 * (3 + 1)  # num_qubits * (reps + 1)
+        expected_cx = 3 * 3  # gates per block * reps
+        expected_num_params = expected_cats * 2
+
+        self.assertEqual(expected_cats, circuit.count_ops().get("meow", 0))
+        self.assertEqual(expected_cx, circuit.count_ops().get("cx", 0))
+        self.assertEqual(expected_num_params, circuit.num_parameters)
+
+    def test_gate_lists(self):
+        """Test passing a list of strings and gates."""
+        reps = 2
+        circuit = n_local(4, [XGate(), "ry", SXGate()], ["ryy", CCXGate()], "full", reps)
+        expected_1q = 4 * (reps + 1)  # num_qubits * (reps + 1)
+        expected_2q = 4 * 3 / 2 * reps  # 4 choose 2 * reps
+        expected_3q = 4 * reps  # 4 choose 3 * reps
+
+        ops = circuit.count_ops()
+        for gate in ["x", "ry", "sx"]:
+            with self.subTest(gate=gate):
+                self.assertEqual(expected_1q, ops.get(gate, 0))
+
+        with self.subTest(gate="ryy"):
+            self.assertEqual(expected_2q, ops.get("ryy", 0))
+
+        with self.subTest(gate="ccx"):
+            self.assertEqual(expected_3q, ops.get("ccx", 0))
+
+    def test_reps(self):
+        """Test setting the repetitions."""
+        all_reps = [0, 1, 2, 10]
+        for reps in all_reps:
+            circuit = n_local(2, rotation_blocks="rx", entanglement_blocks="cz", reps=reps)
+            expected_rx = (reps + 1) * 2
+            expected_cz = reps
+
+            with self.subTest(reps=reps):
+                self.assertEqual(expected_rx, circuit.count_ops().get("rx", 0))
+                self.assertEqual(expected_cz, circuit.count_ops().get("cz", 0))
+
+    def test_negative_reps(self):
+        """Test negative reps raises."""
+        with self.assertRaises(ValueError):
+            _ = n_local(1, [], [], reps=-1)
+
+    def test_barrier(self):
+        """Test setting barriers."""
+        circuit = n_local(2, "ry", "cx", reps=2, insert_barriers=True)
+        values = np.ones(circuit.num_parameters)
+
+        expected = QuantumCircuit(2)
+        expected.ry(1, [0, 1])
+        expected.barrier()
+        expected.cx(0, 1)
+        expected.barrier()
+        expected.ry(1, [0, 1])
+        expected.barrier()
+        expected.cx(0, 1)
+        expected.barrier()
+        expected.ry(1, [0, 1])
+
+        self.assertEqual(expected, circuit.assign_parameters(values))
+
+    def test_parameter_prefix(self):
+        """Test setting the parameter prefix."""
+        circuit = n_local(2, "h", "crx", parameter_prefix="x")
+        prefixes = [p.name[0] for p in circuit.parameters]
+        self.assertTrue(all(prefix == "x" for prefix in prefixes))
+
+    @data(True, False)
+    def test_overwrite_block_parameters(self, overwrite):
+        """Test overwriting the block parameters."""
+        x = Parameter("x")
+        block = QuantumCircuit(2)
+        block.rxx(x, 0, 1)
+
+        reps = 3
+        circuit = n_local(
+            4, [], [block.to_gate()], "linear", reps, overwrite_block_parameters=overwrite
+        )
+
+        expected_num_params = reps * 3 if overwrite else 1
+        self.assertEqual(expected_num_params, circuit.num_parameters)
+
+    @data(True, False)
+    def test_skip_final_rotation_layer(self, skip):
+        """Test skipping the final rotation layer."""
+        reps = 5
+        num_qubits = 2
+        circuit = n_local(num_qubits, "rx", "ch", reps=reps, skip_final_rotation_layer=skip)
+        expected_rx = num_qubits * (reps + (0 if skip else 1))
+
+        self.assertEqual(expected_rx, circuit.count_ops().get("rx", 0))
+
+    def test_skip_unentangled_qubits(self):
+        """Test skipping the unentangled qubits."""
+        num_qubits = 6
+        entanglement_1 = [[0, 1, 3], [1, 3, 5], [0, 1, 5]]
+        skipped_1 = [2, 4]
+
+        def entanglement_2(layer):
+            return entanglement_1 if layer % 2 == 0 else [[0, 1, 2], [2, 3, 5]]
+
+        skipped_2 = [4]
+
+        for entanglement, skipped in zip([entanglement_1, entanglement_2], [skipped_1, skipped_2]):
+            with self.subTest(entanglement=entanglement, skipped=skipped):
+                nlocal = n_local(
+                    num_qubits,
+                    rotation_blocks=XGate(),
+                    entanglement_blocks=CCXGate(),
+                    entanglement=entanglement,
+                    reps=3,
+                    skip_unentangled_qubits=True,
+                )
+
+                skipped_set = {nlocal.qubits[i] for i in skipped}
+                dag = circuit_to_dag(nlocal)
+                idle = set(dag.idle_wires())
+                self.assertEqual(skipped_set, idle)
+
+    def test_empty_entanglement(self):
+        """Test passing an empty list as entanglement."""
+        circuit = n_local(3, "h", "cx", entanglement=[], reps=1)
+        self.assertEqual(6, circuit.count_ops().get("h", 0))
+        self.assertEqual(0, circuit.count_ops().get("cx", 0))
+
+    def test_entanglement_list_of_str(self):
+        """Test different entanglement strings per entanglement block."""
+        circuit = n_local(3, [], ["cx", "cz"], entanglement=["reverse_linear", "full"], reps=1)
+        self.assertEqual(2, circuit.count_ops().get("cx", 0))
+        self.assertEqual(3, circuit.count_ops().get("cz", 0))
+
+    def test_invalid_entanglement_list(self):
+        """Test passing an invalid list."""
+        with self.assertRaises(TypeError):
+            _ = n_local(3, "h", "cx", entanglement=[0, 1])  # should be [(0, 1)]
+
+    def test_mismatching_entanglement_blocks_str(self):
+        """Test an error is raised if the number of entanglements does not match the blocks."""
+        entanglement = ["full", "linear", "pairwise"]
+        blocks = ["ryy", "iswap"]
+
+        with self.assertRaises(QiskitError):
+            _ = n_local(3, [], blocks, entanglement=entanglement)
+
+    def test_mismatching_entanglement_blocks_indices(self):
+        """Test an error is raised if the number of entanglements does not match the blocks."""
+        ent1 = [(0, 1), (1, 2)]
+        ent2 = [(0, 2)]
+        blocks = ["ryy", "iswap"]
+
+        with self.assertRaises(QiskitError):
+            _ = n_local(3, [], blocks, entanglement=[ent1, ent1, ent2])
+
+    def test_mismatching_entanglement_indices(self):
+        """Test an error is raised if the entanglement does not match the blocksize."""
+        entanglement = [[0, 1], [2]]
+
+        with self.assertRaises(QiskitError):
+            _ = n_local(3, "ry", "cx", entanglement)
+
+    def test_entanglement_by_callable(self):
+        """Test setting the entanglement by callable.
+
+        This is the circuit we test (times 2, with final X layer)
+                ┌───┐           ┌───┐┌───┐          ┌───┐
+        q_0: |0>┤ X ├──■────■───┤ X ├┤ X ├──■─── .. ┤ X ├
+                ├───┤  │    │   ├───┤└─┬─┘  │       ├───┤
+        q_1: |0>┤ X ├──■────┼───┤ X ├──■────┼─── .. ┤ X ├
+                ├───┤┌─┴─┐  │   ├───┤  │    │    x2 ├───┤
+        q_2: |0>┤ X ├┤ X ├──■───┤ X ├──■────■─── .. ┤ X ├
+                ├───┤└───┘┌─┴─┐ ├───┤     ┌─┴─┐     ├───┤
+        q_3: |0>┤ X ├─────┤ X ├─┤ X ├─────┤ X ├─ .. ┤ X ├
+                └───┘     └───┘ └───┘     └───┘     └───┘
+        """
+        circuit = QuantumCircuit(4)
+        for _ in range(2):
+            circuit.x([0, 1, 2, 3])
+            circuit.barrier()
+            circuit.ccx(0, 1, 2)
+            circuit.ccx(0, 2, 3)
+            circuit.barrier()
+            circuit.x([0, 1, 2, 3])
+            circuit.barrier()
+            circuit.ccx(2, 1, 0)
+            circuit.ccx(0, 2, 3)
+            circuit.barrier()
+        circuit.x([0, 1, 2, 3])
+
+        layer_1 = [(0, 1, 2), (0, 2, 3)]
+        layer_2 = [(2, 1, 0), (0, 2, 3)]
+
+        entanglement = lambda offset: layer_1 if offset % 2 == 0 else layer_2
+
+        nlocal = QuantumCircuit(4)
+        nlocal.compose(
+            n_local(
+                4,
+                rotation_blocks=XGate(),
+                entanglement_blocks=CCXGate(),
+                reps=4,
+                entanglement=entanglement,
+                insert_barriers=True,
+            ),
+            inplace=True,
+        )
+
+        self.assertEqual(nlocal, circuit)
+
+    def test_nice_error_if_circuit_passed(self):
+        """Check the transition-helper error."""
+        block = QuantumCircuit(1)
+
+        with self.assertRaisesRegex(ValueError, "but you passed a QuantumCircuit"):
+            _ = n_local(3, block, "cz")
+
+
+@ddt
+class TestNLocalFamily(QiskitTestCase):
+    """Test the derived circuit functions."""
+
+    def test_real_amplitudes(self):
+        """Test the real amplitudes circuit."""
+        circuit = real_amplitudes(4)
+        expected = n_local(4, "ry", "cx", "reverse_linear", reps=3)
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
+    def test_real_amplitudes_numqubits_equal1(self):
+        """Test the real amplitudes circuit for a single qubit."""
+        circuit = real_amplitudes(1)
+        expected = n_local(1, "ry", [])
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
+    def test_efficient_su2(self):
+        """Test the efficient SU(2) circuit."""
+        circuit = efficient_su2(4)
+        expected = n_local(4, ["ry", "rz"], "cx", "reverse_linear", reps=3)
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
+    def test_efficient_su2_numqubits_equal1(self):
+        """Test the efficient SU(2) circuit for a single qubit."""
+        circuit = efficient_su2(1)
+        expected = n_local(1, ["ry", "rz"], [])
+        self.assertEqual(expected.assign_parameters(circuit.parameters), circuit)
+
+    @data("fsim", "iswap")
+    def test_excitation_preserving(self, mode):
+        """Test the excitation preserving circuit."""
+        circuit = excitation_preserving(4, mode=mode)
+
+        x = Parameter("x")
+        block = QuantumCircuit(2)
+        block.rxx(x, 0, 1)
+        block.ryy(x, 0, 1)
+        if mode == "fsim":
+            y = Parameter("y")
+            block.cp(y, 0, 1)
+
+        expected = n_local(4, "rz", block.to_gate(), "full", reps=3)
+        self.assertEqual(
+            expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
+        )
+
+    @data("fsim", "iswap")
+    def test_excitation_preserving_numqubits_equal1(self, mode):
+        """Test the excitation preserving circuit for a single qubit."""
+        circuit = excitation_preserving(1, mode=mode)
+        expected = n_local(1, "rz", [])
+        self.assertEqual(
+            expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
+        )
+
+    def test_excitation_preserving_invalid_mode(self):
+        """Test an error is raised for an invalid mode."""
+        with self.assertRaises(ValueError):
+            _ = excitation_preserving(2, mode="Fsim")
+
+        with self.assertRaises(ValueError):
+            _ = excitation_preserving(2, mode="swaip")
+
+    def test_two_design(self):
+        """Test the Pauli 2-design circuit."""
+        circuit = pauli_two_design(3)
+        expected_ops = {"rx", "ry", "rz", "cz"}
+        circuit_ops = set(circuit.count_ops().keys())
+
+        self.assertTrue(circuit_ops.issubset(expected_ops))
+
+    def test_two_design_numqubits_equal1(self):
+        """Test the Pauli 2-design circuit for a single qubit."""
+        circuit = pauli_two_design(1)
+        expected_ops = {"rx", "ry", "rz", "id"}
+        circuit_ops = set(circuit.count_ops().keys())
+
+        self.assertTrue(circuit_ops.issubset(expected_ops))
+
+    def test_two_design_seed(self):
+        """Test the seed"""
+        seed1 = 123
+        seed2 = 321
+
+        with self.subTest(msg="same circuit with same seed"):
+            first = pauli_two_design(3, seed=seed1)
+            second = pauli_two_design(3, seed=seed1)
+
+            self.assertEqual(first.assign_parameters(second.parameters), second)
+
+        with self.subTest(msg="different circuit with different seed"):
+            first = pauli_two_design(3, seed=seed1)
+            second = pauli_two_design(3, seed=seed2)
+
+            self.assertNotEqual(first.assign_parameters(second.parameters), second)
+
 
 @ddt
 class TestTwoLocal(QiskitTestCase):
@@ -871,6 +1272,14 @@ class TestTwoLocal(QiskitTestCase):
         ).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
+
+    def test_excitation_preserving_invalid_mode(self):
+        """Test an error is raised for an invalid mode."""
+        with self.assertRaises(ValueError):
+            _ = ExcitationPreserving(2, mode="Fsim")
+
+        with self.assertRaises(ValueError):
+            _ = ExcitationPreserving(2, mode="swaip")
 
     def test_circular_on_same_block_and_circuit_size(self):
         """Test circular entanglement works correctly if the circuit and block sizes match."""

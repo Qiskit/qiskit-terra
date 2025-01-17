@@ -19,11 +19,14 @@ from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, stylesheet, device_info, drawings, types, layouts
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestChart(QiskitTestCase):
     """Tests for chart."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
 
@@ -228,9 +231,11 @@ class TestChart(QiskitTestCase):
         self.assertEqual(chart.scale, 2.0)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDrawCanvas(QiskitTestCase):
     """Tests for draw canvas."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         self.style = stylesheet.QiskitPulseStyle()

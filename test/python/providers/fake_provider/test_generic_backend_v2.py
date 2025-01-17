@@ -50,13 +50,14 @@ class TestGenericBackendV2(QiskitTestCase):
     def test_calibration_no_noise_info(self):
         """Test failing with a backend with calibration and no noise info"""
         with self.assertRaises(QiskitError):
-            GenericBackendV2(
-                num_qubits=2,
-                basis_gates=["ccx", "id"],
-                calibrate_instructions=True,
-                noise_info=False,
-                seed=42,
-            )
+            with self.assertWarns(DeprecationWarning):
+                GenericBackendV2(
+                    num_qubits=2,
+                    basis_gates=["ccx", "id"],
+                    calibrate_instructions=True,
+                    noise_info=False,
+                    seed=42,
+                )
 
     def test_no_noise(self):
         """Test no noise info when parameter is false"""
@@ -90,13 +91,14 @@ class TestGenericBackendV2(QiskitTestCase):
 
     def test_no_info(self):
         """Test no noise info when parameter is false"""
-        backend = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=CouplingMap.from_line(5),
-            noise_info=False,
-            pulse_channels=False,
-            seed=42,
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=5,
+                coupling_map=CouplingMap.from_line(5),
+                noise_info=False,
+                pulse_channels=False,
+                seed=42,
+            )
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cx(0, 1)
@@ -110,9 +112,10 @@ class TestGenericBackendV2(QiskitTestCase):
 
     def test_no_pulse_channels(self):
         """Test no/empty pulse channels when parameter is false"""
-        backend = GenericBackendV2(
-            num_qubits=5, coupling_map=CouplingMap.from_line(5), pulse_channels=False, seed=42
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=5, coupling_map=CouplingMap.from_line(5), pulse_channels=False, seed=42
+            )
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cx(0, 1)

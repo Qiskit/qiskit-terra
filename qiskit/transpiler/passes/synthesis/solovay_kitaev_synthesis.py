@@ -52,7 +52,7 @@ class SolovayKitaev(TransformationPass):
 
     For example, the following circuit
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤ RX(0.8) ├
@@ -60,7 +60,7 @@ class SolovayKitaev(TransformationPass):
 
     can be decomposed into
 
-    .. parsed-literal::
+    .. code-block:: text
 
         global phase: 7π/8
              ┌───┐┌───┐┌───┐
@@ -73,7 +73,9 @@ class SolovayKitaev(TransformationPass):
 
         Per default, the basis gate set is ``["t", "tdg", "h"]``:
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import numpy as np
             from qiskit.circuit import QuantumCircuit
@@ -95,7 +97,7 @@ class SolovayKitaev(TransformationPass):
 
             print("Error:", np.linalg.norm(Operator(circuit).data - Operator(discretized).data))
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Original circuit:
                ┌─────────┐
@@ -110,7 +112,9 @@ class SolovayKitaev(TransformationPass):
 
         For individual basis gate sets, the ``generate_basic_approximations`` function can be used:
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.synthesis import generate_basic_approximations
             from qiskit.transpiler.passes import SolovayKitaev

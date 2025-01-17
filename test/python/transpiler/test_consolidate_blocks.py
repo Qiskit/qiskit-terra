@@ -16,20 +16,28 @@ Tests for the ConsolidateBlocks transpiler pass.
 
 import unittest
 import numpy as np
+from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate
-from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate, Parameter
+from qiskit.circuit.library import (
+    U2Gate,
+    SwapGate,
+    CXGate,
+    CZGate,
+    UnitaryGate,
+    SXGate,
+    XGate,
+    RZGate,
+)
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
-from qiskit.transpiler import PassManager
-from qiskit.transpiler import Target
-from qiskit.transpiler.passes import Collect1qRuns
-from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
+from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestConsolidateBlocks(QiskitTestCase):
     """
     Tests to verify that consolidating blocks of gates into unitaries
@@ -328,7 +336,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         This issue was raised in #2752
         """
         qc = QuantumCircuit(1, 1)
-        qc.h(0).c_if(qc.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(qc.cregs[0], 1)
         qc.measure(0, 0)
 
         pass_manager = PassManager()
@@ -569,6 +578,93 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = pm.run(qc)
 
         self.assertEqual(res, qc)
+
+    @data(2, 3)
+    def test_no_kak_gates_in_preset_pm(self, opt_level):
+        """Test correct initialization of ConsolidateBlocks pass when kak_gates aren't found.
+        Reproduces https://github.com/Qiskit/qiskit/issues/13438."""
+
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        qc.sx([0, 1])
+        qc.cz(0, 1)
+
+        ref_pm = generate_preset_pass_manager(
+            optimization_level=1, basis_gates=["rz", "rzz", "sx", "x", "rx"]
+        )
+        ref_tqc = ref_pm.run(qc)
+        pm = generate_preset_pass_manager(
+            optimization_level=opt_level, basis_gates=["rz", "rzz", "sx", "x", "rx"]
+        )
+        tqc = pm.run(qc)
+        self.assertEqual(ref_tqc, tqc)
+
+    def test_non_cx_basis_gate(self):
+        """Test a non-cx kak gate is consolidated correctly."""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        qc.x(0)
+        qc.h(1)
+        qc.z(1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(0)
+        qc.cz(1, 0)
+        qc.sx(0)
+        qc.sx(1)
+        qc.cz(0, 1)
+        qc.sx(0)
+        qc.sx(1)
+        qc.cz(1, 0)
+        qc.x(0)
+        qc.h(1)
+        qc.z(1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(0)
+        qc.cz(0, 1)
+
+        consolidate_pass = ConsolidateBlocks(basis_gates=["sx", "x", "rz", "cz"])
+        res = consolidate_pass(qc)
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
+    def test_non_cx_target(self):
+        """Test a non-cx kak gate is consolidated correctly."""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        qc.x(0)
+        qc.h(1)
+        qc.z(1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(0)
+        qc.cz(1, 0)
+        qc.sx(0)
+        qc.sx(1)
+        qc.cz(0, 1)
+        qc.sx(0)
+        qc.sx(1)
+        qc.cz(1, 0)
+        qc.x(0)
+        qc.h(1)
+        qc.z(1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(0)
+        qc.cz(0, 1)
+
+        phi = Parameter("phi")
+        target = Target(num_qubits=2)
+        target.add_instruction(SXGate(), {(0,): None, (1,): None})
+        target.add_instruction(XGate(), {(0,): None, (1,): None})
+        target.add_instruction(RZGate(phi), {(0,): None, (1,): None})
+        target.add_instruction(CZGate(), {(0, 1): None, (1, 0): None})
+
+        consolidate_pass = ConsolidateBlocks(target=target)
+        res = consolidate_pass(qc)
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
 
 
 if __name__ == "__main__":

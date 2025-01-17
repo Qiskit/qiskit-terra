@@ -71,12 +71,13 @@ class TestCircuitAssembler(QiskitTestCase):
         # lo test values
         self.default_qubit_lo_freq = [5e9 for _ in range(self.num_qubits)]
         self.default_meas_lo_freq = [6.7e9 for _ in range(self.num_qubits)]
-        self.user_lo_config_dict = {
-            pulse.DriveChannel(0): 5.55e9,
-            pulse.MeasureChannel(0): 6.64e9,
-            pulse.DriveChannel(3): 4.91e9,
-            pulse.MeasureChannel(4): 6.1e9,
-        }
+        with self.assertWarns(DeprecationWarning):
+            self.user_lo_config_dict = {
+                pulse.DriveChannel(0): 5.55e9,
+                pulse.MeasureChannel(0): 6.64e9,
+                pulse.DriveChannel(3): 4.91e9,
+                pulse.MeasureChannel(4): 6.1e9,
+            }
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
     def test_assemble_single_circuit(self):
@@ -284,7 +285,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qc.measure(qr[0], cr1)  # Measure not required for a later conditional
         qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
-        qc.h(qr[1]).c_if(cr2, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[1]).c_if(cr2, 3)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -304,7 +306,8 @@ class TestCircuitAssembler(QiskitTestCase):
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
 
-        qc.h(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr, 1)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -325,7 +328,8 @@ class TestCircuitAssembler(QiskitTestCase):
         cr = ClassicalRegister(3)
         qc = QuantumCircuit(qr, cr)
 
-        qc.h(qr[0]).c_if(cr[2], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr[2], 1)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -351,7 +355,8 @@ class TestCircuitAssembler(QiskitTestCase):
         cr3 = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr1, cr2, cr3)
 
-        qc.h(qr[0]).c_if(cr2, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr2, 2)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -541,17 +546,17 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.append(RxGate(theta), [1])
         circ = circ.assign_parameters({theta: 3.14})
 
-        with pulse.build() as custom_h_schedule:
-            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
-
-        with pulse.build() as x180:
-            pulse.play(pulse.library.Gaussian(50, 0.2, 5), pulse.DriveChannel(1))
-
-        circ.add_calibration("h", [0], custom_h_schedule)
-        circ.add_calibration(RxGate(3.14), [0], x180)
-        circ.add_calibration(RxGate(3.14), [1], x180)
-
         with self.assertWarns(DeprecationWarning):
+            with pulse.build() as custom_h_schedule:
+                pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+            with pulse.build() as x180:
+                pulse.play(pulse.library.Gaussian(50, 0.2, 5), pulse.DriveChannel(1))
+
+            circ.add_calibration("h", [0], custom_h_schedule)
+            circ.add_calibration(RxGate(3.14), [0], x180)
+            circ.add_calibration(RxGate(3.14), [1], x180)
+
             qobj = assemble(circ, FakeOpenPulse2Q())
         # Only one circuit, so everything is stored at the job level
         cals = qobj.config.calibrations
@@ -568,31 +573,33 @@ class TestCircuitAssembler(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.h(0)
 
-        with pulse.build() as custom_h_schedule:
-            pulse.play(pulse.library.Triangle(50, 0.1, 0.2), pulse.DriveChannel(0))
-
-        circ.add_calibration("h", [0], custom_h_schedule)
-
         with self.assertWarns(DeprecationWarning):
+            with pulse.build() as custom_h_schedule:
+                pulse.play(pulse.library.Triangle(50, 0.1, 0.2), pulse.DriveChannel(0))
+
+            circ.add_calibration("h", [0], custom_h_schedule)
+
             qobj = assemble(circ, FakeOpenPulse2Q())
         lib = qobj.config.pulse_library
         self.assertEqual(len(lib), 1)
-        np.testing.assert_almost_equal(
-            lib[0].samples, pulse.library.Triangle(50, 0.1, 0.2).get_waveform().samples
-        )
+        with self.assertWarns(DeprecationWarning):
+            np.testing.assert_almost_equal(
+                lib[0].samples, pulse.library.Triangle(50, 0.1, 0.2).get_waveform().samples
+            )
 
     def test_pulse_gates_with_parameteric_pulses(self):
         """Test that pulse gates are assembled efficiently for backends that enable
         parametric pulses.
         """
-        with pulse.build() as custom_h_schedule:
-            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as custom_h_schedule:
+                pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
 
         circ = QuantumCircuit(2)
         circ.h(0)
-        circ.add_calibration("h", [0], custom_h_schedule)
 
         with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("h", [0], custom_h_schedule)
             backend = FakeOpenPulse2Q()
         backend.configuration().parametric_pulses = ["drag"]
         with self.assertWarns(DeprecationWarning):
@@ -602,14 +609,16 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_pulse_gates_multiple_circuits(self):
         """Test one circuit with cals and another without."""
-        with pulse.build() as dummy_sched:
-            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as dummy_sched:
+                pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
 
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.append(RxGate(3.14), [1])
-        circ.add_calibration("h", [0], dummy_sched)
-        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("h", [0], dummy_sched)
+            circ.add_calibration(RxGate(3.14), [1], dummy_sched)
 
         circ2 = QuantumCircuit(2)
         circ2.h(0)
@@ -623,18 +632,21 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_pulse_gates_common_cals(self):
         """Test that common calibrations are added at the top level."""
-        with pulse.build() as dummy_sched:
-            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as dummy_sched:
+                pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
 
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.append(RxGate(3.14), [1])
-        circ.add_calibration("h", [0], dummy_sched)
-        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("h", [0], dummy_sched)
+            circ.add_calibration(RxGate(3.14), [1], dummy_sched)
 
         circ2 = QuantumCircuit(2)
         circ2.h(0)
-        circ2.add_calibration(RxGate(3.14), [1], dummy_sched)
+        with self.assertWarns(DeprecationWarning):
+            circ2.add_calibration(RxGate(3.14), [1], dummy_sched)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble([circ, circ2], FakeOpenPulse2Q())
@@ -661,9 +673,9 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test that a single delay gate is translated to an instruction."""
         circ = QuantumCircuit(2)
         circ.append(Gate("test", 1, []), [0])
-        test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
-        circ.add_calibration("test", [0], test_sched)
         with self.assertWarns(DeprecationWarning):
+            test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
+            circ.add_calibration("test", [0], test_sched)
             qobj = assemble(circ, FakeOpenPulse2Q())
         self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
         self.assertEqual(
@@ -812,12 +824,13 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test assembling a single circuit, with multiple experiment level lo configs (frequency
         sweep).
         """
-        user_lo_config_dict2 = {
-            pulse.DriveChannel(1): 5.55e9,
-            pulse.MeasureChannel(1): 6.64e9,
-            pulse.DriveChannel(4): 4.91e9,
-            pulse.MeasureChannel(3): 6.1e9,
-        }
+        with self.assertWarns(DeprecationWarning):
+            user_lo_config_dict2 = {
+                pulse.DriveChannel(1): 5.55e9,
+                pulse.MeasureChannel(1): 6.64e9,
+                pulse.DriveChannel(4): 4.91e9,
+                pulse.MeasureChannel(3): 6.1e9,
+            }
         user_lo_config2 = pulse.LoConfig(user_lo_config_dict2)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -844,12 +857,13 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_assemble_multi_circ_multi_lo_config(self):
         """Test assembling circuits, with the same number of experiment level lo configs (n:n
         setup)."""
-        user_lo_config_dict2 = {
-            pulse.DriveChannel(1): 5.55e9,
-            pulse.MeasureChannel(1): 6.64e9,
-            pulse.DriveChannel(4): 4.91e9,
-            pulse.MeasureChannel(3): 6.1e9,
-        }
+        with self.assertWarns(DeprecationWarning):
+            user_lo_config_dict2 = {
+                pulse.DriveChannel(1): 5.55e9,
+                pulse.MeasureChannel(1): 6.64e9,
+                pulse.DriveChannel(4): 4.91e9,
+                pulse.MeasureChannel(3): 6.1e9,
+            }
         user_lo_config2 = pulse.LoConfig(user_lo_config_dict2)
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -908,18 +922,19 @@ class TestCircuitAssembler(QiskitTestCase):
         some are missing or if default values are not provided. Also check that experiment level lo
         range is validated."""
         # no defaults, but have drive/meas experiment level los for each qubit (no error)
-        full_lo_config_dict = {
-            pulse.DriveChannel(0): 4.85e9,
-            pulse.DriveChannel(1): 4.9e9,
-            pulse.DriveChannel(2): 4.95e9,
-            pulse.DriveChannel(3): 5e9,
-            pulse.DriveChannel(4): 5.05e9,
-            pulse.MeasureChannel(0): 6.8e9,
-            pulse.MeasureChannel(1): 6.85e9,
-            pulse.MeasureChannel(2): 6.9e9,
-            pulse.MeasureChannel(3): 6.95e9,
-            pulse.MeasureChannel(4): 7e9,
-        }
+        with self.assertWarns(DeprecationWarning):
+            full_lo_config_dict = {
+                pulse.DriveChannel(0): 4.85e9,
+                pulse.DriveChannel(1): 4.9e9,
+                pulse.DriveChannel(2): 4.95e9,
+                pulse.DriveChannel(3): 5e9,
+                pulse.DriveChannel(4): 5.05e9,
+                pulse.MeasureChannel(0): 6.8e9,
+                pulse.MeasureChannel(1): 6.85e9,
+                pulse.MeasureChannel(2): 6.9e9,
+                pulse.MeasureChannel(3): 6.95e9,
+                pulse.MeasureChannel(4): 7e9,
+            }
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(self.circ, self.backend, schedule_los=full_lo_config_dict)
@@ -930,15 +945,15 @@ class TestCircuitAssembler(QiskitTestCase):
 
         # no defaults and missing experiment level drive lo raises
         missing_drive_lo_config_dict = copy.deepcopy(full_lo_config_dict)
-        missing_drive_lo_config_dict.pop(pulse.DriveChannel(0))
         with self.assertWarns(DeprecationWarning):
+            missing_drive_lo_config_dict.pop(pulse.DriveChannel(0))
             with self.assertRaises(QiskitError):
                 qobj = assemble(self.circ, self.backend, schedule_los=missing_drive_lo_config_dict)
 
         # no defaults and missing experiment level meas lo raises
         missing_meas_lo_config_dict = copy.deepcopy(full_lo_config_dict)
-        missing_meas_lo_config_dict.pop(pulse.MeasureChannel(0))
         with self.assertWarns(DeprecationWarning):
+            missing_meas_lo_config_dict.pop(pulse.MeasureChannel(0))
             with self.assertRaises(QiskitError):
                 qobj = assemble(self.circ, self.backend, schedule_los=missing_meas_lo_config_dict)
 
@@ -948,8 +963,8 @@ class TestCircuitAssembler(QiskitTestCase):
         meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in lo_values[5:]]
 
         # out of range drive lo
-        full_lo_config_dict[pulse.DriveChannel(0)] -= 5.5e6
         with self.assertWarns(DeprecationWarning):
+            full_lo_config_dict[pulse.DriveChannel(0)] -= 5.5e6
             with self.assertRaises(QiskitError):
                 qobj = assemble(
                     self.circ,
@@ -957,11 +972,11 @@ class TestCircuitAssembler(QiskitTestCase):
                     qubit_lo_range=qubit_lo_range,
                     schedule_los=full_lo_config_dict,
                 )
-        full_lo_config_dict[pulse.DriveChannel(0)] += 5.5e6  # reset drive value
+            full_lo_config_dict[pulse.DriveChannel(0)] += 5.5e6  # reset drive value
 
-        # out of range meas lo
-        full_lo_config_dict[pulse.MeasureChannel(0)] += 5.5e6
         with self.assertWarns(DeprecationWarning):
+            # out of range meas lo
+            full_lo_config_dict[pulse.MeasureChannel(0)] += 5.5e6
             with self.assertRaises(QiskitError):
                 qobj = assemble(
                     self.circ,
@@ -980,19 +995,20 @@ class TestPulseAssembler(QiskitTestCase):
             self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
-        test_pulse = pulse.Waveform(
-            samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
-            name="pulse0",
-        )
-
-        self.schedule = pulse.Schedule(name="fake_experiment")
-        self.schedule = self.schedule.insert(0, Play(test_pulse, self.backend_config.drive(0)))
-        for i in range(self.backend_config.n_qubits):
-            self.schedule = self.schedule.insert(
-                5, Acquire(5, self.backend_config.acquire(i), MemorySlot(i))
+        with self.assertWarns(DeprecationWarning):
+            test_pulse = pulse.Waveform(
+                samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
+                name="pulse0",
             )
 
-        self.user_lo_config_dict = {self.backend_config.drive(0): 4.91e9}
+            self.schedule = pulse.Schedule(name="fake_experiment")
+            self.schedule = self.schedule.insert(0, Play(test_pulse, self.backend_config.drive(0)))
+            for i in range(self.backend_config.n_qubits):
+                self.schedule = self.schedule.insert(
+                    5, Acquire(5, self.backend_config.acquire(i), MemorySlot(i))
+                )
+
+            self.user_lo_config_dict = {self.backend_config.drive(0): 4.91e9}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
         self.default_qubit_lo_freq = [4.9e9, 5.0e9]
@@ -1020,16 +1036,18 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
-        schedule = pulse.Schedule()
-        schedule += pulse.Play(
-            pulse.Waveform([0.1] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
-        )
-        schedule += pulse.Play(
-            pulse.Waveform([0.1] * 16, name="test1"), pulse.DriveChannel(0), name="test2"
-        )
-        schedule += pulse.Play(
-            pulse.Waveform([0.5] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = pulse.Schedule()
+            schedule += pulse.Play(
+                pulse.Waveform([0.1] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
+            )
+            schedule += pulse.Play(
+                pulse.Waveform([0.1] * 16, name="test1"), pulse.DriveChannel(0), name="test2"
+            )
+            schedule += pulse.Play(
+                pulse.Waveform([0.5] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
+            )
+
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
                 schedule,
@@ -1172,9 +1190,10 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
-        schedule = Schedule(name="fake_experiment")
-        schedule = schedule.insert(5, Acquire(5, AcquireChannel(0), MemorySlot(0)))
-        schedule = schedule.insert(5, Acquire(5, AcquireChannel(1), MemorySlot(1)))
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule(name="fake_experiment")
+            schedule = schedule.insert(5, Acquire(5, AcquireChannel(0), MemorySlot(0)))
+            schedule = schedule.insert(5, Acquire(5, AcquireChannel(1), MemorySlot(1)))
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1199,9 +1218,10 @@ class TestPulseAssembler(QiskitTestCase):
         n_memoryslots = 10
 
         # single acquisition
-        schedule = Acquire(
-            5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Acquire(
+                5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
+            )
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1216,15 +1236,17 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots)
 
         # multiple acquisition
-        schedule = Acquire(
-            5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
-        )
-        schedule = schedule.insert(
-            10,
-            Acquire(
+        with self.assertWarns(DeprecationWarning):
+            schedule = Acquire(
                 5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
-            ),
-        )
+            )
+            schedule = schedule.insert(
+                10,
+                Acquire(
+                    5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
+                ),
+            )
+
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
                 schedule,
@@ -1242,11 +1264,12 @@ class TestPulseAssembler(QiskitTestCase):
         n_memoryslots = [10, 5, 7]
 
         schedules = []
-        for n_memoryslot in n_memoryslots:
-            schedule = Acquire(
-                5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslot - 1)
-            )
-            schedules.append(schedule)
+        with self.assertWarns(DeprecationWarning):
+            for n_memoryslot in n_memoryslots:
+                schedule = Acquire(
+                    5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslot - 1)
+                )
+                schedules.append(schedule)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1263,13 +1286,14 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
-        name_conflict_pulse = pulse.Waveform(
-            samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128), name="pulse0"
-        )
+        with self.assertWarns(DeprecationWarning):
+            name_conflict_pulse = pulse.Waveform(
+                samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128), name="pulse0"
+            )
 
-        self.schedule = self.schedule.insert(
-            1, Play(name_conflict_pulse, self.backend_config.drive(1))
-        )
+            self.schedule = self.schedule.insert(
+                1, Play(name_conflict_pulse, self.backend_config.drive(1))
+            )
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1290,12 +1314,15 @@ class TestPulseAssembler(QiskitTestCase):
         defaults = backend.defaults()
 
         schedules = []
-        ch_d0 = pulse.DriveChannel(0)
-        for amp in (0.1, 0.2):
-            sched = Schedule()
-            sched += Play(pulse.Gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0)
-            sched += measure(qubits=[0], backend=backend) << 100
-            schedules.append(sched)
+        with self.assertWarns(DeprecationWarning):
+            ch_d0 = pulse.DriveChannel(0)
+            for amp in (0.1, 0.2):
+                sched = Schedule()
+                sched += Play(
+                    pulse.Gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0
+                )
+                sched += measure(qubits=[0], backend=backend) << 100
+                schedules.append(sched)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1309,8 +1336,9 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is not ignored in assembly."""
-        delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
-        delay_schedule += self.schedule
+        with self.assertWarns(DeprecationWarning):
+            delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
+            delay_schedule += self.schedule
 
         with self.assertWarns(DeprecationWarning):
             delay_qobj = assemble(delay_schedule, self.backend)
@@ -1323,20 +1351,23 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that delay instructions on acquire channels are skipped on assembly with times
         shifted properly.
         """
-        delay0 = pulse.Delay(5, self.backend_config.acquire(0))
-        delay1 = pulse.Delay(7, self.backend_config.acquire(1))
+        with self.assertWarns(DeprecationWarning):
+            delay0 = pulse.Delay(5, self.backend_config.acquire(0))
+            delay1 = pulse.Delay(7, self.backend_config.acquire(1))
 
         sched0 = delay0
-        sched0 += self.schedule  # includes ``Acquire`` instr
-        sched0 += delay1
+        with self.assertWarns(DeprecationWarning):
+            sched0 += self.schedule  # includes ``Acquire`` instr
+            sched0 += delay1
 
-        sched1 = self.schedule  # includes ``Acquire`` instr
-        sched1 += delay0
-        sched1 += delay1
+        with self.assertWarns(DeprecationWarning):
+            sched1 = self.schedule  # includes ``Acquire`` instr
+            sched1 += delay0
+            sched1 += delay1
 
-        sched2 = delay0
-        sched2 += delay1
-        sched2 += self.schedule  # includes ``Acquire`` instr
+            sched2 = delay0
+            sched2 += delay1
+            sched2 += self.schedule  # includes ``Acquire`` instr
 
         with self.assertWarns(DeprecationWarning):
             delay_qobj = assemble([sched0, sched1, sched2], self.backend)
@@ -1379,21 +1410,26 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that parametric pulses can be assembled properly into a PulseQobj."""
         amp = [0.5, 0.6, 1, 0.2]
         angle = [np.pi / 2, 0.6, 0, 0]
-        sched = pulse.Schedule(name="test_parametric")
-        sched += Play(
-            pulse.Gaussian(duration=25, sigma=4, amp=amp[0], angle=angle[0]), DriveChannel(0)
-        )
-        sched += Play(
-            pulse.Drag(duration=25, amp=amp[1], angle=angle[1], sigma=7.8, beta=4), DriveChannel(1)
-        )
-        sched += Play(pulse.Constant(duration=25, amp=amp[2], angle=angle[2]), DriveChannel(2))
-        sched += (
-            Play(
-                pulse.GaussianSquare(duration=150, amp=amp[3], angle=angle[3], sigma=8, width=140),
-                MeasureChannel(0),
+        with self.assertWarns(DeprecationWarning):
+            sched = pulse.Schedule(name="test_parametric")
+            sched += Play(
+                pulse.Gaussian(duration=25, sigma=4, amp=amp[0], angle=angle[0]), DriveChannel(0)
             )
-            << sched.duration
-        )
+            sched += Play(
+                pulse.Drag(duration=25, amp=amp[1], angle=angle[1], sigma=7.8, beta=4),
+                DriveChannel(1),
+            )
+            sched += Play(pulse.Constant(duration=25, amp=amp[2], angle=angle[2]), DriveChannel(2))
+            sched += (
+                Play(
+                    pulse.GaussianSquare(
+                        duration=150, amp=amp[3], angle=angle[3], sigma=8, width=140
+                    ),
+                    MeasureChannel(0),
+                )
+                << sched.duration
+            )
+
         with self.assertWarns(DeprecationWarning):
             backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = [
@@ -1436,11 +1472,12 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that parametric pulses are translated to Waveform if they're not supported
         by the backend during assemble time.
         """
-        sched = pulse.Schedule(name="test_parametric_to_sample_pulse")
-        sched += Play(
-            pulse.Drag(duration=25, amp=0.5, angle=-0.3, sigma=7.8, beta=4), DriveChannel(1)
-        )
-        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
+        with self.assertWarns(DeprecationWarning):
+            sched = pulse.Schedule(name="test_parametric_to_sample_pulse")
+            sched += Play(
+                pulse.Drag(duration=25, amp=0.5, angle=-0.3, sigma=7.8, beta=4), DriveChannel(1)
+            )
+            sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
         with self.assertWarns(DeprecationWarning):
             backend = FakeOpenPulse3Q()
@@ -1461,12 +1498,12 @@ class TestPulseAssembler(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        with pulse.build(backend, name="x") as x_q0:
-            pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
-
-        qc.add_calibration("x", (0,), x_q0)
-
         with self.assertWarns(DeprecationWarning):
+            with pulse.build(backend, name="x") as x_q0:
+                pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
+
+            qc.add_calibration("x", (0,), x_q0)
+
             qobj = assemble(qc, backend, parametric_pulses=["gaussian"])
         self.assertEqual(qobj.config.parametric_pulses, ["gaussian"])
 
@@ -1478,12 +1515,12 @@ class TestPulseAssembler(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        with pulse.build(backend, name="x") as x_q0:
-            pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
-
-        qc.add_calibration("x", (0,), x_q0)
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(backend, name="x") as x_q0:
+                pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
 
         with self.assertWarns(DeprecationWarning):
+            qc.add_calibration("x", (0,), x_q0)
             qobj = assemble(qc, backend, parametric_pulses=[])
         self.assertEqual(qobj.config.parametric_pulses, [])
 
@@ -1582,13 +1619,14 @@ class TestPulseAssembler(QiskitTestCase):
         disc_one = Discriminator("disc_one", test_params=True)
         disc_two = Discriminator("disc_two", test_params=False)
 
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two),
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two),
+            )
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1609,13 +1647,14 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that assembly works with both a single discriminator."""
         disc_one = Discriminator("disc_one", test_params=True)
 
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)),
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1)),
+            )
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1636,10 +1675,11 @@ class TestPulseAssembler(QiskitTestCase):
         disc_one = Discriminator("disc_one", test_params=True)
         disc_two = Discriminator("disc_two", test_params=False)
 
-        schedule = Schedule()
-        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one)
-        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two)
-        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule += Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one)
+            schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two)
+            schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
 
         with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
@@ -1654,13 +1694,14 @@ class TestPulseAssembler(QiskitTestCase):
         disc_one = Kernel("disc_one", test_params=True)
         disc_two = Kernel("disc_two", test_params=False)
 
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two),
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two),
+            )
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1681,13 +1722,14 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that assembly works with both a single kernel."""
         disc_one = Kernel("disc_one", test_params=True)
 
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)),
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1)),
+            )
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
@@ -1708,10 +1750,11 @@ class TestPulseAssembler(QiskitTestCase):
         disc_one = Kernel("disc_one", test_params=True)
         disc_two = Kernel("disc_two", test_params=False)
 
-        schedule = Schedule()
-        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one)
-        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two)
-        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule += Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one)
+            schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two)
+            schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
 
         with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
@@ -1723,19 +1766,20 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_instruction(self):
         """Test assembling schedules, no lo config."""
-        inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
         with self.assertWarns(DeprecationWarning):
+            inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
             self.assertIsInstance(assemble(inst, self.backend), PulseQobj)
 
     def test_assemble_overlapping_time(self):
         """Test that assembly errors when qubits are measured in overlapping time."""
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0)),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+            )
         with self.assertRaises(QiskitError):
             with self.assertWarns(DeprecationWarning):
                 assemble(
@@ -1748,11 +1792,12 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_meas_map_vs_insts(self):
         """Test that assembly errors when the qubits are measured in overlapping time
         and qubits are not in the first meas_map list."""
-        schedule = Schedule()
-        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0))
-        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1))
-        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2)) << 2
-        schedule += Acquire(5, AcquireChannel(3), MemorySlot(3)) << 2
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule += Acquire(5, AcquireChannel(0), MemorySlot(0))
+            schedule += Acquire(5, AcquireChannel(1), MemorySlot(1))
+            schedule += Acquire(5, AcquireChannel(2), MemorySlot(2)) << 2
+            schedule += Acquire(5, AcquireChannel(3), MemorySlot(3)) << 2
 
         with self.assertRaises(QiskitError):
             with self.assertWarns(DeprecationWarning):
@@ -1766,13 +1811,14 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_non_overlapping_time_single_meas_map(self):
         """Test that assembly works when qubits are measured in non-overlapping
         time within the same measurement map list."""
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 5,
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0)),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1)) << 5,
+            )
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
                 schedule,
@@ -1784,13 +1830,14 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_disjoint_time(self):
         """Test that assembly works when qubits are in disjoint meas map sets."""
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(0), MemorySlot(0)),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+            )
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
                 schedule,
@@ -1803,16 +1850,17 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_valid_qubits(self):
         """Test that assembly works when qubits that are in the measurement map
         is measured."""
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(2), MemorySlot(2)),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(3), MemorySlot(3)),
-        )
+        with self.assertWarns(DeprecationWarning):
+            schedule = Schedule()
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(1), MemorySlot(1)),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(2), MemorySlot(2)),
+            )
+            schedule = schedule.append(
+                Acquire(5, AcquireChannel(3), MemorySlot(3)),
+            )
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(
                 schedule,
@@ -1828,22 +1876,23 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.schedule = pulse.Schedule(name="fake_experiment")
-
         with self.assertWarns(DeprecationWarning):
+            self.schedule = pulse.Schedule(name="fake_experiment")
             self.backend = FakeOpenPulse2Q()
+
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.qubit_lo_freq = list(self.defaults.qubit_freq_est)
         self.meas_lo_freq = list(self.defaults.meas_freq_est)
         self.qubit_lo_range = self.config.qubit_lo_range
         self.meas_lo_range = self.config.meas_lo_range
-        self.schedule_los = {
-            pulse.DriveChannel(0): self.qubit_lo_freq[0],
-            pulse.DriveChannel(1): self.qubit_lo_freq[1],
-            pulse.MeasureChannel(0): self.meas_lo_freq[0],
-            pulse.MeasureChannel(1): self.meas_lo_freq[1],
-        }
+        with self.assertWarns(DeprecationWarning):
+            self.schedule_los = {
+                pulse.DriveChannel(0): self.qubit_lo_freq[0],
+                pulse.DriveChannel(1): self.qubit_lo_freq[1],
+                pulse.MeasureChannel(0): self.meas_lo_freq[0],
+                pulse.MeasureChannel(1): self.meas_lo_freq[1],
+            }
         self.meas_map = self.config.meas_map
         self.memory_slots = self.config.n_qubits
 
@@ -1995,14 +2044,15 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         """Test that acquires are identically combined with Acquires that take a single channel."""
         with self.assertWarns(DeprecationWarning):
             backend = FakeOpenPulse2Q()
-        new_style_schedule = Schedule()
+            new_style_schedule = Schedule()
         acq_dur = 1200
-        for i in range(2):
-            new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
+        with self.assertWarns(DeprecationWarning):
+            for i in range(2):
+                new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
 
-        deprecated_style_schedule = Schedule()
-        for i in range(2):
-            deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
+            deprecated_style_schedule = Schedule()
+            for i in range(2):
+                deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
         with self.assertWarns(DeprecationWarning):

@@ -33,6 +33,7 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 
 if TYPE_CHECKING:
+    from qiskit import circuit
     from qiskit.quantum_info.states.densitymatrix import DensityMatrix
     from qiskit.quantum_info.states.statevector import Statevector
 
@@ -62,21 +63,16 @@ class SuperOp(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data cannot be initialized as a

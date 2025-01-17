@@ -79,7 +79,7 @@ features:
 
     For example, consider scheduling an input circuit like:
 
-    .. parsed-literal::
+    .. code-block:: text
 
            ┌───┐┌─┐
       q_0: ┤ X ├┤M├──────────────

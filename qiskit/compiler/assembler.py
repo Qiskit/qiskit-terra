@@ -189,6 +189,16 @@ def assemble(
     )
 
 
+# Note for future: this method is used in `BasicSimulator` and may need to be kept past the
+# `assemble` removal deadline (2.0). If it is kept (potentially in a different location),
+# we will need an alternative for the backend.configuration() access that currently takes
+# place in L566 (`parse_circuit_args`) and L351 (`parse_common_args`)
+# because backend.configuration() is also set for removal in 2.0.
+# The ultimate goal will be to move away from relying on any kind of `assemble` implementation
+# because of how tightly coupled it is to these legacy data structures. But as a transition step,
+# given that we would only have to support the subcase of `BasicSimulator`, we could probably just
+# inline the relevant config values that are already hardcoded in the basic simulator configuration
+# generator.
 def _assemble(
     experiments: Union[
         QuantumCircuit,
@@ -229,7 +239,7 @@ def _assemble(
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     with warnings.catch_warnings():
-        # The Qobj is deprecated
+        # The Qobj class is deprecated, the backend.configuration() method is too
         warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
             backend,
@@ -554,9 +564,12 @@ def _parse_circuit_args(
     run_config_dict = {"parameter_binds": parameter_binds, **run_config}
     if parametric_pulses is None:
         if backend:
-            run_config_dict["parametric_pulses"] = getattr(
-                backend.configuration(), "parametric_pulses", []
-            )
+            with warnings.catch_warnings():
+                # TODO (2.0): See comment on L192 regarding backend.configuration removal
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                run_config_dict["parametric_pulses"] = getattr(
+                    backend.configuration(), "parametric_pulses", []
+                )
         else:
             run_config_dict["parametric_pulses"] = []
     else:

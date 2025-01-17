@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    Improved handling of ancilla qubits in the :class:`.HighLevelSynthesis`
+    transpiler pass. For example, a circuit may have custom gates whose
+    definitions include :class:`.MCXGate`\s. Now the synthesis algorithms
+    for the inner MCX-gates can use the ancilla qubits available on the
+    global circuit but outside the custom gates' definitions.

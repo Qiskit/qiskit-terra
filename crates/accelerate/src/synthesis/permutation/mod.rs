@@ -54,7 +54,7 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
             (
                 StandardGate::SwapGate,
                 smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                smallvec![Qubit::new(*i), Qubit::new(*j)],
             )
         }),
         Param::Float(0.0),
@@ -77,7 +77,7 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
             (
                 StandardGate::SwapGate,
                 smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                smallvec![Qubit::new(*i), Qubit::new(*j)],
             )
         }),
         Param::Float(0.0),
@@ -109,7 +109,7 @@ pub fn _synth_permutation_depth_lnn_kms(
             (
                 StandardGate::SwapGate,
                 smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                smallvec![Qubit::new(*i), Qubit::new(*j)],
             )
         }),
         Param::Float(0.0),
@@ -122,7 +122,7 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
         gates.push((
             StandardGate::CXGate,
             smallvec![],
-            smallvec![Qubit((2 * i) as u32), Qubit((2 * i + 1) as u32)],
+            smallvec![Qubit::new(2 * i), Qubit::new(2 * i + 1)],
         ))
     }
 
@@ -130,7 +130,7 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
         gates.push((
             StandardGate::CXGate,
             smallvec![],
-            smallvec![Qubit((2 * i + 2) as u32), Qubit((2 * i + 1) as u32)],
+            smallvec![Qubit::new(2 * i + 2), Qubit::new(2 * i + 1)],
         ))
     }
 }
@@ -141,7 +141,7 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
         gates.push((
             StandardGate::CXGate,
             smallvec![],
-            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i) as u32)],
+            smallvec![Qubit::new(2 * i + 1), Qubit::new(2 * i)],
         ))
     }
 
@@ -149,7 +149,7 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
         gates.push((
             StandardGate::CXGate,
             smallvec![],
-            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i + 2) as u32)],
+            smallvec![Qubit::new(2 * i + 1), Qubit::new(2 * i + 2)],
         ))
     }
 }

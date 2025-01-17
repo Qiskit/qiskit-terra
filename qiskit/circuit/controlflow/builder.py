@@ -284,7 +284,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The same instruction instance that was passed, but mutated to propagate the tracked
             changes to this class.
         """
-        instruction.condition = self.condition
+        instruction._condition = self._condition
         return instruction
 
     # Provide some better error messages, just in case something goes wrong during development and
@@ -639,8 +639,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                         # a register is already present, so we use our own tracking.
                         self.add_register(register)
                         out.add_register(register)
-            if getattr(op, "condition", None) is not None:
-                for register in condition_resources(op.condition).cregs:
+            if getattr(op, "_condition", None) is not None:
+                for register in condition_resources(op._condition).cregs:
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)

@@ -19,14 +19,16 @@ from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.quantum_info.random import random_unitary
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 from ..legacy_cmaps import BOGOTA_CMAP
 
 
 @ddt.ddt
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestPulseGate(QiskitTestCase):
     """Integration test of pulse gate pass with custom backend."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -78,14 +80,16 @@ class TestPulseGate(QiskitTestCase):
             transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
 
         ref_calibration = {}
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_backend_target(self):
         """Test transpile without custom calibrations from target."""
 
-        target = GenericBackendV2(
-            num_qubits=5, coupling_map=BOGOTA_CMAP, calibrate_instructions=True, seed=42
-        ).target
+        with self.assertWarns(DeprecationWarning):
+            target = GenericBackendV2(
+                num_qubits=5, coupling_map=BOGOTA_CMAP, calibrate_instructions=True, seed=42
+            ).target
 
         qc = circuit.QuantumCircuit(2)
         qc.sx(0)
@@ -97,15 +101,16 @@ class TestPulseGate(QiskitTestCase):
         transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
 
         ref_calibration = {}
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_custom_basis_gate(self):
         """Test transpile with custom calibrations."""
         with self.assertWarns(DeprecationWarning):
             # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
-        backend.defaults().instruction_schedule_map.add("sx", (0,), self.custom_sx_q0)
-        backend.defaults().instruction_schedule_map.add("sx", (1,), self.custom_sx_q1)
+            backend.defaults().instruction_schedule_map.add("sx", (0,), self.custom_sx_q0)
+            backend.defaults().instruction_schedule_map.add("sx", (1,), self.custom_sx_q1)
         # Remove timing constraints to avoid triggering
         # scheduling passes.
         backend.configuration().timing_constraints = {}
@@ -130,21 +135,22 @@ class TestPulseGate(QiskitTestCase):
                 ((1,), ()): self.custom_sx_q1,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_custom_basis_gate_in_target(self):
         """Test transpile with custom calibrations."""
         with self.assertWarns(DeprecationWarning):
             backend_pulse = Fake27QPulseV1()
-        target = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=BOGOTA_CMAP,
-            calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
-            seed=42,
-        ).target
+            target = GenericBackendV2(
+                num_qubits=5,
+                coupling_map=BOGOTA_CMAP,
+                calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
+                seed=42,
+            ).target
 
-        target["sx"][(0,)].calibration = self.custom_sx_q0
-        target["sx"][(1,)].calibration = self.custom_sx_q1
+            target["sx"][(0,)].calibration = self.custom_sx_q0
+            target["sx"][(1,)].calibration = self.custom_sx_q1
 
         qc = circuit.QuantumCircuit(2)
         qc.sx(0)
@@ -161,14 +167,15 @@ class TestPulseGate(QiskitTestCase):
                 ((1,), ()): self.custom_sx_q1,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_instmap(self):
         """Test providing instruction schedule map."""
         with self.assertWarns(DeprecationWarning):
             # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
         instmap.add("sx", (1,), self.custom_sx_q1)
 
@@ -200,19 +207,20 @@ class TestPulseGate(QiskitTestCase):
                 ((1,), ()): self.custom_sx_q1,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_custom_gate(self):
         """Test providing non-basis gate."""
         with self.assertWarns(DeprecationWarning):
             # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
-        backend.defaults().instruction_schedule_map.add(
-            "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
-        )
-        backend.defaults().instruction_schedule_map.add(
-            "my_gate", (1,), self.my_gate_q1, arguments=["P0"]
-        )
+            backend.defaults().instruction_schedule_map.add(
+                "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
+            )
+            backend.defaults().instruction_schedule_map.add(
+                "my_gate", (1,), self.my_gate_q1, arguments=["P0"]
+            )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
         with self.assertWarns(DeprecationWarning):
@@ -244,16 +252,17 @@ class TestPulseGate(QiskitTestCase):
                 ((1,), (2.0,)): my_gate_q1_2_0,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_parameterized_custom_gate(self):
         """Test providing non-basis gate, which is kept parameterized throughout transpile."""
         with self.assertWarns(DeprecationWarning):
             # TODO convert this to BackendV2/Target
             backend = Fake27QPulseV1()
-        backend.defaults().instruction_schedule_map.add(
-            "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
-        )
+            backend.defaults().instruction_schedule_map.add(
+                "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
+            )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
         with self.assertWarns(DeprecationWarning):
@@ -283,16 +292,17 @@ class TestPulseGate(QiskitTestCase):
                 ((0,), (param,)): my_gate_q0_p,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_multiple_circuits(self):
         """Test transpile with multiple circuits with custom gate."""
         with self.assertWarns(DeprecationWarning):
             # TODO move this test to backendV2
             backend = Fake27QPulseV1()
-        backend.defaults().instruction_schedule_map.add(
-            "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
-        )
+            backend.defaults().instruction_schedule_map.add(
+                "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
+            )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
         with self.assertWarns(DeprecationWarning):
@@ -323,16 +333,17 @@ class TestPulseGate(QiskitTestCase):
                 {self.sched_param: param}, inplace=False
             )
             ref_calibration = {"my_gate": {((0,), (param,)): my_gate_q0_x}}
-            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+            with self.assertWarns(DeprecationWarning):
+                self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_multiple_instructions_with_different_parameters(self):
         """Test adding many instruction with different parameter binding."""
         with self.assertWarns(DeprecationWarning):
             # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
-        backend.defaults().instruction_schedule_map.add(
-            "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
-        )
+            backend.defaults().instruction_schedule_map.add(
+                "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
+            )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
         with self.assertWarns(DeprecationWarning):
@@ -367,14 +378,15 @@ class TestPulseGate(QiskitTestCase):
                 ((0,), (3.0,)): my_gate_q0_3_0,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_different_qubit(self):
         """Test transpile with qubit without custom gate."""
         with self.assertWarns(DeprecationWarning):
             # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
-        backend.defaults().instruction_schedule_map.add("sx", (0,), self.custom_sx_q0)
+            backend.defaults().instruction_schedule_map.add("sx", (0,), self.custom_sx_q0)
         # Remove timing constraints to avoid triggering
         # scheduling passes.
         backend.configuration().timing_constraints = {}
@@ -390,7 +402,8 @@ class TestPulseGate(QiskitTestCase):
         ):
             transpiled_qc = transpile(qc, backend, initial_layout=[3])
 
-        self.assertDictEqual(transpiled_qc.calibrations, {})
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, {})
 
     @ddt.data(0, 1, 2, 3)
     def test_transpile_with_both_instmap_and_empty_target(self, opt_level):
@@ -401,33 +414,34 @@ class TestPulseGate(QiskitTestCase):
         """
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
         instmap.add("sx", (1,), self.custom_sx_q1)
         instmap.add("cx", (0, 1), self.custom_cx_q01)
 
         with self.assertWarns(DeprecationWarning):
             backend_pulse = Fake27QPulseV1()
-        # This doesn't have custom schedule definition
-        target = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=BOGOTA_CMAP,
-            calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
-            seed=42,
-        ).target
+            # This doesn't have custom schedule definition
+            target = GenericBackendV2(
+                num_qubits=5,
+                coupling_map=BOGOTA_CMAP,
+                calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
+                seed=42,
+            ).target
 
         qc = circuit.QuantumCircuit(2)
         qc.append(random_unitary(4, seed=123), [0, 1])
         qc.measure_all()
 
-        transpiled_qc = transpile(
-            qc,
-            optimization_level=opt_level,
-            basis_gates=["sx", "rz", "x", "cx"],
-            inst_map=instmap,
-            target=target,
-            initial_layout=[0, 1],
-        )
+        with self.assertWarns(DeprecationWarning):
+            transpiled_qc = transpile(
+                qc,
+                optimization_level=opt_level,
+                basis_gates=["sx", "rz", "x", "cx"],
+                inst_map=instmap,
+                target=target,
+                initial_layout=[0, 1],
+            )
         ref_calibration = {
             "sx": {
                 ((0,), ()): self.custom_sx_q0,
@@ -437,7 +451,8 @@ class TestPulseGate(QiskitTestCase):
                 ((0, 1), ()): self.custom_cx_q01,
             },
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     @ddt.data(0, 1, 2, 3)
     def test_transpile_with_instmap_with_v2backend(self, opt_level):
@@ -448,7 +463,7 @@ class TestPulseGate(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
 
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
         instmap.add("sx", (1,), self.custom_sx_q1)
         instmap.add("cx", (0, 1), self.custom_cx_q01)
@@ -460,19 +475,20 @@ class TestPulseGate(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend_pulse = Fake27QPulseV1()
 
-        backend = GenericBackendV2(
-            num_qubits=5,
-            calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
-            seed=42,
-        )
+            backend = GenericBackendV2(
+                num_qubits=5,
+                calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
+                seed=42,
+            )
 
-        transpiled_qc = transpile(
-            qc,
-            backend,
-            optimization_level=opt_level,
-            inst_map=instmap,
-            initial_layout=[0, 1],
-        )
+        with self.assertWarns(DeprecationWarning):
+            transpiled_qc = transpile(
+                qc,
+                backend,
+                optimization_level=opt_level,
+                inst_map=instmap,
+                initial_layout=[0, 1],
+            )
         ref_calibration = {
             "sx": {
                 ((0,), ()): self.custom_sx_q0,
@@ -482,7 +498,8 @@ class TestPulseGate(QiskitTestCase):
                 ((0, 1), ()): self.custom_cx_q01,
             },
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     @ddt.data(0, 1, 2, 3)
     def test_transpile_with_instmap_with_v2backend_with_custom_gate(self, opt_level):
@@ -498,7 +515,7 @@ class TestPulseGate(QiskitTestCase):
             pulse.play(pulse.Constant(100, 0.4), pulse.DriveChannel(0))
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
         instmap.add("rabi12", (0,), rabi12)
 
         gate = circuit.Gate("rabi12", 1, [])
@@ -506,20 +523,22 @@ class TestPulseGate(QiskitTestCase):
         qc.append(gate, [0])
         qc.measure_all()
 
-        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True, seed=42)
-        transpiled_qc = transpile(
-            qc,
-            backend,
-            optimization_level=opt_level,
-            inst_map=instmap,
-            initial_layout=[0],
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True, seed=42)
+            transpiled_qc = transpile(
+                qc,
+                backend,
+                optimization_level=opt_level,
+                inst_map=instmap,
+                initial_layout=[0],
+            )
         ref_calibration = {
             "rabi12": {
                 ((0,), ()): rabi12,
             }
         }
-        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+        with self.assertWarns(DeprecationWarning):
+            self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
     def test_transpile_with_instmap_not_mutate_backend(self):
         """Do not override default backend target when transpile with inst map.
@@ -529,28 +548,30 @@ class TestPulseGate(QiskitTestCase):
         This should not override the source object since the same backend may
         be used for future transpile without intention of instruction overriding.
         """
-        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True, seed=42)
-        original_sx0 = backend.target["sx"][(0,)].calibration
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True, seed=42)
+            original_sx0 = backend.target["sx"][(0,)].calibration
 
         with self.assertWarns(DeprecationWarning):
             backend_pulse = Fake27QPulseV1()
 
-        instmap = backend_pulse.defaults().instruction_schedule_map
+            instmap = backend_pulse.defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
 
         qc = circuit.QuantumCircuit(1)
         qc.sx(0)
         qc.measure_all()
 
-        transpiled_qc = transpile(
-            qc,
-            backend,
-            inst_map=instmap,
-            initial_layout=[0],
-        )
-        self.assertTrue(transpiled_qc.has_calibration_for(transpiled_qc.data[0]))
+        with self.assertWarns(DeprecationWarning):
+            transpiled_qc = transpile(
+                qc,
+                backend,
+                inst_map=instmap,
+                initial_layout=[0],
+            )
+            self.assertTrue(transpiled_qc.has_calibration_for(transpiled_qc.data[0]))
 
-        self.assertEqual(
-            backend.target["sx"][(0,)].calibration,
-            original_sx0,
-        )
+            self.assertEqual(
+                backend.target["sx"][(0,)].calibration,
+                original_sx0,
+            )

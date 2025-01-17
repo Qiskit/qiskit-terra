@@ -88,7 +88,7 @@ def dag_drawer(
     ``rustworkx`` package to draw the DAG.
 
     Args:
-        dag (DAGCircuit): The dag to draw.
+        dag (DAGCircuit or DAGDependency): The dag to draw.
         scale (float): scaling factor
         filename (str): file path to save image to (format inferred from name)
         style (dict or str): Style name, file name of style JSON file, or a

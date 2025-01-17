@@ -1,0 +1,32 @@
+---
+features_quantum_info:
+  - |
+    A new observable class has been added.  :class:`.SparseObservable` represents observables as a
+    sum of terms, similar to :class:`.SparsePauliOp`, but with two core differences:
+
+    1. Each complete term is stored as (effectively) a series of ``(qubit, bit_term)`` pairs,
+       without storing qubits that undergo the identity for that term.  This significantly improves
+       the memory usage of observables such as the weighted sum of Paulis :math:`\sum_i c_i Z_i`.
+
+    2. The single-qubit term alphabet is overcomplete for the operator space; it can represent Pauli 
+       operators (like :class:`.SparsePauliOp`), but also projectors onto the eigenstates of the
+       Pauli operators, like :math:`\lvert 0\rangle\langle 0\rangle`.  Such projectors can be
+       measured on hardware equally as efficiently as their corresponding Pauli operator, but
+       :class:`.SparsePauliOp` would require an exponential number of terms to represent
+       :math:`{\lvert0\rangle\langle0\rvert}^{\otimes n}` over :math:`n` qubits, while
+       :class:`.SparseObservable` needs only a single term.
+
+    You can construct and manipulate :class:`.SparseObservable` using an interface familiar to users
+    of :class:`.SparsePauliOp`::
+
+      from qiskit.quantum_info import SparseObservable
+
+      obs = SparseObservable.from_sparse_list([
+        ("XZY", (2, 1, 0), 1.5j),
+        ("+-", (100, 99), 0.5j),
+        ("01", (50, 49), 0.5),
+      ])
+
+    :class:`.SparseObservable` is not currently supported as an input format to the primitives
+    (:mod:`qiskit.primitives`), but we expect to expand these interfaces to include them in the
+    future.

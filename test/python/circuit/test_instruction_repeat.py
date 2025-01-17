@@ -55,8 +55,10 @@ class TestRepeatInt1Q(QiskitTestCase):
     def test_conditional(self):
         """Test that repetition works with a condition."""
         cr = ClassicalRegister(3, "cr")
-        gate = SGate().c_if(cr, 7).repeat(5)
-        self.assertEqual(gate.condition, (cr, 7))
+        with self.assertWarns(DeprecationWarning):
+            gate = SGate().c_if(cr, 7).repeat(5)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(gate.condition, (cr, 7))
 
         defn = QuantumCircuit(1)
         for _ in range(5):
@@ -98,8 +100,10 @@ class TestRepeatInt2Q(QiskitTestCase):
     def test_conditional(self):
         """Test that repetition works with a condition."""
         cr = ClassicalRegister(3, "cr")
-        gate = CXGate().c_if(cr, 7).repeat(5)
-        self.assertEqual(gate.condition, (cr, 7))
+        with self.assertWarns(DeprecationWarning):
+            gate = CXGate().c_if(cr, 7).repeat(5)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(gate.condition, (cr, 7))
 
         defn = QuantumCircuit(2)
         for _ in range(5):
@@ -145,8 +149,10 @@ class TestRepeatIntMeasure(QiskitTestCase):
     def test_measure_conditional(self):
         """Test conditional measure moves condition to the outside."""
         cr = ClassicalRegister(3, "cr")
-        measure = Measure().c_if(cr, 7).repeat(5)
-        self.assertEqual(measure.condition, (cr, 7))
+        with self.assertWarns(DeprecationWarning):
+            measure = Measure().c_if(cr, 7).repeat(5)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(measure.condition, (cr, 7))
 
         defn = QuantumCircuit(1, 1)
         for _ in range(5):

@@ -22,6 +22,7 @@ from qiskit.circuit import (
 )
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.utils import deprecate_func
 
 
 class ConvertConditionsToIfOps(TransformationPass):
@@ -30,6 +31,10 @@ class ConvertConditionsToIfOps(TransformationPass):
 
     This is a simple pass aimed at easing the conversion from the old style of using
     :meth:`.InstructionSet.c_if` into the new style of using more complex conditional logic."""
+
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0")
+    def __init__(self):
+        super().__init__()
 
     def _run_inner(self, dag):
         """Run the pass on one :class:`.DAGCircuit`, mutating it.  Returns ``True`` if the circuit

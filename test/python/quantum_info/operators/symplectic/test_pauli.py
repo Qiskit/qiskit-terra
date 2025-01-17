@@ -30,7 +30,7 @@ from qiskit.circuit.library import (
     CYGate,
     CZGate,
     ECRGate,
-    EfficientSU2,
+    efficient_su2,
     HGate,
     IGate,
     SdgGate,
@@ -515,7 +515,7 @@ class TestPauli(QiskitTestCase):
 
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = Pauli("IZZZ")
         backend = GenericBackendV2(num_qubits=7)
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
@@ -530,7 +530,7 @@ class TestPauli(QiskitTestCase):
 
     def test_apply_layout_consistency(self):
         """Test that the Pauli apply_layout() is consistent with the SparsePauliOp apply_layout()."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = Pauli("IZZZ")
         sparse_op = SparsePauliOp(op)
         backend = GenericBackendV2(num_qubits=7)
@@ -541,7 +541,7 @@ class TestPauli(QiskitTestCase):
 
     def test_permute_pauli_estimator_example(self):
         """Test using the apply_layout method with an estimator workflow."""
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        psi = efficient_su2(4, reps=4, entanglement="circular")
         op = Pauli("XXXI")
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)

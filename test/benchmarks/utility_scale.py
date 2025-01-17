@@ -16,7 +16,7 @@
 import os
 
 from qiskit import QuantumCircuit
-from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.library import efficient_su2
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
@@ -48,7 +48,7 @@ class UtilityScaleBenchmarks:
         self.qaoa_qasm = os.path.join(qasm_dir, "qaoa_barabasi_albert_N100_3reps.qasm")
         self.qaoa_qc = QuantumCircuit.from_qasm_file(self.qaoa_qasm)
         self.qv_qc = build_qv_model_circuit(50, 50, SEED)
-        self.circSU2 = EfficientSU2(100, reps=3, entanglement="circular")
+        self.circSU2 = efficient_su2(100, reps=3, entanglement="circular")
         self.bv_100 = bv_all_ones(100)
         self.bv_like_100 = trivial_bvlike_circuit(100)
 

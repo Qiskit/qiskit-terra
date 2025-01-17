@@ -49,7 +49,7 @@ macro_rules! qubit_newtype {
         }
 
         impl pyo3::FromPyObject<'_> for $id {
-            fn extract(ob: &PyAny) -> PyResult<Self> {
+            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
                 Ok(Self(ob.extract()?))
             }
         }
@@ -59,6 +59,10 @@ macro_rules! qubit_newtype {
 
             fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
                 u32::get_dtype_bound(py)
+            }
+
+            fn clone_ref(&self, _py: Python<'_>) -> Self {
+                *self
             }
         }
     };

@@ -45,7 +45,7 @@ class WeightedAdder(BlueprintCircuit):
     For an example where the state of 4 qubits is added into a sum register, the circuit can
     be schematically drawn as
 
-    .. parsed-literal::
+    .. code-block:: text
 
                    ┌────────┐
           state_0: ┤0       ├ | state_0 * weights[0]

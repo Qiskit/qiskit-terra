@@ -17,6 +17,8 @@ DensityMatrix quantum state class.
 from __future__ import annotations
 import copy as _copy
 from numbers import Number
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from qiskit import _numpy_compat
@@ -37,27 +39,27 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit._accelerate.pauli_expval import density_expval_pauli_no_x, density_expval_pauli_with_x
 from qiskit.quantum_info.states.statevector import Statevector
 
+if TYPE_CHECKING:
+    from qiskit import circuit
+
 
 class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
     def __init__(
         self,
-        data: np.ndarray | list | QuantumCircuit | Instruction | QuantumState,
+        data: np.ndarray | list | QuantumCircuit | circuit.instruction.Instruction | QuantumState,
         dims: int | tuple | list | None = None,
     ):
         """Initialize a density matrix object.
 
         Args:
-            data (np.ndarray or list or matrix_like or QuantumCircuit or
-                  qiskit.circuit.Instruction):
-                A statevector, quantum instruction or an object with a ``to_operator`` or
+            data: A statevector, quantum instruction or an object with a ``to_operator`` or
                 ``to_matrix`` method from which the density matrix can be constructed.
                 If a vector the density matrix is constructed as the projector of that vector.
                 If a quantum instruction, the density matrix is constructed by assuming all
                 qubits are initialized in the zero state.
-            dims (int or tuple or list): Optional. The subsystem dimension
-                    of the state (See additional information).
+            dims: The subsystem dimension of the state (See additional information).
 
         Raises:
             QiskitError: if input data is not valid.
@@ -303,19 +305,17 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
     def evolve(
         self,
-        other: Operator | QuantumChannel | Instruction | QuantumCircuit,
+        other: Operator | QuantumChannel | circuit.instruction.Instruction | QuantumCircuit,
         qargs: list[int] | None = None,
     ) -> DensityMatrix:
         """Evolve a quantum state by an operator.
 
         Args:
-            other (Operator or QuantumChannel
-                   or Instruction or Circuit): The operator to evolve by.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
+            other: The operator to evolve by.
+            qargs: a list of QuantumState subsystem positions to apply the operator on.
 
         Returns:
-            DensityMatrix: the output density matrix.
+            The output density matrix.
 
         Raises:
             QiskitError: if the operator dimension does not match the
@@ -443,7 +443,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             with :math:`\\rho_1=|+\\rangle\\!\\langle+|`,
             :math:`\\rho_0=|0\\rangle\\!\\langle0|`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -461,7 +463,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_qubit_1 = rho.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Qubit-0 probs: [1. 0.]
@@ -470,7 +472,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -485,7 +489,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_swapped = rho.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Swapped probs: [0.5 0.5 0.  0. ]
@@ -598,7 +602,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         return DensityMatrix(state, dims=dims)
 
     @classmethod
-    def from_instruction(cls, instruction: Instruction | QuantumCircuit) -> DensityMatrix:
+    def from_instruction(
+        cls, instruction: circuit.instruction.Instruction | QuantumCircuit
+    ) -> DensityMatrix:
         """Return the output density matrix of an instruction.
 
         The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of
@@ -606,10 +612,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
+            instruction: instruction or circuit
 
         Returns:
-            DensityMatrix: the final density matrix.
+            The final density matrix.
 
         Raises:
             QiskitError: if the instruction contains invalid instructions for
@@ -647,14 +653,16 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit density matrix
             :math:`rho = |-\rangle\!\langle -|\otimes |0\rangle\!\langle 0|`
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import DensityMatrix
 
                 rho = DensityMatrix.from_label('-0')
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                {
                    '00|00': (0.4999999999999999+0j),
@@ -666,7 +674,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -679,7 +689,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00|00': (0.25+0j), '10|10': (0.25+0j), '20|20': (0.25+0j), '22|22': (0.25+0j)}
 
@@ -687,7 +697,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -698,7 +710,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00|00': (0.5+0j), '91|91': (0.5+0j)}
         """

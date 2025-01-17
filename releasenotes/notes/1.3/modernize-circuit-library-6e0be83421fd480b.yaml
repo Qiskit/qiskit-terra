@@ -1,0 +1,12 @@
+---
+features_circuits:
+  - |
+    As a part of circuit library modernization, each of the following quantum
+    circuits is either also represented as a :class:`.Gate` object or can be
+    constructed using a synthesis method:
+
+    * :class:`.GraphState` is represented by :class:`.GraphStateGate`,
+    * :class:`.FourierChecking` can be constructed using :meth:`.fourier_checking`,
+    * :class:`.UnitaryOverlap` can be constructed using :meth:`.unitary_overlap`,
+    * :class:`.HiddenLinearFunction` can be constructed using :meth:`.hidden_linear_function`,
+    * :class:`.PhaseEstimation` can be constructed using :meth:`.phase_estimation`.

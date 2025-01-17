@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The :class:`.CommutationChecker` did not handle commutations of the :class:`.CRXGate`,
+    :class:`.CRYGate` and :class:`.CRZGate` correctly for angles
+    :math:`\pi(4k + 2)` for :math:`k \in \mathbb Z`.
+    In these cases, the controlled rotations were falsely assumed to commute with any gate.
+    Now these gates correctly commute with any gate if the rotation angle is a multiple of
+    :math:`4\pi`.

@@ -12,6 +12,7 @@
 
 """Helper function for converting a dag dependency to a dag circuit"""
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagdependency import DAGDependency
 
 
 def dagdependency_to_dag(dagdependency):
@@ -44,6 +45,10 @@ def dagdependency_to_dag(dagdependency):
 
     # copy metadata
     dagcircuit.global_phase = dagdependency.global_phase
-    dagcircuit.calibrations = dagdependency.calibrations
+    if isinstance(dagdependency, DAGDependency):
+        dagcircuit._calibrations_prop = dagdependency._calibrations_prop
+    else:
+        # This can be _DAGDependencyV2
+        dagcircuit._calibrations_prop = dagdependency.calibrations
 
     return dagcircuit

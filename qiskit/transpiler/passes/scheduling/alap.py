@@ -144,7 +144,7 @@ class ALAPSchedule(BaseSchedulerTransform):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.calibrations = dag.calibrations
+        new_dag._calibrations_prop = dag._calibrations_prop
 
         # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration

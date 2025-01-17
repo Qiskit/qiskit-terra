@@ -71,7 +71,7 @@ jobs:
           lcov --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
 
       - name: Coveralls
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2.3.4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coveralls.info

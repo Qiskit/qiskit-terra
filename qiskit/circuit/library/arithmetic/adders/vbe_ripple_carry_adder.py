@@ -11,11 +11,9 @@
 # that they have been altered from the originals.
 
 """Compute the sum of two qubit registers using Classical Addition."""
+
 from __future__ import annotations
-from qiskit.circuit.bit import Bit
-
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-
+from qiskit.synthesis.arithmetic import adder_ripple_v95
 from .adder import Adder
 
 
@@ -26,7 +24,7 @@ class VBERippleCarryAdder(Adder):
     As an example, a classical adder circuit that performs full addition (i.e. including
     a carry-in bit) on two 2-qubit sized registers is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
                   ┌────────┐                       ┌───────────┐┌──────┐
            cin_0: ┤0       ├───────────────────────┤0          ├┤0     ├
@@ -52,6 +50,22 @@ class VBERippleCarryAdder(Adder):
     This is different ordering as compared to Figure 2 in [1], which leads to a different
     drawing of the circuit.
 
+    .. seealso::
+
+        The following generic gate objects perform additions, like this circuit class,
+        but allow the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
+        can be chosen via ``Adder=["ripple_v95"]``.
+
+        :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
+            is functionally equivalent to ``kind="fixed"``.
+
+        :class:`.AdderGate`: A generic inplace adder. This
+            is functionally equivalent to ``kind="half"``.
+
+        :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
+            is functionally equivalent to ``kind="full"``.
+
     **References:**
 
     [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
@@ -74,92 +88,8 @@ class VBERippleCarryAdder(Adder):
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
-        if num_state_qubits < 1:
-            raise ValueError("The number of qubits must be at least 1.")
-
         super().__init__(num_state_qubits, name=name)
+        circuit = adder_ripple_v95(num_state_qubits, kind)
 
-        # define the input registers
-        registers: list[QuantumRegister | list[Bit]] = []
-        if kind == "full":
-            qr_cin = QuantumRegister(1, name="cin")
-            registers.append(qr_cin)
-        else:
-            qr_cin = QuantumRegister(0)
-
-        qr_a = QuantumRegister(num_state_qubits, name="a")
-        qr_b = QuantumRegister(num_state_qubits, name="b")
-
-        registers += [qr_a, qr_b]
-
-        if kind in ["half", "full"]:
-            qr_cout = QuantumRegister(1, name="cout")
-            registers.append(qr_cout)
-        else:
-            qr_cout = QuantumRegister(0)
-
-        self.add_register(*registers)
-
-        if num_state_qubits > 1:
-            qr_help = AncillaRegister(num_state_qubits - 1, name="helper")
-            self.add_register(qr_help)
-        else:
-            qr_help = AncillaRegister(0)
-
-        # the code is simplified a lot if we create a list of all carries and helpers
-        carries = qr_cin[:] + qr_help[:] + qr_cout[:]
-
-        # corresponds to Carry gate in [1]
-        qc_carry = QuantumCircuit(4, name="Carry")
-        qc_carry.ccx(1, 2, 3)
-        qc_carry.cx(1, 2)
-        qc_carry.ccx(0, 2, 3)
-        carry_gate = qc_carry.to_gate()
-        carry_gate_dg = carry_gate.inverse()
-
-        # corresponds to Sum gate in [1]
-        qc_sum = QuantumCircuit(3, name="Sum")
-        qc_sum.cx(1, 2)
-        qc_sum.cx(0, 2)
-        sum_gate = qc_sum.to_gate()
-
-        circuit = QuantumCircuit(*self.qregs, name=name)
-
-        # handle all cases for the first qubits, depending on whether cin is available
-        i = 0
-        if kind == "half":
-            i += 1
-            circuit.ccx(qr_a[0], qr_b[0], carries[0])
-        elif kind == "fixed":
-            i += 1
-            if num_state_qubits == 1:
-                circuit.cx(qr_a[0], qr_b[0])
-            else:
-                circuit.ccx(qr_a[0], qr_b[0], carries[0])
-
-        for inp, out in zip(carries[:-1], carries[1:]):
-            circuit.append(carry_gate, [inp, qr_a[i], qr_b[i], out])
-            i += 1
-
-        if kind in ["full", "half"]:  # final CX (cancels for the 'fixed' case)
-            circuit.cx(qr_a[-1], qr_b[-1])
-
-        if len(carries) > 1:
-            circuit.append(sum_gate, [carries[-2], qr_a[-1], qr_b[-1]])
-
-        i -= 2
-        for j, (inp, out) in enumerate(zip(reversed(carries[:-1]), reversed(carries[1:]))):
-            if j == 0:
-                if kind == "fixed":
-                    i += 1
-                else:
-                    continue
-            circuit.append(carry_gate_dg, [inp, qr_a[i], qr_b[i], out])
-            circuit.append(sum_gate, [inp, qr_a[i], qr_b[i]])
-            i -= 1
-
-        if kind in ["half", "fixed"] and num_state_qubits > 1:
-            circuit.ccx(qr_a[0], qr_b[0], carries[0])
-            circuit.cx(qr_a[0], qr_b[0])
-
+        self.add_register(*circuit.qregs)
         self.append(circuit.to_gate(), self.qubits)

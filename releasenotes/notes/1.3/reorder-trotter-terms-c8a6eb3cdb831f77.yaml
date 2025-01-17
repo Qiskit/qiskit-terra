@@ -1,0 +1,40 @@
+---
+features_synthesis:
+  - |
+    Added a new argument ``preserve_order`` to :class:`.ProductFormula`, which allows
+    re-ordering the Pauli terms in the Hamiltonian before the product formula expansion,
+    to compress the final circuit depth. By setting this to ``False``, a term of form
+
+    .. math::
+
+      Z_0 Z_1 + X_1 X_2 + Y_2 Y_3
+
+    will be re-ordered to
+
+    .. math::
+
+      Z_0 Z_1 + Y_2 Y_3 + X_1 X_2
+
+    which will lead to the ``RZZ`` and ``RYY`` rotations being applied in parallel, instead
+    of three sequential rotations in the first part.
+
+    This option can be set via the plugin interface::
+
+        from qiskit import QuantumCircuit, transpile
+        from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.synthesis.evolution import SuzukiTrotter
+        from qiskit.transpiler.passes import HLSConfig
+
+        op = SparsePauliOp(["XXII", "IYYI", "IIZZ"])
+        time, reps = 0.1, 1
+
+        synthesis = SuzukiTrotter(order=2, reps=reps)
+        hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
+
+        circuit = QuantumCircuit(op.num_qubits)
+        circuit.append(PauliEvolutionGate(op, time), circuit.qubits)
+
+        tqc = transpile(circuit, basis_gates=["u", "cx"], hls_config=hls_config)
+        print(tqc.draw())
+

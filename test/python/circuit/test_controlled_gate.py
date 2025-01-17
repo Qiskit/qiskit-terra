@@ -29,6 +29,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -81,10 +82,11 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
-from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
+from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
@@ -551,9 +553,9 @@ class TestControlledGate(QiskitTestCase):
         """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3
-        ry_matrix = RYGate(theta).to_matrix()
-        qc = _mcsu2_real_diagonal(ry_matrix, num_ctrls)
+        qc = _mcsu2_real_diagonal(RYGate(theta), num_ctrls)
 
+        ry_matrix = RYGate(theta).to_matrix()
         mcry_matrix = _compute_control_matrix(ry_matrix, 6)
         self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
 
@@ -682,6 +684,23 @@ class TestControlledGate(QiskitTestCase):
         # selected, the bottom qubit would remain unused.
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
+
+    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
+        """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
+        theta = Parameter("theta")
+        params = [theta]
+        val = 0.4123
+        rot_matrix = base_gate(val).to_matrix()
+        mc_matrix = _compute_control_matrix(rot_matrix, num_controls)
+
+        mc_gate = base_gate(*params).control(num_controls)
+        circuit = QuantumCircuit(mc_gate.num_qubits)
+        circuit.append(mc_gate, circuit.qubits)
+
+        bound = circuit.assign_parameters([val])
+        unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mc_matrix, Operator(unrolled).to_matrix()))
 
     @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
@@ -1087,13 +1106,18 @@ class TestControlledGate(QiskitTestCase):
         """
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonControlledGate isn't directly instantiated.")
-        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-        num_free_params = len(gate_params)
-        free_params = [0.1 * i for i in range(num_free_params)]
-        # set number of control qubits
-        for i in range(num_free_params):
-            if gate_params[i] == "num_ctrl_qubits":
-                free_params[i] = 3
+
+        if gate_class is MCMTGate:
+            # parameters are (base_gate, num_controls, num_targets)
+            free_params = [HGate(), 3, 2]
+        else:
+            gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+            num_free_params = len(gate_params)
+            free_params = [0.1 * i for i in range(num_free_params)]
+            # set number of control qubits
+            for i in range(num_free_params):
+                if gate_params[i] == "num_ctrl_qubits":
+                    free_params[i] = 3
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
@@ -1436,8 +1460,6 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(Operator(controlled), Operator(target))
 
     @data(
-        RXGate,
-        RYGate,
         RXXGate,
         RYYGate,
         RZXGate,
@@ -1447,8 +1469,8 @@ class TestControlledGate(QiskitTestCase):
         XXMinusYYGate,
         XXPlusYYGate,
     )
-    def test_mc_failure_without_annotation(self, gate_cls):
-        """Test error for gates that cannot be multi-controlled without annotation."""
+    def test_mc_without_annotation(self, gate_cls):
+        """Test multi-controlled gates with and without annotation."""
         theta = Parameter("theta")
         num_params = len(_get_free_params(gate_cls.__init__, ignore=["self"]))
         params = [theta] + (num_params - 1) * [1.234]
@@ -1456,22 +1478,17 @@ class TestControlledGate(QiskitTestCase):
         for annotated in [False, None]:
             with self.subTest(annotated=annotated):
                 # if annotated is False, check that a sensible error is raised
-                if annotated is False:
-                    with self.assertRaisesRegex(QiskitError, "unbound parameter"):
-                        _ = gate_cls(*params).control(5, annotated=False)
-
                 # else, check that the gate can be synthesized after all parameters
                 # have been bound
-                else:
-                    mc_gate = gate_cls(*params).control(5)
+                mc_gate = gate_cls(*params).control(5)
 
-                    circuit = QuantumCircuit(mc_gate.num_qubits)
-                    circuit.append(mc_gate, circuit.qubits)
+                circuit = QuantumCircuit(mc_gate.num_qubits)
+                circuit.append(mc_gate, circuit.qubits)
 
-                    bound = circuit.assign_parameters([0.5123])
-                    unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+                bound = circuit.assign_parameters([0.5123])
+                unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
 
-                    self.assertEqual(unrolled.num_parameters, 0)
+                self.assertEqual(unrolled.num_parameters, 0)
 
     def assertEqualTranslated(self, circuit, unrolled_reference, basis):
         """Assert that the circuit is equal to the unrolled reference circuit."""
@@ -1490,13 +1507,19 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonGateClass isn't intended for direct initalization")
-        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-        num_free_params = len(gate_params)
-        free_params = [0.1 * i for i in range(1, num_free_params + 1)]
-        # set number of control qubits
-        for i in range(num_free_params):
-            if gate_params[i] == "num_ctrl_qubits":
-                free_params[i] = 3
+
+        if gate_class is MCMTGate:
+            # parameters are (base_gate, num_controls, num_targets)
+            free_params = [HGate(), 3, 2]
+        else:
+            gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+            num_free_params = len(gate_params)
+            free_params = [0.1 * i for i in range(1, num_free_params + 1)]
+            # set number of control qubits
+            for i in range(num_free_params):
+                if gate_params[i] == "num_ctrl_qubits":
+                    free_params[i] = 3
+
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
 
@@ -1559,13 +1582,15 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", cgate.name, uqc.size())
         self.log.info("\n%s", str(uqc))
-        # these limits could be changed
-        if gate.name == "ry":
-            self.assertLessEqual(uqc.size(), 32, f"\n{uqc}")
+
+        if gate.name in ["ry", "rx"]:
+            expected_cx = 8
         elif gate.name == "rz":
-            self.assertLessEqual(uqc.size(), 43, f"\n{uqc}")
-        else:
-            self.assertLessEqual(uqc.size(), 20, f"\n{uqc}")
+            expected_cx = 4
+        else:  # u1
+            expected_cx = 6
+
+        self.assertLessEqual(uqc.count_ops().get("cx", 0), expected_cx, f"\n{uqc}")
 
     def test_composite(self):
         """Test composite gate count."""
@@ -1582,6 +1607,25 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         uqc = dag_to_circuit(basis_translator.run(unroller.run(dag)))
         self.log.info("%s gate count: %d", uqc.name, uqc.size())
         self.assertLessEqual(uqc.size(), 96, f"\n{uqc}")  # this limit could be changed
+
+    def test_mcrz_complexity(self):
+        """Test MCRZ is decomposed using the efficient MC-SU(2) algorithm.
+
+        Regression test of #13473.
+        """
+        basis_gates = ["sx", "x", "rz", "ecr"]
+        pm = generate_preset_pass_manager(
+            optimization_level=3, basis_gates=basis_gates, seed_transpiler=12345
+        )
+
+        num_qubits = 6
+        angle = np.pi / 7
+        qc = QuantumCircuit(num_qubits)
+        qc.append(RZGate(angle).control(num_qubits - 1), qc.qubits)
+
+        isa_qc = pm.run(qc)
+
+        self.assertLessEqual(isa_qc.count_ops().get("ecr", 0), 40)
 
 
 @ddt

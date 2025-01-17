@@ -45,7 +45,9 @@ class UnitaryGate(Gate):
         quantum circuit. The matrix can also be directly applied to the quantum
         circuit, see :meth:`.QuantumCircuit.unitary`.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit import QuantumCircuit
             from qiskit.circuit.library import UnitaryGate
@@ -200,7 +202,7 @@ class UnitaryGate(Gate):
             )
         return gate
 
-    def _qasm2_decomposition(self):
+    def _qasm_decomposition(self):
         """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the
         non-standard things in our `params` field."""
         out = self.definition.to_gate()

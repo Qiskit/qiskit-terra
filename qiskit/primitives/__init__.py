@@ -66,7 +66,9 @@ is in general array-valued as well. For more information, please check
 
 Here is an example of how an estimator is used.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import StatevectorEstimator as Estimator
     from qiskit.circuit.library import RealAmplitudes
@@ -126,7 +128,9 @@ for each pub.
 Here is an example of how a sampler is used.
 
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import StatevectorSampler as Sampler
     from qiskit import QuantumCircuit
@@ -192,7 +196,9 @@ the estimation.
 
 Here is an example of how the estimator is used.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import Estimator
     from qiskit.circuit.library import RealAmplitudes
@@ -251,7 +257,9 @@ plus optional metadata like error bars in the samples.
 
 Here is an example of how sampler is used.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.primitives import Sampler
     from qiskit import QuantumCircuit

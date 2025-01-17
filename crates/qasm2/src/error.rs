@@ -30,7 +30,7 @@ impl<'a> Position<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for &Position<'a> {
+impl std::fmt::Display for &Position<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

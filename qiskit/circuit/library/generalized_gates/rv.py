@@ -27,7 +27,7 @@ class RVGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────────────┐
         q_0: ┤ RV(v_x,v_y,v_z) ├
@@ -51,14 +51,13 @@ class RVGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self, v_x, v_y, v_z, basis="U"):
-        """Create new rv single-qubit gate.
-
+    def __init__(self, v_x: float, v_y: float, v_z: float, basis: str = "U"):
+        """
         Args:
-            v_x (float): x-component
-            v_y (float): y-component
-            v_z (float): z-component
-            basis (str, optional): basis (see
+            v_x: x-component
+            v_y: y-component
+            v_z: z-component
+            basis: basis (see
                 :class:`~qiskit.synthesis.one_qubit.one_qubit_decompose.OneQubitEulerDecomposer`)
         """
         # pylint: disable=cyclic-import
@@ -80,7 +79,7 @@ class RVGate(Gate):
         vx, vy, vz = self.params
         return RVGate(-vx, -vy, -vz)
 
-    def to_matrix(self):
+    def to_matrix(self) -> numpy.ndarray:
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
         angle = math.sqrt(v.dot(v))

@@ -17,7 +17,7 @@ use pyo3::Python;
 
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
 #[pyclass]
-#[pyo3(module = "qiskit._accelerate.sabre", frozen)]
+#[pyo3(module = "qiskit._accelerate.sabre", frozen, eq)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SetScaling {
     /// No dynamic scaling of the weight.

@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Fixed a bug that caused the circuit library functions :func:`.efficient_su2`,
+    :func:`.real_amplitudes`, :func:`.excitation_preserving` and :func:`.pauli_two_design`
+    to error out when constructed for ``num_qubits==1``. For a single qubit these 
+    circuits will not contain any 2-qubit gates.

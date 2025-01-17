@@ -10,21 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Template 9c_1:
-.. parsed-literal::
-         ┌───┐     ┌───┐┌───┐     ┌───┐          ┌───┐
-    q_0: ┤ X ├──■──┤ X ├┤ X ├─────┤ X ├──■───────┤ X ├
-         └─┬─┘┌─┴─┐└───┘└─┬─┘┌───┐└─┬─┘┌─┴─┐┌───┐└─┬─┘
-    q_1: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
-              └───┘          └───┘     └───┘└───┘
-"""
+# pylint: disable=missing-module-docstring
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def template_nct_9c_1():
     """
+    Template 9c_1:
+
+    .. code-block:: text
+
+             ┌───┐     ┌───┐┌───┐     ┌───┐          ┌───┐
+        q_0: ┤ X ├──■──┤ X ├┤ X ├─────┤ X ├──■───────┤ X ├
+             └─┬─┘┌─┴─┐└───┘└─┬─┘┌───┐└─┬─┘┌─┴─┐┌───┐└─┬─┘
+        q_1: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
+                  └───┘          └───┘     └───┘└───┘
+
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """

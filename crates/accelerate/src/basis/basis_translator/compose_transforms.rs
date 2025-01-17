@@ -30,16 +30,6 @@ pub type GateIdentifier = (String, u32);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
-#[pyfunction(name = "compose_transforms")]
-pub(super) fn py_compose_transforms(
-    py: Python,
-    basis_transforms: Vec<(GateIdentifier, BasisTransformIn)>,
-    source_basis: HashSet<GateIdentifier>,
-    source_dag: &DAGCircuit,
-) -> PyResult<HashMap<GateIdentifier, BasisTransformOut>> {
-    compose_transforms(py, &basis_transforms, &source_basis, source_dag)
-}
-
 pub(super) fn compose_transforms<'a>(
     py: Python,
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],

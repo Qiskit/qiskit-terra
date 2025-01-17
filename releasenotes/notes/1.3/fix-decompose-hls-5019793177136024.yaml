@@ -1,0 +1,42 @@
+---
+features_circuits:
+  - |
+    Added a new argument ``"apply_synthesis"`` to :class:`.Decompose`, which allows
+    the transpiler pass to apply high-level synthesis to decompose objects that are only
+    defined by a synthesis routine. For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.quantum_info import Clifford
+      from qiskit.transpiler.passes import Decompose
+
+      cliff = Clifford(HGate())
+      circuit = QuantumCircuit(1)
+      circuit.append(cliff, [0])
+
+      # Clifford has no .definition, it is only defined by synthesis
+      nothing_happened = Decompose()(circuit)
+
+      # this internally runs the HighLevelSynthesis pass to decompose the Clifford
+      decomposed = Decompose(apply_synthesis=True)(circuit)
+
+fixes:
+  - |
+    Fixed a bug in :meth:`.QuantumCircuit.decompose` where objects that could be synthesized
+    with :class:`.HighLevelSynthesis` were first synthesized and then decomposed immediately
+    (i.e., they were decomposed twice instead of once). This affected, e.g., :class:`.MCXGate`
+    or :class:`.Clifford`, among others.
+  - |
+    Fixed a bug in :meth:`.QuantumCircuit.decompose`, where high-level objects without a definition
+    were not decomposed if they were explicitly set via the ``"gates_to_decompose"`` argument.
+    For example, previously the following did not perform a decomposition but now works as
+    expected::
+
+      from qiskit import QuantumCircuit
+      from qiskit.quantum_info import Clifford
+      from qiskit.transpiler.passes import Decompose
+
+      cliff = Clifford(HGate())
+      circuit = QuantumCircuit(1)
+      circuit.append(cliff, [0])
+
+      decomposed = Decompose(gates_to_decompose=["clifford"])(circuit)

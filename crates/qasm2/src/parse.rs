@@ -827,8 +827,16 @@ impl State {
         }
         bc.push(Some(InternalBytecode::EndDeclareGate {}));
         self.gate_symbols.clear();
-        self.define_gate(Some(&gate_token), name, num_params, num_qubits)?;
-        Ok(statements + 2)
+        let num_bytecode = statements + 2;
+        if self.define_gate(Some(&gate_token), name, num_params, num_qubits)? {
+            Ok(num_bytecode)
+        } else {
+            // The gate was built-in, so we don't actually need to emit the bytecode.  This is
+            // uncommon, so it doesn't matter too much that we throw away allocation work we did -
+            // it still helps that we verified that the gate body was valid OpenQASM 2.
+            bc.truncate(bc.len() - num_bytecode);
+            Ok(0)
+        }
     }
 
     /// Parse an `opaque` statement.  This assumes that the `opaque` token is still in the token
@@ -1634,6 +1642,9 @@ impl State {
     /// bytecode because not all gate definitions need something passing to Python.  For example,
     /// the Python parser initializes its state including the built-in gates `U` and `CX`, and
     /// handles the `qelib1.inc` include specially as well.
+    ///
+    /// Returns whether the gate needs to be defined in Python space (`true`) or if it was some sort
+    /// of built-in that doesn't need the definition (`false`).
     fn define_gate(
         &mut self,
         owner: Option<&Token>,
@@ -1685,12 +1696,14 @@ impl State {
             }
             match self.symbols.get(&name) {
                 None => {
+                    // The gate wasn't a built-in, so we need to move the symbol in, but we don't
+                    // need to increment the number of gates because it's already got a gate ID
+                    // assigned.
                     self.symbols.insert(name, symbol.into());
-                    self.num_gates += 1;
-                    Ok(true)
+                    Ok(false)
                 }
                 Some(GlobalSymbol::Gate { .. }) => {
-                    self.symbols.insert(name, symbol.into());
+                    // The gate was built-in and we can ignore the new definition (it's the same).
                     Ok(false)
                 }
                 _ => already_defined(self, name),

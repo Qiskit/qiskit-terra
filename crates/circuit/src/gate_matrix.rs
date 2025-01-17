@@ -19,6 +19,12 @@ use crate::util::{
 };
 
 pub static ONE_QUBIT_IDENTITY: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, C_ONE]];
+pub static TWO_QUBIT_IDENTITY: GateArray2Q = [
+    [C_ONE, C_ZERO, C_ZERO, C_ZERO],
+    [C_ZERO, C_ONE, C_ZERO, C_ZERO],
+    [C_ZERO, C_ZERO, C_ONE, C_ZERO],
+    [C_ZERO, C_ZERO, C_ZERO, C_ONE],
+];
 
 // Utility for generating static matrices for controlled gates with "n" control qubits.
 // Assumptions:

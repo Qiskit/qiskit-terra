@@ -139,7 +139,8 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         qc.cx(0, 1)
         qc.cx(0, 2)
         qc.cx(0, 3)
-        qc.x(3).c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(3).c_if(cr[1], 1)
         qc.h(3)
         qc.x(4)
         qc.barrier(0, 1)

@@ -32,7 +32,7 @@ class RZZGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ───■────
                 │zz(θ)

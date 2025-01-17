@@ -33,13 +33,18 @@ class CollectMultiQBlocks(AnalysisPass):
     Some gates may not be present in any block (e.g. if the number
     of operands is greater than ``max_block_size``)
 
+    By default, blocks are collected in the direction from the inputs towards the
+    outputs of the DAG. The option ``collect_from_back`` allows to change this
+    direction, that is to collect blocks from the outputs towards the inputs.
+    Note that the blocks are still reported in a valid topological order.
+
     A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.
     """
 
-    def __init__(self, max_block_size=2):
+    def __init__(self, max_block_size=2, collect_from_back=False):
         super().__init__()
         self.parent = {}  # parent array for the union
 
@@ -49,6 +54,7 @@ class CollectMultiQBlocks(AnalysisPass):
         self.gate_groups = {}  # current gate lists for the groups
 
         self.max_block_size = max_block_size  # maximum block size
+        self.collect_from_back = collect_from_back  # backward collection
 
     def find_set(self, index):
         """DSU function for finding root of set of items
@@ -120,12 +126,16 @@ class CollectMultiQBlocks(AnalysisPass):
             if not isinstance(x, DAGOpNode):
                 return "d"
             if isinstance(x.op, Gate):
-                if x.op.is_parameterized() or getattr(x.op, "condition", None) is not None:
+                if x.op.is_parameterized() or getattr(x.op, "_condition", None) is not None:
                     return "c"
                 return "b" + chr(ord("a") + len(x.qargs))
             return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
+
+        # When collecting from the back, the order of nodes is reversed
+        if self.collect_from_back:
+            op_nodes = reversed(list(op_nodes))
 
         for nd in op_nodes:
             can_process = True
@@ -133,7 +143,7 @@ class CollectMultiQBlocks(AnalysisPass):
 
             # check if the node is a gate and if it is parameterized
             if (
-                getattr(nd.op, "condition", None) is not None
+                getattr(nd.op, "_condition", None) is not None
                 or nd.op.is_parameterized()
                 or not isinstance(nd.op, Gate)
             ):
@@ -221,6 +231,11 @@ class CollectMultiQBlocks(AnalysisPass):
         for index, item in self.parent.items():
             if item == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])
+
+        # When collecting from the back, both the order of the blocks
+        # and the order of nodes in each block should be reversed.
+        if self.collect_from_back:
+            block_list = [block[::-1] for block in block_list[::-1]]
 
         self.property_set["block_list"] = block_list
 

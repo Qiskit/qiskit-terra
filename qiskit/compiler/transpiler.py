@@ -32,12 +32,41 @@ from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
+from qiskit.utils import deprecate_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
 
 
+@deprecate_arg(
+    name="instruction_durations",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined instruction durations with "
+    "`Target.from_configuration(..., instruction_durations=...)`",
+)
+@deprecate_arg(
+    name="timing_constraints",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined timing constraints with "
+    "`Target.from_configuration(..., timing_constraints=...)`",
+)
+@deprecate_arg(
+    name="backend_properties",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined properties with Target.from_configuration(..., backend_properties=...)",
+)
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
@@ -104,7 +133,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
+        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
             transpiler tries to get from the backend. If any user defined calibration
             is found in the map and this is used in a circuit, transpiler attaches
             the custom gate definition to the circuit. This enables one to flexibly
@@ -365,31 +394,57 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    pm = generate_preset_pass_manager(
-        optimization_level,
-        target=target,
-        backend=backend,
-        basis_gates=basis_gates,
-        coupling_map=coupling_map,
-        instruction_durations=instruction_durations,
-        backend_properties=backend_properties,
-        timing_constraints=timing_constraints,
-        inst_map=inst_map,
-        initial_layout=initial_layout,
-        layout_method=layout_method,
-        routing_method=routing_method,
-        translation_method=translation_method,
-        scheduling_method=scheduling_method,
-        approximation_degree=approximation_degree,
-        seed_transpiler=seed_transpiler,
-        unitary_synthesis_method=unitary_synthesis_method,
-        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-        hls_config=hls_config,
-        init_method=init_method,
-        optimization_method=optimization_method,
-        dt=dt,
-        qubits_initially_zero=qubits_initially_zero,
-    )
+    # Filter instruction_durations, timing_constraints, backend_properties and inst_map deprecation
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``timing_constraints`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``instruction_durations`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=".*``backend_properties`` is deprecated as of Qiskit 1.3.*",
+            module="qiskit",
+        )
+        pm = generate_preset_pass_manager(
+            optimization_level,
+            target=target,
+            backend=backend,
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            instruction_durations=instruction_durations,
+            backend_properties=backend_properties,
+            timing_constraints=timing_constraints,
+            inst_map=inst_map,
+            initial_layout=initial_layout,
+            layout_method=layout_method,
+            routing_method=routing_method,
+            translation_method=translation_method,
+            scheduling_method=scheduling_method,
+            approximation_degree=approximation_degree,
+            seed_transpiler=seed_transpiler,
+            unitary_synthesis_method=unitary_synthesis_method,
+            unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
+            hls_config=hls_config,
+            init_method=init_method,
+            optimization_method=optimization_method,
+            dt=dt,
+            qubits_initially_zero=qubits_initially_zero,
+        )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
 

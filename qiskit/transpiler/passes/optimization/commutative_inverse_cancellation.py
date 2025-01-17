@@ -49,7 +49,7 @@ class CommutativeInverseCancellation(TransformationPass):
         # checking can be extended to cover additional cases.
         if getattr(node.op, "_directive", False) or node.name in {"measure", "reset", "delay"}:
             return True
-        if getattr(node.op, "condition", None):
+        if getattr(node, "condition", None):
             return True
         if node.op.is_parameterized():
             return True

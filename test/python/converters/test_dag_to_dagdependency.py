@@ -34,7 +34,8 @@ class TestCircuitToDagDependency(QiskitTestCase):
         circuit_in.h(qr[1])
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
-        circuit_in.x(qr[0]).c_if(cr, 0x3)
+        with self.assertWarns(DeprecationWarning):
+            circuit_in.x(qr[0]).c_if(cr, 0x3)
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
@@ -55,7 +56,8 @@ class TestCircuitToDagDependency(QiskitTestCase):
         circuit_in.h(qr[1])
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
-        circuit_in.x(qr[0]).c_if(cr, 0x3)
+        with self.assertWarns(DeprecationWarning):
+            circuit_in.x(qr[0]).c_if(cr, 0x3)
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])

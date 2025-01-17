@@ -20,10 +20,10 @@ import unittest
 import ddt
 import numpy as np
 
+from qiskit._accelerate.two_qubit_decompose import weyl_coordinates
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RZGate, UnitaryGate
 import qiskit.quantum_info.operators
-from qiskit.synthesis.two_qubit.weyl import weyl_coordinates
 from qiskit.synthesis.two_qubit.xx_decompose.circuits import (
     decompose_xxyy_into_xxyy_xx,
     xx_circuit_step,

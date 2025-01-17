@@ -65,6 +65,11 @@ from qiskit.circuit.library import (
     CSXGate,
     RVGate,
     XXMinusYYGate,
+    FullAdderGate,
+    HalfAdderGate,
+    ModularAdderGate,
+    LinearFunction,
+    MultiplierGate,
 )
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -199,6 +204,41 @@ class TestGateDefinitions(QiskitTestCase):
         operator = Operator(gate)
         self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
 
+    def test_linear_function_definition(self):
+        """Test LinearFunction gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.append(LinearFunction([[1, 1], [0, 1]]), [0, 2])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_full_adder_definition(self):
+        """Test FullAdder gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(FullAdderGate(1), [0, 1, 2, 3])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_half_adder_definition(self):
+        """Test HalfAdder gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.append(HalfAdderGate(1), [0, 1, 2])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_modular_adder_definition(self):
+        """Test ModularAdder gate matrix and definition."""
+        circ = QuantumCircuit(2)
+        circ.append(ModularAdderGate(1), [0, 1])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_multiplier_gate_definition(self):
+        """Test Multiplier gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(MultiplierGate(1), [0, 1, 2, 3])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -294,6 +334,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "UCPauliRotGate",
         "SingleQubitUnitary",
         "MCXGate",
+        "MCMTGate",
         "VariadicZeroParamGate",
         "ClassicalFunction",
         "ClassicalElement",
@@ -310,6 +351,15 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
         "QFTGate",
+        "ModularAdderGate",
+        "HalfAdderGate",
+        "FullAdderGate",
+        "MultiplierGate",
+        "GraphStateGate",
+        "AndGate",
+        "OrGate",
+        "BitwiseXorGate",
+        "InnerProductGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get

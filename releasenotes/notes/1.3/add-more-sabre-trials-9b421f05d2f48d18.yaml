@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    The :class:`.SabreLayout` transpiler pass has been updated to run an
+    additional 2 or 3 layout trials by default independently of the
+    ``layout_trials`` keyword argument's value. A trivial
+    layout and its reverse are included for all backends, just like the :class:`.DenseLayout`
+    trial that was added in 1.2.0. In addition to this, the largest rings on 
+    an IBM backend heavy hex connectivity graph are added if the backends are 127,
+    133, or 156 qubits. This can provide a good starting point for some circuits on these commonly run
+    backends, while for all others it's just an additional "random trial".

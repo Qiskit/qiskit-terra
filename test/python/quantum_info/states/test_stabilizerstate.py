@@ -25,7 +25,7 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState, Statevector
 from qiskit.circuit.library import IGate, XGate, HGate
-from qiskit.quantum_info.operators import Clifford, Pauli, Operator
+from qiskit.quantum_info.operators import Clifford, Pauli, Operator, SparsePauliOp
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -1100,6 +1100,18 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
             exp_val = stab.expectation_value(op, qargs)
             target = Statevector(qc).expectation_value(op, qargs)
             self.assertAlmostEqual(exp_val, target)
+
+    def test_expval_sparsepauliop(self):
+        """Test expectation_value method of SparsePauliOp"""
+        cliff = random_clifford(num_qubits=3, seed=1234)
+        stab = StabilizerState(cliff)
+        labels = ["XXX", "IXI", "YYY", "III"]
+        coeffs = [3.0, 5.5, -1j, 23]
+        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        expval = stab.expectation_value(spp_op)
+        qc = cliff.to_circuit()
+        target = Statevector(qc).expectation_value(spp_op)
+        self.assertAlmostEqual(expval, target)
 
     def test_stabilizer_bell_equiv(self):
         """Test that two circuits produce the same stabilizer group."""

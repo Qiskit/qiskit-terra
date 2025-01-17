@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import HiddenLinearFunction
+from qiskit.circuit.library import HiddenLinearFunction, hidden_linear_function
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -59,6 +59,17 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         """Test that adjacency matrix is required to be symmetric."""
         with self.assertRaises(CircuitError):
             HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
+
+    def test_hlf_function(self):
+        """Test if the HLF matrix produces the right matrix."""
+        hidden_function = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+        hlf = hidden_linear_function(hidden_function)
+        self.assertHLFIsCorrect(hidden_function, hlf)
+
+    def test_non_symmetric_raises_function(self):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            hidden_linear_function([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
 
 
 if __name__ == "__main__":

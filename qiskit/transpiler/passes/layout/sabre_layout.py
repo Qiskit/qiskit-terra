@@ -148,7 +148,9 @@ class SabreLayout(TransformationPass):
                 (and ``routing_pass`` is not set) then the number of local
                 physical CPUs will be used as the default value. This option is
                 mutually exclusive with the ``routing_pass`` argument and an error
-                will be raised if both are used.
+                will be raised if both are used. An additional 3 or 4 trials
+                depending on the ``coupling_map`` value are run with common layouts
+                on top of the random trial count specified by this value.
             skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
                 will be set in the property set. This is a tradeoff to run custom

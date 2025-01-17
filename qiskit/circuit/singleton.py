@@ -251,6 +251,7 @@ from __future__ import annotations
 
 import functools
 
+from qiskit.utils import deprecate_func
 from .instruction import Instruction
 from .gate import Gate
 from .controlledgate import ControlledGate, _ctrl_state_to_int
@@ -489,6 +490,7 @@ class _SingletonInstructionOverrides(Instruction):
         instruction._params = _frozenlist(instruction._params)
         return instruction
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         return self.to_mutable().c_if(classical, val)
 

@@ -82,7 +82,7 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     since="1.2",
     additional_msg="Use ``QuantumCircuit.layout`` and ``SparsePauliOp.apply_layout`` "
     + "to adjust an operator for a layout. Otherwise, use ``mthree.utils.final_measurement_mapping``. "
-    + "See https://qiskit-extensions.github.io/mthree/apidocs/utils.html for details.",
+    + "See <https://qiskit.github.io/qiskit-addon-mthree/apidocs/utils> for details.",
 )
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.

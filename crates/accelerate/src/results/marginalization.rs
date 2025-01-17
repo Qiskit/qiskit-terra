@@ -62,6 +62,7 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
 }
 
 #[pyfunction]
+#[pyo3(signature=(counts, indices=None))]
 pub fn marginal_counts(
     counts: HashMap<String, u64>,
     indices: Option<Vec<usize>>,
@@ -70,6 +71,7 @@ pub fn marginal_counts(
 }
 
 #[pyfunction]
+#[pyo3(signature=(counts, indices=None))]
 pub fn marginal_distribution(
     counts: HashMap<String, f64>,
     indices: Option<Vec<usize>>,

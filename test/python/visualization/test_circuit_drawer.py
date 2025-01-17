@@ -151,7 +151,8 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 10)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 10)
 
         expected = "\n".join(
             [
@@ -183,7 +184,8 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 10)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 10)
 
         expected = "\n".join(
             [

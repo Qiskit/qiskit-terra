@@ -27,7 +27,7 @@ def _circuit_to_dagdependency_v2(circuit):
     dagdependency = _DAGDependencyV2()
     dagdependency.name = circuit.name
     dagdependency.metadata = circuit.metadata
-    dagdependency.calibrations = circuit.calibrations
+    dagdependency._calibrations = circuit._calibrations_prop
     dagdependency.global_phase = circuit.global_phase
 
     dagdependency.add_qubits(circuit.qubits)

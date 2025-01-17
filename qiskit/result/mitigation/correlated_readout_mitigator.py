@@ -18,6 +18,7 @@ from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
 from .base_readout_mitigator import BaseReadoutMitigator
@@ -25,7 +26,7 @@ from .utils import counts_probability_vector, z_diagonal, str2diag
 
 
 class CorrelatedReadoutMitigator(BaseReadoutMitigator):
-    """N-qubit readout error mitigator.
+    """This class is DEPRECATED. N-qubit readout error mitigator.
 
     Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
     The mitigation_matrix should be calibrated using qiskit experiments.
@@ -34,6 +35,13 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
     """
 
+    @deprecate_func(
+        since="1.3",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+        "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+    )
     def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
 

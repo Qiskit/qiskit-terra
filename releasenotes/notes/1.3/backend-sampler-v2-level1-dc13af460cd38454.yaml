@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Support for level 1 data was added to :class:`~.BackendSamplerV2` as was
+    support for passing options through to the ``run()`` method of the wrapped
+    :class:`~.BackendV2`. The run options can be specified using a
+    ``"run_options"`` entry inside of the ``options`` dicitonary passed to
+    :class:`~.BackendSamplerV2`. The ``"run_options"`` entry should be a
+    dictionary mapping argument names to values for passing to the backend's
+    ``run()`` method. When a ``"meas_level"`` option with a value of 1 is set
+    in the run options, the results from the backend will be treated as level 1
+    results rather as bit arrays (the level 2 format).
+upgrade:
+  - |
+    When using :class:`~.BackendSamplerV2`, circuit metadata is no longer
+    cleared before passing circuits to the ``run()`` method of the wrapped
+    :class:`~.BackendV2` instance.

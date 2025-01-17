@@ -1,0 +1,32 @@
+---
+deprecations_providers:
+  - |
+    The :meth:`.BasicSimulator.configuration` method is deprecated and will be removed in 2.0.0. 
+    This method returned a legacy ``providers.models.BackendConfiguration`` instance which is part
+    of the deprecated ``BackendV1`` model. This model has been replaced with :class:`.BackendV2`, 
+    where the constraints are stored directly in the backend instance or the underlying :class:`.Target`
+    (``backend.target``).
+
+    Here is a quick guide for accessing the most common ``BackendConfiguration`` attributes in the 
+    :class:`BackendV2` model:""
+
+      BackendV1 model (deprecated) ------------> BackendV2 model
+      ----------------------------               ---------------
+      backend.configuration().backend_name       backend.name
+      backend.configuration().backend_version    backend.backend_version
+      backend.configuration().n_qubits           backend.num_qubits
+      backend.configuration().num_qubits         backend.num_qubits
+      backend.configuration().basis_gates        backend.target.operation_names (*)
+      backend.configuration().coupling_map       backend.target.build_coupling_map()
+      backend.configuration().local              No representation
+      backend.configuration().simulator          No representation
+      backend.configuration().conditional        No representation
+      backend.configuration().open_pulse         No representation     
+      backend.configuration().memory             No representation      
+      backend.configuration().max_shots          No representation      
+
+    (*) Note that ``backend.target.operation_names`` includes ``basis_gates`` and additional 
+    non-gate instructions, in some implementations it might be necessary to filter the output.
+
+    See `this guide <https://docs.quantum.ibm.com/api/qiskit/providers#migrating-from-backendv1-to-backendv2>`__
+    for more information on migrating to the ``BackendV2`` model.

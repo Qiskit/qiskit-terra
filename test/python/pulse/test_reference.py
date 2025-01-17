@@ -18,8 +18,10 @@ from qiskit import circuit, pulse
 from qiskit.pulse import ScheduleBlock, builder
 from qiskit.pulse.transforms import inline_subroutines
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestReference(QiskitTestCase):
     """Test for basic behavior of reference mechanism."""
 
@@ -430,9 +432,11 @@ class TestReference(QiskitTestCase):
             sched_z1.assign_references({("conflict_name",): sched_y1})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSubroutineWithCXGate(QiskitTestCase):
     """Test called program scope with practical example of building fully parametrized CX gate."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 

@@ -45,7 +45,8 @@ class TestPassManagerConfig(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=27, seed=42)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
-        self.assertEqual(config.inst_map, backend.instruction_schedule_map)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(config.inst_map, backend.instruction_schedule_map)
         self.assertEqual(config.coupling_map.get_edges(), backend.coupling_map.get_edges())
 
     def test_invalid_backend(self):
@@ -86,13 +87,14 @@ class TestPassManagerConfig(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        backend = GenericBackendV2(
-            num_qubits=20,
-            coupling_map=ALMADEN_CMAP,
-            basis_gates=["id", "u1", "u2", "u3", "cx"],
-            calibrate_instructions=None,
-            seed=42,
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=20,
+                coupling_map=ALMADEN_CMAP,
+                basis_gates=["id", "u1", "u2", "u3", "cx"],
+                calibrate_instructions=None,
+                seed=42,
+            )
         config = PassManagerConfig.from_backend(
             backend, basis_gates=["user_gate"], initial_layout=initial_layout
         )

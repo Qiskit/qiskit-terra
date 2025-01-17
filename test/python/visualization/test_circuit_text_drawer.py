@@ -388,7 +388,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 10)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 10)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -845,7 +846,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=False)), expected)
 
     def test_text_rzz_condition(self):
@@ -866,7 +868,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(RZZGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(RZZGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=False)), expected)
 
     def test_text_cp_condition(self):
@@ -887,7 +890,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=False)), expected)
 
     def test_text_cu1_reverse_bits(self):
@@ -1758,7 +1762,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [0, 1])
 
         self.assertEqual(
@@ -1789,7 +1794,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [0, 1])
 
         self.assertEqual(
@@ -1824,7 +1830,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [0, 1])
 
         self.assertEqual(
@@ -1860,7 +1867,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [0, 1])
 
         self.assertEqual(
@@ -1895,7 +1903,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [0, 1])
 
         self.assertEqual(
@@ -1930,7 +1939,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [0, 1])
 
         self.assertEqual(
@@ -1966,7 +1976,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(
@@ -1998,7 +2009,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ctrl-h").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ctrl-h").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(
@@ -2034,7 +2046,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(
@@ -2071,7 +2084,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(
@@ -2108,7 +2122,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            controlh = hgate.control(label="my ch").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(
@@ -2269,8 +2284,8 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 "            0x1 ",
             ]
         )
-
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2309,7 +2324,8 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2335,7 +2351,8 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         circuit.x(0)
         circuit.x(0)
         circuit.measure(2, 1)
-        circuit.x(2).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(2).c_if(cr, 2)
 
         expected = "\n".join(
             [
@@ -2386,7 +2403,8 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         circuit.x(0)
         circuit.x(0)
         circuit.measure(2, 1)
-        circuit.x(2).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(2).c_if(cr, 2)
 
         expected = "\n".join(
             [
@@ -2486,7 +2504,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "            0x1 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2523,8 +2542,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2565,7 +2584,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "            0x1 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2603,7 +2623,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "         1 └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2694,8 +2715,10 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
         qc1 = ClassicalRegister(3, "cr")
         qc2 = ClassicalRegister(1, "cr2")
         circuit = QuantumCircuit(qr, qc1, qc2)
-        circuit.x(0).c_if(qc1, 3)
-        circuit.x(0).c_if(qc2[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(qc1, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(qc2[0], 1)
 
         expected = "\n".join(
             [
@@ -2753,8 +2776,8 @@ class TestTextConditional(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2790,8 +2813,8 @@ class TestTextConditional(QiskitTestCase):
                 "            0x1 ",
             ]
         )
-
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
             expected,
@@ -2819,7 +2842,8 @@ class TestTextConditional(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2859,7 +2883,8 @@ class TestTextConditional(QiskitTestCase):
                 "              0x2 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
             expected,
@@ -2887,7 +2912,8 @@ class TestTextConditional(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -2931,7 +2957,8 @@ class TestTextConditional(QiskitTestCase):
                 "              0x3 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
             expected,
@@ -2959,7 +2986,8 @@ class TestTextConditional(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(
                 circuit_drawer(
@@ -3007,7 +3035,8 @@ class TestTextConditional(QiskitTestCase):
                 "              0x5 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
             expected,
@@ -3018,7 +3047,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cz(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cz(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3042,7 +3072,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cz(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cz(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3066,7 +3097,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cz(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cz(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3092,7 +3124,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cz(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cz(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3118,7 +3151,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cx(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3144,7 +3178,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cx(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3170,7 +3205,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cx(qr[1], qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(qr[1], qr[0]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3196,7 +3232,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cx(qr[1], qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(qr[1], qr[0]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3222,7 +3259,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3248,7 +3286,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3274,7 +3313,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[1], qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[1], qr[0]]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3300,7 +3340,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[1], qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[1], qr[0]]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3326,7 +3367,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3354,7 +3396,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3382,7 +3425,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3416,7 +3460,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3442,7 +3487,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3466,7 +3512,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3490,7 +3537,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.swap(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.swap(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3516,7 +3564,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.swap(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.swap(qr[0], qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3542,7 +3591,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cswap(qr[0], qr[1], qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cswap(qr[0], qr[1], qr[2]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3570,7 +3620,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.cswap(qr[0], qr[1], qr[2]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cswap(qr[0], qr[1], qr[2]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3599,7 +3650,8 @@ class TestTextConditional(QiskitTestCase):
         cr = ClassicalRegister(1, "cr")
 
         circuit = QuantumCircuit(qr, cr)
-        circuit.reset(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.reset(qr[0]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3624,7 +3676,8 @@ class TestTextConditional(QiskitTestCase):
         cr = ClassicalRegister(1, "cr")
 
         circuit = QuantumCircuit(qr, cr)
-        circuit.reset(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.reset(qr[0]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3649,7 +3702,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
-        qc.append(cx_multiplexer.c_if(cr, 1), [qr[0], qr[1]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cx_multiplexer.c_if(cr, 1), [qr[0], qr[1]])
 
         expected = "\n".join(
             [
@@ -3675,7 +3729,8 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
-        qc.append(cx_multiplexer.c_if(cr, 1), [qr[0], qr[1]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cx_multiplexer.c_if(cr, 1), [qr[0], qr[1]])
 
         expected = "\n".join(
             [
@@ -3702,7 +3757,8 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
-        circuit.h(qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3736,7 +3792,8 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
-        circuit.h(qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3762,8 +3819,10 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr[0], 1)
-        circuit.h(qr[1]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr[1], 0)
 
         expected = "\n".join(
             [
@@ -3790,8 +3849,10 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr[0], 1)
-        circuit.h(qr[1]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr[1], 0)
 
         expected = "\n".join(
             [
@@ -3826,7 +3887,8 @@ class TestTextConditional(QiskitTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(crx[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(crx[1], 0)
         circuit.measure(0, bits[3])
 
         expected = "\n".join(
@@ -3860,7 +3922,8 @@ class TestTextConditional(QiskitTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(crx[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(crx[1], 0)
         circuit.measure(0, bits[3])
 
         expected = "\n".join(
@@ -3900,7 +3963,8 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
-        circuit.h(qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr, 1)
 
         expected = "\n".join(
             [
@@ -3930,10 +3994,14 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(3, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0]).c_if(cr, 6)
-        circuit.h(qr[1]).c_if(cr, 1)
-        circuit.h(qr[2]).c_if(cr, 2)
-        circuit.cx(0, 1).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr, 6)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[2]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(0, 1).c_if(cr, 3)
 
         expected = "\n".join(
             [
@@ -3969,7 +4037,8 @@ class TestTextConditional(QiskitTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(bits[3], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(bits[3], 0)
 
         expected = "\n".join(
             [
@@ -4847,9 +4916,10 @@ class TestTextOpenControlledGate(QiskitTestCase):
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(1, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(
-            ZGate().control(3, ctrl_state="101").c_if(cr, 1), [qr[0], qr[1], qr[2], qr[3]]
-        )
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(
+                ZGate().control(3, ctrl_state="101").c_if(cr, 1), [qr[0], qr[1], qr[2], qr[3]]
+            )
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cch_bot(self):
@@ -5908,14 +5978,16 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         circuit.measure(0, 1)
         circuit.measure(1, 2)
         circuit.x(2)
-        circuit.x(2, label="XLabel").c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(2, label="XLabel").c_if(cr, 2)
 
         qr2 = QuantumRegister(3, "qr2")
         circuit2 = QuantumCircuit(qr2, cr)
         circuit2.x(1)
         circuit2.y(1)
         circuit2.z(0)
-        circuit2.x(0, label="X1i").c_if(cr, 4)
+        with self.assertWarns(DeprecationWarning):
+            circuit2.x(0, label="X1i").c_if(cr, 4)
 
         circuit.if_else((cr[1], 1), circuit2, None, [0, 1, 2], [0, 1, 2])
         circuit.x(0, label="X1i")
@@ -5981,7 +6053,8 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with self.assertWarns(DeprecationWarning):
+                circuit.x(0, label="X c_if").c_if(cr, 4)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
@@ -6227,12 +6300,15 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         cr = ClassicalRegister(3, "cr")
         circuit = QuantumCircuit(qr, cr)
         circuit.h(0)
-        circuit.x(2).c_if(cr[1], 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(2).c_if(cr[1], 2)
 
         qr2 = QuantumRegister(3, "qr2")
         qc2 = QuantumCircuit(qr2, cr)
-        qc2.x(0, label="X1").c_if(cr, 4)
-        qc2.x(1, label="X2").c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0, label="X1").c_if(cr, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(1, label="X2").c_if(cr[1], 1)
 
         circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
         self.assertEqual(

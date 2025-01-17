@@ -38,7 +38,7 @@ class iSwapGate(SingletonGate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─⨂─
               │
@@ -46,7 +46,7 @@ class iSwapGate(SingletonGate):
 
     **Reference Implementation:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐┌───┐     ┌───┐
         q_0: ┤ S ├┤ H ├──■──┤ X ├─────

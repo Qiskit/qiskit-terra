@@ -48,7 +48,7 @@ features:
           
     outputs
 
-    .. parsed-literal::
+    .. code-block:: text
 
       Original circuit:
       			 

@@ -22,12 +22,12 @@ use crate::{gate_matrix, Qubit};
 
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyTuple};
+use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPy, Python};
 
 #[derive(Clone, Debug)]
@@ -183,7 +183,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyOperation),
 }
 
-impl<'a> Operation for OperationRef<'a> {
+impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
@@ -278,7 +278,7 @@ impl<'a> Operation for OperationRef<'a> {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 pub enum StandardGate {
     GlobalPhaseGate = 0,
     HGate = 1,
@@ -431,6 +431,11 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "rcccx",        // 51 ("rc3x")
 ];
 
+/// Get a slice of all standard gate names.
+pub fn get_standard_gate_names() -> &'static [&'static str] {
+    &STANDARD_GATE_NAME
+}
+
 impl StandardGate {
     pub fn create_py_op(
         &self,
@@ -450,16 +455,28 @@ impl StandardGate {
             extra_attrs.condition(),
         );
         if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
-            let kwargs = [
-                ("label", label.to_object(py)),
-                ("unit", extra_attrs.py_unit(py).into_any()),
-                ("duration", duration.to_object(py)),
-            ]
-            .into_py_dict_bound(py);
+            let kwargs = [("label", label.to_object(py))].into_py_dict_bound(py);
             let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
+            let mut mutable = false;
             if let Some(condition) = condition {
-                out = out.call_method0(py, "to_mutable")?;
+                if !mutable {
+                    out = out.call_method0(py, "to_mutable")?;
+                    mutable = true;
+                }
                 out.setattr(py, "condition", condition)?;
+            }
+            if let Some(duration) = duration {
+                if !mutable {
+                    out = out.call_method0(py, "to_mutable")?;
+                    mutable = true;
+                }
+                out.setattr(py, "_duration", duration)?;
+            }
+            if let Some(unit) = unit {
+                if !mutable {
+                    out = out.call_method0(py, "to_mutable")?;
+                }
+                out.setattr(py, "_unit", unit)?;
             }
             Ok(out)
         } else {
@@ -469,6 +486,198 @@ impl StandardGate {
 
     pub fn num_ctrl_qubits(&self) -> u32 {
         STANDARD_GATE_NUM_CTRL_QUBITS[*self as usize]
+    }
+
+    pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        match self {
+            Self::GlobalPhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::GlobalPhaseGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::HGate => Some((Self::HGate, smallvec![])),
+            Self::IGate => Some((Self::IGate, smallvec![])),
+            Self::XGate => Some((Self::XGate, smallvec![])),
+            Self::YGate => Some((Self::YGate, smallvec![])),
+            Self::ZGate => Some((Self::ZGate, smallvec![])),
+            Self::PhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::PhaseGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::RGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RGate,
+                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
+                )
+            })),
+            Self::RXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::RYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::RZGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RZGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::SGate => Some((Self::SdgGate, smallvec![])),
+            Self::SdgGate => Some((Self::SGate, smallvec![])),
+            Self::SXGate => Some((Self::SXdgGate, smallvec![])),
+            Self::SXdgGate => Some((Self::SXGate, smallvec![])),
+            Self::TGate => Some((Self::TdgGate, smallvec![])),
+            Self::TdgGate => Some((Self::TGate, smallvec![])),
+            Self::UGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::UGate,
+                    smallvec![
+                        multiply_param(&params[0], -1.0, py),
+                        multiply_param(&params[2], -1.0, py),
+                        multiply_param(&params[1], -1.0, py),
+                    ],
+                )
+            })),
+            Self::U1Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::U1Gate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::U2Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::U2Gate,
+                    smallvec![
+                        add_param(&multiply_param(&params[1], -1.0, py), -PI, py),
+                        add_param(&multiply_param(&params[0], -1.0, py), PI, py),
+                    ],
+                )
+            })),
+            Self::U3Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::U3Gate,
+                    smallvec![
+                        multiply_param(&params[0], -1.0, py),
+                        multiply_param(&params[2], -1.0, py),
+                        multiply_param(&params[1], -1.0, py),
+                    ],
+                )
+            })),
+            Self::CHGate => Some((Self::CHGate, smallvec![])),
+            Self::CXGate => Some((Self::CXGate, smallvec![])),
+            Self::CYGate => Some((Self::CYGate, smallvec![])),
+            Self::CZGate => Some((Self::CZGate, smallvec![])),
+            Self::DCXGate => None, // the inverse in not a StandardGate
+            Self::ECRGate => Some((Self::ECRGate, smallvec![])),
+            Self::SwapGate => Some((Self::SwapGate, smallvec![])),
+            Self::ISwapGate => None, // the inverse in not a StandardGate
+            Self::CPhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CPhaseGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::CRXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CRXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::CRYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CRYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::CRZGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CRZGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::CSGate => Some((Self::CSdgGate, smallvec![])),
+            Self::CSdgGate => Some((Self::CSGate, smallvec![])),
+            Self::CSXGate => None, // the inverse in not a StandardGate
+            Self::CUGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CUGate,
+                    smallvec![
+                        multiply_param(&params[0], -1.0, py),
+                        multiply_param(&params[2], -1.0, py),
+                        multiply_param(&params[1], -1.0, py),
+                        multiply_param(&params[3], -1.0, py),
+                    ],
+                )
+            })),
+            Self::CU1Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CU1Gate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::CU3Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CU3Gate,
+                    smallvec![
+                        multiply_param(&params[0], -1.0, py),
+                        multiply_param(&params[2], -1.0, py),
+                        multiply_param(&params[1], -1.0, py),
+                    ],
+                )
+            })),
+            Self::RXXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RXXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::RYYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RYYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::RZZGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RZZGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::RZXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RZXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
+            })),
+            Self::XXMinusYYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::XXMinusYYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
+                )
+            })),
+            Self::XXPlusYYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::XXPlusYYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
+                )
+            })),
+            Self::CCXGate => Some((Self::CCXGate, smallvec![])),
+            Self::CCZGate => Some((Self::CCZGate, smallvec![])),
+            Self::CSwapGate => Some((Self::CSwapGate, smallvec![])),
+            Self::RCCXGate => None, // the inverse in not a StandardGate
+            Self::C3XGate => Some((Self::C3XGate, smallvec![])),
+            Self::C3SXGate => None, // the inverse in not a StandardGate
+            Self::RC3XGate => None, // the inverse in not a StandardGate
+        }
     }
 }
 
@@ -492,9 +701,18 @@ impl StandardGate {
         self.definition(&params)
     }
 
+    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        self.inverse(&params)
+    }
+
     #[getter]
     pub fn get_num_qubits(&self) -> u32 {
         self.num_qubits()
+    }
+
+    #[getter]
+    pub fn get_num_ctrl_qubits(&self) -> u32 {
+        self.num_ctrl_qubits()
     }
 
     #[getter]
@@ -512,12 +730,22 @@ impl StandardGate {
         self.name()
     }
 
-    pub fn __eq__(&self, other: &Bound<PyAny>) -> Py<PyAny> {
-        let py = other.py();
-        let Ok(other) = other.extract::<Self>() else {
-            return py.NotImplemented();
-        };
-        (*self == other).into_py(py)
+    #[getter]
+    pub fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits() > 0
+    }
+
+    #[getter]
+    pub fn get_gate_class(&self, py: Python) -> PyResult<Py<PyAny>> {
+        get_std_gate_class(py, *self)
+    }
+
+    #[staticmethod]
+    pub fn all_gates(py: Python) -> Bound<PyList> {
+        PyList::new_bound(
+            py,
+            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
+        )
     }
 
     pub fn __hash__(&self) -> isize {
@@ -2082,7 +2310,7 @@ pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
                 .expect("Multiplication of Parameter expression by float failed."),
         ),
-        Param::Obj(_) => unreachable!(),
+        Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
     }
 }
 
@@ -2116,9 +2344,15 @@ pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     }
 }
 
-fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
-    match [param1, param2] {
+pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
+    match [&param1, &param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
+        [Param::Float(theta), Param::ParameterExpression(_lambda)] => {
+            add_param(&param2, *theta, py)
+        }
+        [Param::ParameterExpression(_theta), Param::Float(lambda)] => {
+            add_param(&param1, *lambda, py)
+        }
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
             Param::ParameterExpression(
                 theta

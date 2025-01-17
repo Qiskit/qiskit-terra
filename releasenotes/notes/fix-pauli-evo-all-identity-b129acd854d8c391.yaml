@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The :class:`.PauliEvolutionGate`, if used with a product formula synthesis (this is the default),
+    did not correctly handle all-identity terms in the operator. The all-identity term
+    should introduce a global phase equal to ``-evolution_time``, but was off by a factor of 2
+    and could break for parameterized times. This behavior is now fixed.
+    Fixed `#13625 <https://github.com/Qiskit/qiskit/issues/13625>`__.

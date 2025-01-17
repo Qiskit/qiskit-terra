@@ -52,7 +52,7 @@ pub struct ParUnevenChunksMut<'len, 'data, T> {
     data: &'data mut [T],
 }
 
-impl<'len, 'data, T: Send + 'data> ParallelIterator for ParUnevenChunksMut<'len, 'data, T> {
+impl<'data, T: Send + 'data> ParallelIterator for ParUnevenChunksMut<'_, 'data, T> {
     type Item = &'data mut [T];
 
     #[track_caller]
@@ -61,7 +61,7 @@ impl<'len, 'data, T: Send + 'data> ParallelIterator for ParUnevenChunksMut<'len,
     }
 }
 
-impl<'len, 'data, T: Send + 'data> IndexedParallelIterator for ParUnevenChunksMut<'len, 'data, T> {
+impl<'data, T: Send + 'data> IndexedParallelIterator for ParUnevenChunksMut<'_, 'data, T> {
     #[track_caller]
     fn drive<C: Consumer<Self::Item>>(self, consumer: C) -> C::Result {
         bridge(self, consumer)
@@ -132,7 +132,7 @@ impl<'len, 'data, T> UnevenChunksMutIter<'len, 'data, T> {
     }
 }
 
-impl<'len, 'data, T> Iterator for UnevenChunksMutIter<'len, 'data, T> {
+impl<'data, T> Iterator for UnevenChunksMutIter<'_, 'data, T> {
     type Item = &'data mut [T];
 
     #[track_caller]
@@ -154,8 +154,8 @@ impl<'len, 'data, T> Iterator for UnevenChunksMutIter<'len, 'data, T> {
         (self.chunk_lengths.len(), Some(self.chunk_lengths.len()))
     }
 }
-impl<'len, 'data, T> ExactSizeIterator for UnevenChunksMutIter<'len, 'data, T> {}
-impl<'len, 'data, T> DoubleEndedIterator for UnevenChunksMutIter<'len, 'data, T> {
+impl<T> ExactSizeIterator for UnevenChunksMutIter<'_, '_, T> {}
+impl<T> DoubleEndedIterator for UnevenChunksMutIter<'_, '_, T> {
     #[track_caller]
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.chunk_lengths.is_empty() {

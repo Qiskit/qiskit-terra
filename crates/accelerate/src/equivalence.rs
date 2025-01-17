@@ -277,7 +277,7 @@ impl Display for EdgeData {
 }
 
 /// Enum that helps extract the Operation and Parameters on a Gate.
-/// It is highly derivative of `PackedOperation` while also tracking the specific
+/// It is highly derivative of [PackedOperation] while also tracking the specific
 /// parameter objects.
 #[derive(Debug, Clone)]
 pub struct GateOper {
@@ -286,7 +286,7 @@ pub struct GateOper {
 }
 
 impl<'py> FromPyObject<'py> for GateOper {
-    fn extract(ob: &'py PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
@@ -295,13 +295,15 @@ impl<'py> FromPyObject<'py> for GateOper {
     }
 }
 
-/// Used to extract an instance of [CircuitData] from a `QuantumCircuit`.
-/// It also ensures seamless conversion back to `QuantumCircuit` once sent
+/// Used to extract an instance of [CircuitData] from a [`QuantumCircuit`].
+/// It also ensures seamless conversion back to [`QuantumCircuit`] once sent
 /// back to Python.
 ///
-/// TODO: Remove this implementation once the `EquivalenceLibrary` is no longer
+/// TODO: Remove this implementation once the [EquivalenceLibrary] is no longer
 /// called from Python, or once the API is able to seamlessly accept instances
 /// of [CircuitData].
+///
+/// [`QuantumCircuit`]: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit
 #[derive(Debug, Clone)]
 pub struct CircuitFromPython(pub CircuitData);
 
@@ -340,6 +342,8 @@ impl ToPyObject for CircuitFromPython {
 type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
 type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 
+/// A library providing a one-way mapping of gates to their equivalent
+/// implementations as :class:`.QuantumCircuit` instances.
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
@@ -424,7 +428,7 @@ impl EquivalenceLibrary {
     ///
     /// Args:
     ///     gate (Gate): A Gate instance.
-    ///     entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
+    ///     entry (List['QuantumCircuit']) : A list of :class:`.QuantumCircuit` instances, each
     ///         equivalently implementing the given Gate.
     #[pyo3(name = "set_entry")]
     fn py_set_entry(
@@ -436,8 +440,8 @@ impl EquivalenceLibrary {
         self.set_entry(py, &gate.operation, &gate.params, entry)
     }
 
-    /// Gets the set of QuantumCircuits circuits from the library which
-    /// equivalently implement the given Gate.
+    /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
+    /// library which equivalently implement the given :class:`.Gate`.
     ///
     /// Parameterized circuits will have their parameters replaced with the
     /// corresponding entries from Gate.params.
@@ -446,8 +450,8 @@ impl EquivalenceLibrary {
     ///     gate (Gate) - Gate: A Gate instance.
     ///
     /// Returns:
-    ///     List[QuantumCircuit]: A list of equivalent QuantumCircuits. If empty,
-    ///         library contains no known decompositions of Gate.
+    ///     List[QuantumCircuit]: A list of equivalent :class:`.QuantumCircuit` instances.
+    ///         If empty, library contains no known decompositions of Gate.
     ///
     ///         Returned circuits will be ordered according to their insertion in
     ///         the library, from earliest to latest, from top to base. The
@@ -469,6 +473,16 @@ impl EquivalenceLibrary {
     }
 
     // TODO: Remove once BasisTranslator is in Rust.
+    /// Return graph representing the equivalence library data.
+    ///
+    /// This property should be treated as read-only as it provides
+    /// a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+    /// If the graph returned by this property is mutated it could corrupt the
+    /// the contents of the object. If you need to modify the output ``PyDiGraph``
+    /// be sure to make a copy prior to any modification.
+    ///
+    /// Returns:
+    ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
     fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
         if let Some(graph) = &self._graph {
@@ -492,6 +506,10 @@ impl EquivalenceLibrary {
         }
     }
 
+    /// Return list of keys to key to node index map.
+    ///
+    /// Returns:
+    ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
     fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
         let py_dict = PyDict::new_bound(slf.py());
@@ -501,6 +519,13 @@ impl EquivalenceLibrary {
         Ok(py_dict.as_any().call_method0("keys")?.into())
     }
 
+    /// Return node index for a given key.
+    ///
+    /// Args:
+    ///     key (Key): Key to an equivalence.
+    ///
+    /// Returns:
+    ///     Int: Index to the node in the graph for the given key.
     #[pyo3(name = "node_index")]
     fn py_node_index(&self, key: &Key) -> usize {
         self.node_index(key).index()
@@ -614,7 +639,7 @@ impl EquivalenceLibrary {
         Ok(())
     }
 
-    /// Set the equivalence record for a Gate. Future queries for the Gate
+    /// Set the equivalence record for a [PackedOperation]. Future queries for the Gate
     /// will return only the circuits provided.
     pub fn set_entry(
         &mut self,
@@ -649,21 +674,13 @@ impl EquivalenceLibrary {
         Ok(())
     }
 
-    /// Rust native equivalent to `EquivalenceLibrary.has_entry()`
-    ///
-    /// Check if a library contains any decompositions for gate.
-    ///
-    /// # Arguments:
-    /// * `operation` OperationType: A Gate instance.
-    ///
-    /// # Returns:
-    /// `bool`: `true` if gate has a known decomposition in the library.
-    ///         `false` otherwise.
+    /// Check if the [EquivalenceLibrary] instance contains any decompositions for gate.
     pub fn has_entry(&self, operation: &PackedOperation) -> bool {
         let key = Key::from_operation(operation);
         self.key_to_node_index.contains_key(&key)
     }
 
+    /// Returns an iterator with all the [Key] instances in the [EquivalenceLibrary].
     pub fn keys(&self) -> impl Iterator<Item = &Key> {
         self.key_to_node_index.keys()
     }
@@ -682,13 +699,7 @@ impl EquivalenceLibrary {
         }
     }
 
-    /// Retrieve the `NodeIndex` that represents a `Key`
-    ///
-    /// # Arguments:
-    /// * `key`: The `Key` to look for.
-    ///
-    /// # Returns:
-    /// `NodeIndex`
+    /// Retrieve the [NodeIndex] that represents a [Key].
     pub fn node_index(&self, key: &Key) -> NodeIndex {
         self.key_to_node_index[key]
     }
@@ -696,6 +707,11 @@ impl EquivalenceLibrary {
     /// Expose an immutable view of the inner graph.
     pub fn graph(&self) -> &GraphType {
         &self.graph
+    }
+
+    /// Expose a mutable view of the inner graph.
+    pub(crate) fn graph_mut(&mut self) -> &mut GraphType {
+        &mut self.graph
     }
 }
 
@@ -782,6 +798,8 @@ impl Display for EquivalenceError {
         write!(f, "{}", self.message)
     }
 }
+
+// Conversion helpers
 
 fn to_pygraph<N, E>(py: Python, pet_graph: &StableDiGraph<N, E>) -> PyResult<PyObject>
 where

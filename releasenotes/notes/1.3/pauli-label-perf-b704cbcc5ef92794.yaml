@@ -1,0 +1,4 @@
+---
+features_quantum_info:
+  - |
+    The performance of :meth:`.Pauli.to_label` has significantly improved for large Paulis.

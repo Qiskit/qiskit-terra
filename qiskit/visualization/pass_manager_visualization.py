@@ -56,7 +56,9 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         VisualizationError: If raw=True and filename=None.
 
     Example:
-        .. code-block::
+        .. plot::
+            :include-source:
+            :nofigs:
 
             from qiskit import QuantumCircuit
             from qiskit.transpiler import generate_preset_pass_manager
@@ -131,7 +133,9 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         VisualizationError: If raw=True and filename=None.
 
     Example:
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             %matplotlib inline
             from qiskit.providers.fake_provider import GenericBackendV2

@@ -13,6 +13,7 @@
 """Dynamical Decoupling insertion pass."""
 
 import itertools
+import warnings
 
 import numpy as np
 from qiskit.circuit import Gate, Delay, Reset
@@ -46,6 +47,7 @@ class DynamicalDecoupling(TransformationPass):
     (including global phase).
 
     .. plot::
+       :alt: Output from the previous code.
        :include-source:
 
         import numpy as np
@@ -288,11 +290,15 @@ class DynamicalDecoupling(TransformationPass):
         """
         circ_durations = InstructionDurations()
 
-        if dag.calibrations:
+        if dag._calibrations_prop:
             cal_durations = []
-            for gate, gate_cals in dag.calibrations.items():
-                for (qubits, parameters), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # `schedule.duration` emits pulse deprecation warnings which we don't want
+                # to see here
+                for gate, gate_cals in dag._calibrations_prop.items():
+                    for (qubits, parameters), schedule in gate_cals.items():
+                        cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if self._durations is not None:

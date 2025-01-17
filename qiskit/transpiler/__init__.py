@@ -33,6 +33,8 @@ branches, and other complex behaviors. That being said, the standard
 compilation flow follows the structure given below:
 
 .. image:: /source_images/transpiling_core_steps.png
+   :alt: The transpilation process takes the input circuit, applies the transpilation \
+      passes, then produces the output circuit.
 
 .. raw:: html
 
@@ -85,7 +87,9 @@ If you'd like to work directly with a
 preset pass manager you can use the :func:`~.generate_preset_pass_manager`
 function to easily generate one. For example:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
     from qiskit.providers.fake_provider import GenericBackendV2
@@ -103,15 +107,16 @@ stage using dynamical decoupling (via the :class:`~.PadDynamicalDecoupling` pass
 also add initial logical optimization prior to routing, you would do something like
 (building off the previous example):
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     import numpy as np
     from qiskit.providers.fake_provider import GenericBackendV2
-    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
+    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate, CXGate
     from qiskit.transpiler import PassManager, generate_preset_pass_manager
     from qiskit.transpiler.passes import (
         ALAPScheduleAnalysis,
-        CXCancellation,
         InverseCancellation,
         PadDynamicalDecoupling,
     )
@@ -132,7 +137,7 @@ also add initial logical optimization prior to routing, you would do something l
     ]
     logical_opt = PassManager(
         [
-            CXCancellation(),
+            InverseCancellation([CXGate()]),
             InverseCancellation(inverse_gate_list),
         ]
     )
@@ -205,7 +210,9 @@ The specific information needed by the transpiler is described by the
 For example, to construct a simple :class:`~.Target` object, one can iteratively add
 descriptions of the instructions it supports:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit import Parameter, Measure
     from qiskit.transpiler import Target, InstructionProperties
@@ -258,7 +265,7 @@ descriptions of the instructions it supports:
     )
     print(target)
 
-.. parsed-literal::
+.. code-block:: text
 
     Target
     Number of qubits: 3
@@ -331,7 +338,8 @@ example 3 qubit :class:`~.Target` above:
 
 .. plot::
    :include-source:
-
+   :alt: Output from the previous code.
+   
    from qiskit.circuit import Parameter, Measure
    from qiskit.transpiler import Target, InstructionProperties
    from qiskit.circuit.library import UGate, RZGate, RXGate, RYGate, CXGate, CZGate
@@ -390,6 +398,7 @@ see the individual connectivity, you can pass the operation name to
 :meth:`.CouplingMap.build_coupling_map`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.circuit import Parameter, Measure
@@ -445,6 +454,7 @@ see the individual connectivity, you can pass the operation name to
    target.build_coupling_map('cx').draw()
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.circuit import Parameter, Measure
@@ -521,7 +531,9 @@ reset operations.  However, most quantum devices only natively support a handful
 and non-gate operations. The allowed instructions for a given backend can be found by querying the
 :class:`~.Target` for the devices:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
    from qiskit.providers.fake_provider import GenericBackendV2
    backend = GenericBackendV2(5)
@@ -532,6 +544,7 @@ Every quantum circuit run on the target device must be expressed using only thes
 For example, to run a simple phase estimation circuit:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    import numpy as np
@@ -557,7 +570,9 @@ the target IBM Quantum device (the :class:`~.GenericBackendV2` class generates
 a fake backend with a specified number of qubits for test purposes):
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
+   :context: reset
 
    from qiskit import transpile
    from qiskit import QuantumCircuit
@@ -579,11 +594,14 @@ a fake backend with a specified number of qubits for test purposes):
 A few things to highlight. First, the circuit has gotten longer with respect to the
 original.  This can be verified by checking the depth of both circuits:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
    print('Original depth:', qc.depth(), 'Decomposed Depth:', qc_basis.depth())
 
-.. parsed-literal::
+.. code-block:: text
 
     Original depth: 4 Decomposed Depth: 10
 
@@ -596,18 +614,21 @@ It is important to highlight two special cases:
 
 1. If A swap gate is not a native gate and must be decomposed this requires three CNOT gates:
 
-   .. code-block::
+   .. plot::
+      :include-source:
+      :nofigs:
 
       from qiskit.providers.fake_provider import GenericBackendV2
       backend = GenericBackendV2(5)
 
       print(backend.operation_names)
 
-   .. parsed-literal::
+   .. code-block:: text
 
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
    .. plot:
+      :alt: Circuit diagram output by the previous code.
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
@@ -628,6 +649,7 @@ It is important to highlight two special cases:
    this gate must be decomposed.  This decomposition is quite costly:
 
    .. plot::
+      :alt: Circuit diagram output by the previous code.
       :include-source:
 
       from qiskit.circuit import QuantumCircuit
@@ -653,6 +675,7 @@ qubits used in computations.  We need to be able to map these virtual qubits in 
 manner to the "physical" qubits in an actual quantum device.
 
 .. image:: /source_images/mapping.png
+   :alt: Diagram illustrating how virtual qubits are mapped to physical qubits.
 
 
 By default, qiskit will do this mapping for you.  The choice of mapping depends on the
@@ -700,6 +723,7 @@ and we can view this layout selection graphically using
 :func:`qiskit.visualization.plot_circuit_layout`:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -718,6 +742,7 @@ and we can view this layout selection graphically using
 - **Layout Using Optimization Level 0**
 
    .. plot::
+      :alt: Output from the previous code.
       :include-source:
 
       from qiskit import QuantumCircuit, transpile
@@ -737,6 +762,7 @@ and we can view this layout selection graphically using
 - **Layout Using Optimization Level 3**
 
    .. plot::
+      :alt: Output from the previous code.
       :include-source:
 
       from qiskit import QuantumCircuit, transpile
@@ -760,6 +786,7 @@ keyword argument, where the index labels the virtual qubit in the circuit and th
 corresponding value is the label for the physical qubit to map onto:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -807,6 +834,7 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
 ``initial_layout`` in a heavy hex coupling map:
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    from qiskit import QuantumCircuit, transpile
 
@@ -816,6 +844,7 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    ghz.draw(output='mpl')
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    import matplotlib.pyplot as plt
@@ -888,6 +917,7 @@ setting the optimization level higher:
 
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
@@ -900,6 +930,7 @@ setting the optimization level higher:
    ghz.draw(output='mpl')
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    import matplotlib.pyplot as plt
@@ -946,6 +977,7 @@ for idle time on the qubits between the execution of instructions. For example, 
 circuit such as:
 
 .. plot::
+   :alt: Diagram illustrating the previously described circuit.
 
    from qiskit import QuantumCircuit
 
@@ -957,6 +989,7 @@ circuit such as:
 we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -976,6 +1009,7 @@ account for idle time on each qubit. To get a better idea of the timing of the c
 also look at it with the :func:`.timeline.draw` function:
 
 .. plot::
+   :alt: Output from circuit timeline drawer.
 
    from qiskit.visualization.timeline import draw as timeline_draw
 
@@ -1022,7 +1056,7 @@ classical register wires, though theoretically two conditional instructions
 conditioned on the same register could commute, i.e. read-access to the
 classical register doesn't change its state.
 
-.. parsed-literal::
+.. code-block:: text
 
     qc = QuantumCircuit(2, 1)
     qc.delay(100, 0)
@@ -1033,7 +1067,7 @@ The scheduler SHOULD comply with the above topological ordering policy of the
 DAG circuit.
 Accordingly, the `asap`-scheduled circuit will become
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌────────────────┐   ┌───┐
     q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
@@ -1060,7 +1094,7 @@ then a discriminated (D) binary value is moved to the classical register (C).
 A sequence from t0 to t1 of the measure instruction interval could be
 modeled as follows:
 
-.. parsed-literal::
+.. code-block:: text
 
     Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
     B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
@@ -1075,7 +1109,7 @@ and the :class:`.Clbit` is only occupied at the very end of the interval.
 The lack of precision representing the physical model may induce
 edge cases in the scheduling:
 
-.. parsed-literal::
+.. code-block:: text
 
             ┌───┐
     q_0: ───┤ X ├──────
@@ -1094,7 +1128,7 @@ is unchanged during the application of the stimulus, so two nodes are
 simultaneously operated.
 If one tries to `alap`-schedule this circuit, it may return following circuit:
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌────────────────┐   ┌───┐
     q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
@@ -1110,7 +1144,7 @@ It looks like the topological ordering between the nodes is flipped in the
 scheduled view.
 This behavior can be understood by considering the control flow model described above,
 
-.. parsed-literal::
+.. code-block:: text
 
     : Quantum Circuit, first-measure
     0 ░░░░░░░░░░░░▒▒▒▒▒▒░
@@ -1142,7 +1176,7 @@ be copied to the pass manager property set before the pass is called.
 
 Due to default latencies, the `alap`-scheduled circuit of above example may become
 
-.. parsed-literal::
+.. code-block:: text
 
             ┌───┐
     q_0: ───┤ X ├──────
@@ -1156,7 +1190,8 @@ If the backend microarchitecture supports smart scheduling of the control flow
 instructions, such as separately scheduling qubits and classical registers,
 the insertion of the delay yields an unnecessarily longer total execution time.
 
-.. parsed-literal::
+.. code-block:: text
+
     : Quantum Circuit, first-XGate
     0 ░▒▒▒░░░░░░░░░░░░░░░
     1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -1173,7 +1208,7 @@ However, this result is much more intuitive in the topological ordering view.
 If a finite conditional latency value is provided, for example, 30 dt, the circuit
 is scheduled as follows:
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌───────────────┐   ┌───┐
     q_0: ┤ Delay(30[dt]) ├───┤ X ├──────
@@ -1185,7 +1220,8 @@ is scheduled as follows:
 
 with the timing model:
 
-.. parsed-literal::
+.. code-block:: text
+
     : Quantum Circuit, first-xgate
     0 ░░▒▒▒░░░░░░░░░░░░░░░
     1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░

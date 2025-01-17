@@ -19,6 +19,7 @@ from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.utils import control_flow
 
 from qiskit._accelerate.inverse_cancellation import inverse_cancellation
 
@@ -74,6 +75,7 @@ class InverseCancellation(TransformationPass):
 
         super().__init__()
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit):
         """Run the InverseCancellation pass on `dag`.
 

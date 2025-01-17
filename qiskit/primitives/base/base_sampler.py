@@ -56,7 +56,9 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
 
     Here is an example of how sampler is used.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.primitives import Sampler
         from qiskit import QuantumCircuit

@@ -35,7 +35,7 @@ class XXPlusYYGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────────┐
         q_0: ┤0              ├
@@ -67,7 +67,7 @@ class XXPlusYYGate(Gate):
         phase is added on q_1. If :math:`\beta` is set to its default value
         of :math:`0`, the gate is equivalent in big and little endian.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐
             q_0: ┤1              ├

@@ -156,26 +156,16 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit_aer",
         )
 
-        # Remove these four filters in Qiskit 2.0.0 when we remove unit and duration
+        # Remove these two filters in Qiskit 2.0.0 when we remove unit and duration
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
-            message=r".*The property.*qiskit.circuit.instruction.Instruction.unit.*",
+            message=r".*The property.*qiskit.*duration.*",
         )
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
-            message=r".*The property.*qiskit.circuit.instruction.Instruction.duration.*",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*qiskit.circuit.quantumcircuit.QuantumCircuit.unit.*",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*qiskit.circuit.quantumcircuit.QuantumCircuit.duration.*",
+            message=r".*The property.*qiskit.*unit.*",
         )
 
         # Safe to remove once `FakeBackend` is removed (2.0)
@@ -184,6 +174,27 @@ class QiskitTestCase(BaseTestCase):
             category=DeprecationWarning,
             message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
             module="qiskit.providers.fake_provider.fake_backend",
+        )
+
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message=r".*The property.*condition.*is deprecated.*",
+            module="qiskit_aer",
+        )
+
+        # Remove with the condition attribute in 2.0:
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*condition.*is deprecated.*",
+            module="qiskit.visualization",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*condition_bits.*is deprecated.*",
+            module="qiskit.transpiler.passes.scheduling",
         )
 
         allow_DeprecationWarning_message = [

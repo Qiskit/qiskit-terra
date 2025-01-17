@@ -97,8 +97,25 @@ class ObservablesArray(ShapedMixin):
         array = np.array2string(self._array, prefix=prefix, suffix=suffix, threshold=50)
         return prefix + array + suffix
 
-    def tolist(self) -> list:
-        """Convert to a nested list"""
+    def tolist(self) -> list | ObservableLike:
+        """Convert to a nested list.
+
+        Similar to Numpy's ``tolist`` method, the level of nesting
+        depends on the dimension of the observables array. In the
+        case of dimension 0 the method returns a single observable
+        (``dict`` in the case of a weighted sum of Paulis) instead of a list.
+
+        Examples::
+            Return values for a one-element list vs one element:
+
+                >>> from qiskit.primitives.containers.observables_array import ObservablesArray
+                >>> oa = ObservablesArray.coerce(["Z"])
+                >>> print(type(oa.tolist()))
+                <class 'list'>
+                >>> oa = ObservablesArray.coerce("Z")
+                >>> print(type(oa.tolist()))
+                <class 'dict'>
+        """
         return self._array.tolist()
 
     def __array__(self, dtype=None, copy=None):

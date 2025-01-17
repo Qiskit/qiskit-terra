@@ -173,52 +173,52 @@ fn reduce_cost(
                         gates.push((
                             StandardGate::SGate,
                             smallvec![],
-                            smallvec![Qubit(qubit0 as u32)],
+                            smallvec![Qubit::new(qubit0)],
                         ));
                         gates.push((
                             StandardGate::HGate,
                             smallvec![],
-                            smallvec![Qubit(qubit0 as u32)],
+                            smallvec![Qubit::new(qubit0)],
                         ));
                     } else if n0 == 2 {
                         gates.push((
                             StandardGate::HGate,
                             smallvec![],
-                            smallvec![Qubit(qubit0 as u32)],
+                            smallvec![Qubit::new(qubit0)],
                         ));
                         gates.push((
                             StandardGate::SdgGate,
                             smallvec![],
-                            smallvec![Qubit(qubit0 as u32)],
+                            smallvec![Qubit::new(qubit0)],
                         ));
                     }
                     if n1 == 1 {
                         gates.push((
                             StandardGate::SGate,
                             smallvec![],
-                            smallvec![Qubit(qubit1 as u32)],
+                            smallvec![Qubit::new(qubit1)],
                         ));
                         gates.push((
                             StandardGate::HGate,
                             smallvec![],
-                            smallvec![Qubit(qubit1 as u32)],
+                            smallvec![Qubit::new(qubit1)],
                         ));
                     } else if n1 == 2 {
                         gates.push((
                             StandardGate::HGate,
                             smallvec![],
-                            smallvec![Qubit(qubit1 as u32)],
+                            smallvec![Qubit::new(qubit1)],
                         ));
                         gates.push((
                             StandardGate::SdgGate,
                             smallvec![],
-                            smallvec![Qubit(qubit1 as u32)],
+                            smallvec![Qubit::new(qubit1)],
                         ));
                     }
                     gates.push((
                         StandardGate::CXGate,
                         smallvec![],
-                        smallvec![Qubit(qubit0 as u32), Qubit(qubit1 as u32)],
+                        smallvec![Qubit::new(qubit0), Qubit::new(qubit1)],
                     ));
 
                     return Ok((reduced_cliff, new_cost));
@@ -242,19 +242,19 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
         gates.push((
             StandardGate::ZGate,
             smallvec![],
-            smallvec![Qubit(output_qubit as u32)],
+            smallvec![Qubit::new(output_qubit)],
         ));
     } else if !destab_phase && stab_phase {
         gates.push((
             StandardGate::XGate,
             smallvec![],
-            smallvec![Qubit(output_qubit as u32)],
+            smallvec![Qubit::new(output_qubit)],
         ));
     } else if destab_phase && stab_phase {
         gates.push((
             StandardGate::YGate,
             smallvec![],
-            smallvec![Qubit(output_qubit as u32)],
+            smallvec![Qubit::new(output_qubit)],
         ));
     }
 
@@ -268,7 +268,7 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
             gates.push((
                 StandardGate::SGate,
                 smallvec![],
-                smallvec![Qubit(output_qubit as u32)],
+                smallvec![Qubit::new(output_qubit)],
             ));
         }
     } else if !stab_z && stab_x {
@@ -276,31 +276,31 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
             gates.push((
                 StandardGate::SdgGate,
                 smallvec![],
-                smallvec![Qubit(output_qubit as u32)],
+                smallvec![Qubit::new(output_qubit)],
             ));
         }
         gates.push((
             StandardGate::HGate,
             smallvec![],
-            smallvec![Qubit(output_qubit as u32)],
+            smallvec![Qubit::new(output_qubit)],
         ));
     } else {
         if !destab_z {
             gates.push((
                 StandardGate::SGate,
                 smallvec![],
-                smallvec![Qubit(output_qubit as u32)],
+                smallvec![Qubit::new(output_qubit)],
             ));
         }
         gates.push((
             StandardGate::HGate,
             smallvec![],
-            smallvec![Qubit(output_qubit as u32)],
+            smallvec![Qubit::new(output_qubit)],
         ));
         gates.push((
             StandardGate::SGate,
             smallvec![],
-            smallvec![Qubit(output_qubit as u32)],
+            smallvec![Qubit::new(output_qubit)],
         ));
     }
 }

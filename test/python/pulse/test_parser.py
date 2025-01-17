@@ -15,8 +15,10 @@
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.exceptions import PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestInstructionToQobjConverter(QiskitTestCase):
     """Expression parser test."""
 

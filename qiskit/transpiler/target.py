@@ -57,6 +57,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ class InstructionProperties(BaseInstructionProperties):
             cls, duration, error
         )
 
+    @deprecate_pulse_arg("calibration", predicate=lambda cals: cals is not None)
     def __init__(
         self,
         duration: float | None = None,  # pylint: disable=unused-argument
@@ -99,13 +101,14 @@ class InstructionProperties(BaseInstructionProperties):
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            calibration: The pulse representation of the instruction.
+            calibration: DEPRECATED. The pulse representation of the instruction.
         """
         super().__init__()
         self._calibration: CalibrationEntry | None = None
-        self.calibration = calibration
+        self._calibration_prop = calibration
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def calibration(self):
         """The pulse representation of the instruction.
 
@@ -133,12 +136,24 @@ class InstructionProperties(BaseInstructionProperties):
             use own definition to compile the circuit down to the execution format.
 
         """
-        if self._calibration is None:
-            return None
-        return self._calibration.get_schedule()
+        return self._calibration_prop
 
     @calibration.setter
+    @deprecate_pulse_dependency(is_property=True)
     def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
+        self._calibration_prop = calibration
+
+    @property
+    def _calibration_prop(self):
+        if self._calibration is None:
+            return None
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # Clean this alternative path from deprecation warning emitted by `get_schedule`
+            return self._calibration.get_schedule()
+
+    @_calibration_prop.setter
+    def _calibration_prop(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
             new_entry.define(calibration, user_provided=True)
@@ -153,11 +168,11 @@ class InstructionProperties(BaseInstructionProperties):
         )
 
     def __getstate__(self) -> tuple:
-        return (super().__getstate__(), self.calibration, self._calibration)
+        return (super().__getstate__(), self._calibration_prop, self._calibration)
 
     def __setstate__(self, state: tuple):
         super().__setstate__(state[0])
-        self.calibration = state[1]
+        self._calibration_prop = state[1]
         self._calibration = state[2]
 
 
@@ -447,6 +462,7 @@ class Target(BaseTarget):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
+    @deprecate_pulse_dependency
     def update_from_instruction_schedule_map(self, inst_map, inst_name_map=None, error_dict=None):
         """Update the target from an instruction schedule map.
 
@@ -604,6 +620,7 @@ class Target(BaseTarget):
             self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
+    @deprecate_pulse_dependency
     def instruction_schedule_map(self):
         """Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions in the target with a pulse schedule defined.
@@ -612,9 +629,17 @@ class Target(BaseTarget):
             InstructionScheduleMap: The instruction schedule map for the
             instructions in this target with a pulse schedule defined.
         """
+        return self._get_instruction_schedule_map()
+
+    def _get_instruction_schedule_map(self):
         if self._instruction_schedule_map is not None:
             return self._instruction_schedule_map
-        out_inst_schedule_map = InstructionScheduleMap()
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # `InstructionScheduleMap` is deprecated in Qiskit 1.3 but we want this alternative
+            # path to be clean of deprecation warnings
+            out_inst_schedule_map = InstructionScheduleMap()
+
         for instruction, qargs in self._gate_map.items():
             for qarg, properties in qargs.items():
                 # Directly getting CalibrationEntry not to invoke .get_schedule().
@@ -626,6 +651,7 @@ class Target(BaseTarget):
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
+    @deprecate_pulse_dependency
     def has_calibration(
         self,
         operation_name: str,
@@ -640,6 +666,13 @@ class Target(BaseTarget):
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
+        return self._has_calibration(operation_name, qargs)
+
+    def _has_calibration(
+        self,
+        operation_name: str,
+        qargs: tuple[int, ...],
+    ) -> bool:
         qargs = tuple(qargs)
         if operation_name not in self._gate_map:
             return False
@@ -647,6 +680,7 @@ class Target(BaseTarget):
             return False
         return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
+    @deprecate_pulse_dependency
     def get_calibration(
         self,
         operation_name: str,
@@ -668,7 +702,16 @@ class Target(BaseTarget):
         Returns:
             Calibrated pulse schedule of corresponding instruction.
         """
-        if not self.has_calibration(operation_name, qargs):
+        return self._get_calibration(operation_name, qargs, *args, *kwargs)
+
+    def _get_calibration(
+        self,
+        operation_name: str,
+        qargs: tuple[int, ...],
+        *args: ParameterValueType,
+        **kwargs: ParameterValueType,
+    ) -> Schedule | ScheduleBlock:
+        if not self._has_calibration(operation_name, qargs):
             raise KeyError(
                 f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
             )
@@ -682,7 +725,7 @@ class Target(BaseTarget):
 
     @property
     def instructions(self):
-        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+        """Get the list of tuples (:class:`~qiskit.circuit.Instruction`, (qargs))
         for the target
 
         For globally defined variable width operations the tuple will be of the form
@@ -927,6 +970,7 @@ class Target(BaseTarget):
         super().__setstate__(state["base"])
 
     @classmethod
+    @deprecate_pulse_arg("inst_map")
     def from_configuration(
         cls,
         basis_gates: list[str],
@@ -965,7 +1009,7 @@ class Target(BaseTarget):
             coupling_map: The coupling map representing connectivity constraints
                 on the backend. If specified all gates from ``basis_gates`` will
                 be supported on all qubits (or pairs of qubits).
-            inst_map: The instruction schedule map representing the pulse
+            inst_map: DEPRECATED. The instruction schedule map representing the pulse
                :class:`~.Schedule` definitions for each instruction. If this
                is specified ``coupling_map`` must be specified. The
                ``coupling_map`` is used as the source of truth for connectivity
@@ -1112,9 +1156,16 @@ class Target(BaseTarget):
                     if error is None and duration is None and calibration is None:
                         gate_properties[(qubit,)] = None
                     else:
-                        gate_properties[(qubit,)] = InstructionProperties(
-                            duration=duration, error=error, calibration=calibration
-                        )
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=DeprecationWarning,
+                                message=".*``calibration`` is deprecated as of Qiskit 1.3.*",
+                                module="qiskit",
+                            )
+                            gate_properties[(qubit,)] = InstructionProperties(
+                                duration=duration, error=error, calibration=calibration
+                            )
                 target.add_instruction(name_mapping[gate], properties=gate_properties, name=gate)
             edges = list(coupling_map.get_edges())
             for gate in two_qubit_gates:
@@ -1154,9 +1205,16 @@ class Target(BaseTarget):
                     if error is None and duration is None and calibration is None:
                         gate_properties[edge] = None
                     else:
-                        gate_properties[edge] = InstructionProperties(
-                            duration=duration, error=error, calibration=calibration
-                        )
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=DeprecationWarning,
+                                message=".*``calibration`` is deprecated as of Qiskit 1.3.*",
+                                module="qiskit",
+                            )
+                            gate_properties[edge] = InstructionProperties(
+                                duration=duration, error=error, calibration=calibration
+                            )
                 target.add_instruction(name_mapping[gate], properties=gate_properties, name=gate)
             for gate in global_ideal_variable_width_gates:
                 target.add_instruction(name_mapping[gate], name=gate)

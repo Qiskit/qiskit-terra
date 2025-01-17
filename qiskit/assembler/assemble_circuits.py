@@ -429,7 +429,9 @@ def assemble_circuits(
 
     Examples:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.assembler import assemble_circuits

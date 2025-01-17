@@ -41,7 +41,7 @@ impl<'py> FromPyObject<'py> for PySequenceIndex<'py> {
     }
 }
 
-impl<'py> PySequenceIndex<'py> {
+impl PySequenceIndex<'_> {
     /// Specialize this index to a collection of the given `len`, returning a Rust-native type.
     pub fn with_len(&self, len: usize) -> Result<SequenceIndex, PySequenceIndexError> {
         match self {
@@ -51,7 +51,7 @@ impl<'py> PySequenceIndex<'py> {
             }
             PySequenceIndex::Slice(slice) => {
                 let indices = slice
-                    .indices(len as ::std::os::raw::c_long)
+                    .indices(len as isize)
                     .map_err(PySequenceIndexError::from)?;
                 if indices.step > 0 {
                     Ok(SequenceIndex::PosRange {

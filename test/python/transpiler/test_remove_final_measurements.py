@@ -57,7 +57,8 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
             q0 = QuantumRegister(1, "q0")
             c0 = ClassicalRegister(1, "c0")
             qc = QuantumCircuit(q0, c0)
-            qc.x(0).c_if(c0[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.x(0).c_if(c0[0], 0)
             return circuit_to_dag(qc)
 
         q0 = QuantumRegister(1, "q0")
@@ -65,7 +66,8 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc = QuantumCircuit(q0, c0)
 
         # make c0 busy
-        qc.x(0).c_if(c0[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(c0[0], 0)
 
         # measure into c0
         qc.measure(0, c0[0])
@@ -87,7 +89,8 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
             q0 = QuantumRegister(1, "q0")
             c0 = ClassicalRegister(2, "c0")
             qc = QuantumCircuit(q0, c0)
-            qc.x(q0[0]).c_if(c0[0], 0)
+            with self.assertWarns(DeprecationWarning):
+                qc.x(q0[0]).c_if(c0[0], 0)
             return circuit_to_dag(qc)
 
         q0 = QuantumRegister(1, "q0")
@@ -95,7 +98,8 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc = QuantumCircuit(q0, c0)
 
         # make c0[0] busy
-        qc.x(q0[0]).c_if(c0[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q0[0]).c_if(c0[0], 0)
 
         # measure into not busy c0[1]
         qc.measure(0, c0[1])

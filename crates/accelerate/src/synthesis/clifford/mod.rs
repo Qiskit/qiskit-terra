@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 mod bm_synthesis;
-mod greedy_synthesis;
+pub(crate) mod greedy_synthesis;
 mod random_clifford;
-mod utils;
+pub(crate) mod utils;
 
 use crate::synthesis::clifford::bm_synthesis::synth_clifford_bm_inner;
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;

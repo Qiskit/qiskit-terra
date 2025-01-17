@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a performance regression in :meth:`.QuantumCircuit.assign_parameters` introduced in Qiskit
+    1.2.0 when calling the method in a tight loop, binding only a small number of parameters out of
+    a heavily parametric circuit on each iteration.  If possible, it is still more performant to
+    call :meth:`~.QuantumCircuit.assign_parameters` only once, with all assignments at the same
+    time, as this reduces the proportion of time spent on input normalization and error-checking
+    overhead.

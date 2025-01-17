@@ -70,22 +70,22 @@ class TestDataPreparation(QiskitTestCase):
             self.assertTrue(Operator(pauli).equiv(evo))
 
         with self.subTest(pauli_string="XYZ"):
-            # q_0: ─────────────■────────────────────────■──────────────
-            #      ┌─────────┐┌─┴─┐                    ┌─┴─┐┌──────────┐
-            # q_1: ┤ Rx(π/2) ├┤ X ├──■──────────────■──┤ X ├┤ Rx(-π/2) ├
-            #      └──┬───┬──┘└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└──────────┘
-            # q_2: ───┤ H ├────────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├────────────
-            #         └───┘        └───┘└────────┘└───┘└───┘
+            # q_0: ────────■────────────────────────■──────────
+            #      ┌────┐┌─┴─┐                    ┌─┴─┐┌──────┐
+            # q_1: ┤ √X ├┤ X ├──■──────────────■──┤ X ├┤ √Xdg ├
+            #      └┬───┤└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└──────┘
+            # q_2: ─┤ H ├─────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├────────
+            #       └───┘     └───┘└────────┘└───┘└───┘
             evo = QuantumCircuit(3)
             # X on the most-significant, bottom qubit, Z on the top
             evo.h(2)
-            evo.rx(np.pi / 2, 1)
+            evo.sx(1)
             evo.cx(0, 1)
             evo.cx(1, 2)
             evo.p(2 * time, 2)
             evo.cx(1, 2)
             evo.cx(0, 1)
-            evo.rx(-np.pi / 2, 1)
+            evo.sxdg(1)
             evo.h(2)
 
             pauli = encoding.pauli_evolution("XYZ", time)
@@ -347,23 +347,23 @@ class TestPauliFeatureMap(QiskitTestCase):
 
         params = encoding.parameters
 
-        # q_0: ─────────────■────────────────────────■──────────────
-        #      ┌─────────┐┌─┴─┐                    ┌─┴─┐┌──────────┐
-        # q_1: ┤ Rx(π/2) ├┤ X ├──■──────────────■──┤ X ├┤ Rx(-π/2) ├
-        #      └──┬───┬──┘└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└──────────┘
-        # q_2: ───┤ H ├────────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├────────────
-        #         └───┘        └───┘└────────┘└───┘└───┘
+        # q_0: ────────■────────────────────────■──────────
+        #      ┌────┐┌─┴─┐                    ┌─┴─┐┌──────┐
+        # q_1: ┤ √X ├┤ X ├──■──────────────■──┤ X ├┤ √Xdg ├
+        #      └┬───┤└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└──────┘
+        # q_2: ─┤ H ├─────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├────────
+        #       └───┘     └───┘└────────┘└───┘└───┘
         # X on the most-significant, bottom qubit, Z on the top
         ref = QuantumCircuit(3)
         ref.h(range(3))
         ref.h(2)
-        ref.rx(np.pi / 2, 1)
+        ref.sx(1)
         ref.cx(0, 1)
         ref.cx(1, 2)
         ref.p(2 * np.prod([np.pi - p for p in params]), 2)
         ref.cx(1, 2)
         ref.cx(0, 1)
-        ref.rx(-np.pi / 2, 1)
+        ref.sxdg(1)
         ref.h(2)
 
         self.assertEqual(ref, encoding)
@@ -483,13 +483,13 @@ class TestPauliFeatureMap(QiskitTestCase):
         ref.cx(1, 2)
         ref.h([1, 2])
 
-        ref.rx(np.pi / 2, range(3))
+        ref.sx(range(3))
         ref.cx(0, 1)
         ref.cx(1, 2)
         ref.p(2 * np.prod([np.pi - xi for xi in x]), 2)
         ref.cx(1, 2)
         ref.cx(0, 1)
-        ref.rx(-np.pi / 2, range(3))
+        ref.sxdg(range(3))
 
         self.assertEqual(ref, circuit)
 

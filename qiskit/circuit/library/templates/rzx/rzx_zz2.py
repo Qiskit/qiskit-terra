@@ -10,20 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-RZX based template for CX - PhaseGate - CX
-.. parsed-literal::
-                                                                          »
-q_0: ──■────────────■─────────────────────────────────────────────────────»
-     ┌─┴─┐┌──────┐┌─┴─┐┌───────┐┌─────────┐┌─────────┐┌─────────┐┌───────┐»
-q_1: ┤ X ├┤ P(ϴ) ├┤ X ├┤ P(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├»
-     └───┘└──────┘└───┘└───────┘└─────────┘└─────────┘└─────────┘└───────┘»
-«     ┌──────────┐
-«q_0: ┤0         ├─────────────────────────────────
-«     │  RZX(-ϴ) │┌─────────┐┌─────────┐┌─────────┐
-«q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
-«     └──────────┘└─────────┘└─────────┘└─────────┘
-"""
+# pylint: disable=missing-module-docstring
 
 from __future__ import annotations
 
@@ -34,7 +21,21 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def rzx_zz2(theta: ParameterValueType | None = None):
-    """Template for CX - RZGate - CX."""
+    """RZX-based template for CX - PhaseGate - CX.
+
+    .. code-block:: text
+
+                                                                                    »
+          q_0: ──■────────────■─────────────────────────────────────────────────────»
+               ┌─┴─┐┌──────┐┌─┴─┐┌───────┐┌─────────┐┌─────────┐┌─────────┐┌───────┐»
+          q_1: ┤ X ├┤ P(ϴ) ├┤ X ├┤ P(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├»
+               └───┘└──────┘└───┘└───────┘└─────────┘└─────────┘└─────────┘└───────┘»
+          «     ┌──────────┐
+          «q_0: ┤0         ├─────────────────────────────────
+          «     │  RZX(-ϴ) │┌─────────┐┌─────────┐┌─────────┐
+          «q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
+          «     └──────────┘└─────────┘└─────────┘└─────────┘
+    """
     if theta is None:
         theta = Parameter("ϴ")
 

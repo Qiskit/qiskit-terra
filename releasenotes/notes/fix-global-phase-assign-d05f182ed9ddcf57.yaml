@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixed a series of bugs when processing circuit with parameterized global phases,
+    where upon assignment the global phase was not correctly assigned.
+    Known cases this affected include:
+
+    * assigning parameters after calling :meth:`.QuantumCircuit.decompose` on a circuit, 
+      where the decomposition introduces a global phase
+    * assigning parameters on a circuit constructed from a DAG via :func:`.dag_to_circuit`
+    * assigning parameters on circuits created with :func:`.pauli_twirl_2q_gates`, where 
+      the circuit to be twirled had a parameterized global phase
+
+    Fixed `#13534 <https://github.com/Qiskit/qiskit/issues/13534>`__.

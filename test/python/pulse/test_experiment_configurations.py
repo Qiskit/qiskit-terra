@@ -18,6 +18,7 @@ from qiskit.pulse.channels import DriveChannel, MeasureChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import LoConfig, LoRange, Kernel, Discriminator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
 class TestLoRange(QiskitTestCase):
@@ -40,6 +41,7 @@ class TestLoRange(QiskitTestCase):
         self.assertFalse(lo_range_1 == lo_range_3)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestLoConfig(QiskitTestCase):
     """LoConfig tests."""
 

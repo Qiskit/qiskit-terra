@@ -21,8 +21,88 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
+from .evolved_operator_ansatz import (
+    EvolvedOperatorAnsatz,
+    _is_pauli_identity,
+    evolved_operator_ansatz,
+)
+
+
+def qaoa_ansatz(
+    cost_operator: BaseOperator,
+    reps: int = 1,
+    initial_state: QuantumCircuit | None = None,
+    mixer_operator: BaseOperator | None = None,
+    insert_barriers: bool = False,
+    name: str = "QAOA",
+    flatten: bool = True,
+) -> QuantumCircuit:
+    r"""A generalized QAOA quantum circuit with a support of custom initial states and mixers.
+
+    Examples:
+
+        To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
+        optimization problem:
+
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
+            :include-source:
+
+            from qiskit.quantum_info import SparsePauliOp
+            from qiskit.circuit.library import qaoa_ansatz
+
+            cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
+            ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
+            ansatz.draw("mpl")
+
+    Args:
+        cost_operator: The operator representing the cost of the optimization problem, denoted as
+            :math:`U(C, \gamma)` in [1].
+        reps: The integer determining the depth of the circuit, called :math:`p` in [1].
+        initial_state: An optional initial state to use, which defaults to a layer of
+            Hadamard gates preparing the :math:`|+\rangle^{\otimes n}` state.
+            If a custom mixer is chosen, this circuit should be set to prepare its ground state,
+            to appropriately fulfill the annealing conditions.
+        mixer_operator: An optional custom mixer, which defaults to global Pauli-:math:`X`
+            rotations. This is denoted as :math:`U(B, \beta)` in [1]. If this is set,
+            the ``initial_state`` might also require modification.
+        insert_barriers: Whether to insert barriers in-between the cost and mixer operators.
+        name: The name of the circuit.
+        flatten: If ``True``, a flat circuit is returned instead of nesting it inside multiple
+            layers of gate objects. Setting this to ``False`` is significantly less performant,
+            especially for parameter binding, but can be desirable for a cleaner visualization.
+
+    References:
+
+        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
+            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    """
+    num_qubits = cost_operator.num_qubits
+
+    if initial_state is None:
+        initial_state = QuantumCircuit(num_qubits)
+        initial_state.h(range(num_qubits))
+
+    if mixer_operator is None:
+        mixer_operator = SparsePauliOp.from_sparse_list(
+            [("X", [i], 1) for i in range(num_qubits)], num_qubits
+        )
+
+    parameter_prefix = ["γ", "β"]
+
+    return initial_state.compose(
+        evolved_operator_ansatz(
+            [cost_operator, mixer_operator],
+            reps=reps,
+            insert_barriers=insert_barriers,
+            parameter_prefix=parameter_prefix,
+            name=name,
+            flatten=flatten,
+        ),
+        copy=False,
+    )
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):

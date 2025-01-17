@@ -14,6 +14,8 @@
 Fake backend abstract class for mock backends supporting OpenPulse.
 """
 
+import warnings
+
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models.backendconfiguration import PulseBackendConfiguration
 from qiskit.providers.models.pulsedefaults import PulseDefaults
@@ -30,7 +32,10 @@ class FakePulseBackend(FakeQasmBackend):
     def defaults(self):
         """Returns a snapshot of device defaults"""
         if not self._defaults:
-            self._set_defaults_from_json()
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # Filter deprecation warnings emitted from Qiskit Pulse
+                self._set_defaults_from_json()
         return self._defaults
 
     def _set_defaults_from_json(self):

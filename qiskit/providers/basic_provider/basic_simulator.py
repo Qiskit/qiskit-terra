@@ -17,7 +17,9 @@ to run on the simulator. It is exponential in the number of qubits.
 
 The simulator is run using
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
    BasicSimulator().run(run_input)
 
@@ -48,6 +50,7 @@ from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
 from qiskit.transpiler import Target
+from qiskit.utils.deprecation import deprecate_func
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
@@ -212,6 +215,14 @@ class BasicSimulator(BackendV2):
                 )
         return target
 
+    @deprecate_func(
+        since="1.3.0",
+        removal_timeline="in Qiskit 2.0.0",
+        additional_msg="The `BackendConfiguration` class is part of the deprecated `BackendV1` "
+        "workflow, and no longer necessary for `BackendV2`. The individual configuration elements "
+        "can be retrieved directly from the backend or from the contained `Target` instance "
+        "(`backend.target)`).",
+    )
     def configuration(self) -> BackendConfiguration:
         """Return the simulator backend configuration.
 
@@ -248,7 +259,7 @@ class BasicSimulator(BackendV2):
                 backend_name=self.name,
                 backend_version=self.backend_version,
                 n_qubits=self.num_qubits,
-                basis_gates=self.target.operation_names,
+                basis_gates=list(self.target.operation_names),
                 gates=gates,
                 local=True,
                 simulator=True,
@@ -532,7 +543,8 @@ class BasicSimulator(BackendV2):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / math.sqrt(2),
                 }
         """
-        # TODO: replace assemble with new run flow
+        # TODO: replace assemble with new run flow. If this is not achieved before 2.0,
+        # see removal note on `def _assemble`, L192 of qiskit/compiler/assembler.py
         from qiskit.compiler.assembler import _assemble
 
         out_options = {}

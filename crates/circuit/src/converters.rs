@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use ::pyo3::prelude::*;
 use hashbrown::HashMap;
@@ -47,7 +47,10 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob.getattr(intern!(py, "calibrations"))?.extract().ok(),
+            calibrations: ob
+                .getattr(intern!(py, "_calibrations_prop"))?
+                .extract()
+                .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             qregs: ob
                 .getattr(intern!(py, "qregs"))
@@ -123,7 +126,7 @@ pub fn dag_to_circuit(
                     )),
                     extra_attrs: instr.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: OnceCell::new(),
+                    py_op: OnceLock::new(),
                 })
             } else {
                 Ok(instr.clone())

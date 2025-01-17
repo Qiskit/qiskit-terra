@@ -47,7 +47,8 @@ def qs_decomposition(
 
     This decomposition is described in Shende et al. [1].
 
-    .. parsed-literal::
+    .. code-block:: text
+
           ┌───┐               ┌───┐     ┌───┐     ┌───┐
          ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
           │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
@@ -250,14 +251,13 @@ def _get_ucry_cz(nqubits, angles):
 
 
 def _apply_a2(circ):
-    from qiskit.compiler import transpile
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
+    from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal
-    ccirc = transpile(
-        circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0, qubits_initially_zero=False
-    )
+    hls = HighLevelSynthesis(basis_gates=["u", "cx", "qsd2q"], qubits_initially_zero=False)
+    ccirc = hls(circ)
     ind2q = []
     # collect 2q instrs
     for i, instruction in enumerate(ccirc.data):

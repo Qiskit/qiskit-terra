@@ -12,11 +12,13 @@
 
 """Exception for errors raised by the pulse module."""
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class PulseError(QiskitError):
     """Errors raised by the pulse module."""
 
+    @deprecate_pulse_func
     def __init__(self, *message):
         """Set the error message."""
         super().__init__(*message)

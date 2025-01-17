@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue introduced in the now
+    `yanked <https://peps.python.org/pep-0592/>`__ 1.2.3 bugfix release that
+    would cause an exception with the error message "Qiskit doesn't support
+    loading a symengine payload generated with symengine >= 1.0" to be raised
+    whenever loading a QPY file that was generated with a different symengine
+    version from the version installed by the loading. This issue could only
+    occur in 1.2.3.

@@ -33,8 +33,10 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseLibraryItem, PulseQobjInstruction
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSchedule(QiskitTestCase):
     """Test case for the ScheduleDef."""
 
@@ -181,6 +183,7 @@ class TestSchedule(QiskitTestCase):
         self.assertNotEqual(entry1, entry2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestCallable(QiskitTestCase):
     """Test case for the CallableDef."""
 
@@ -276,6 +279,7 @@ class TestCallable(QiskitTestCase):
         self.assertNotEqual(entry1, entry2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestPulseQobj(QiskitTestCase):
     """Test case for the PulseQobjDef."""
 
@@ -421,13 +425,16 @@ class TestPulseQobj(QiskitTestCase):
                 )
             ]
 
-        entry1 = PulseQobjDef(name="my_gate1")
+        with self.assertWarns(DeprecationWarning):
+            entry1 = PulseQobjDef(name="my_gate1")
         entry1.define(serialized_program1)
 
-        entry2 = PulseQobjDef(name="my_gate2")
+        with self.assertWarns(DeprecationWarning):
+            entry2 = PulseQobjDef(name="my_gate2")
         entry2.define(serialized_program2)
 
-        entry3 = PulseQobjDef(name="my_gate3")
+        with self.assertWarns(DeprecationWarning):
+            entry3 = PulseQobjDef(name="my_gate3")
         entry3.define(serialized_program1)
 
         self.assertEqual(entry1, entry3)
@@ -450,7 +457,7 @@ class TestPulseQobj(QiskitTestCase):
                     parameters={"amp": 0.1, "duration": 10},
                 )
             ]
-        entry1 = PulseQobjDef(name="qobj_entry")
+            entry1 = PulseQobjDef(name="qobj_entry")
         entry1.define(serialized_program)
 
         program = Schedule()
@@ -483,7 +490,8 @@ class TestPulseQobj(QiskitTestCase):
                     ch="d0",
                 )
             ]
-        entry = PulseQobjDef(name="qobj_entry")
+        with self.assertWarns(DeprecationWarning):
+            entry = PulseQobjDef(name="qobj_entry")
         entry.define(serialized_program)
 
         # This is pulse qobj before parsing it

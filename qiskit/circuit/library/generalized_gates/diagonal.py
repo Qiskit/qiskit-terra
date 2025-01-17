@@ -23,6 +23,8 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
+from qiskit.utils.deprecation import deprecate_func
 
 from .ucrz import UCRZGate
 
@@ -30,19 +32,28 @@ _EPS = 1e-10
 
 
 class Diagonal(QuantumCircuit):
-    r"""Diagonal circuit.
+    """Circuit implementing a diagonal transformation."""
 
-    Circuit symbol:
+    @deprecate_func(since="1.3", additional_msg="Use DiagonalGate instead.", pending=True)
+    def __init__(self, diag: Sequence[complex]) -> None:
+        r"""
+        Args:
+            diag: List of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
 
-    .. parsed-literal::
+        Raises:
+            CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
+                if the number of diagonal entries is not :math:`2^k`, where :math:`k` denotes the
+                number of qubits.
+        """
+        DiagonalGate._check_input(diag)
+        num_qubits = int(math.log2(len(diag)))
 
-             ┌───────────┐
-        q_0: ┤0          ├
-             │           │
-        q_1: ┤1 Diagonal ├
-             │           │
-        q_2: ┤2          ├
-             └───────────┘
+        super().__init__(num_qubits, name="Diagonal")
+        self.append(DiagonalGate(diag), self.qubits)
+
+
+class DiagonalGate(Gate):
+    r"""A generic diagonal quantum gate.
 
     Matrix form:
 
@@ -80,30 +91,28 @@ class Diagonal(QuantumCircuit):
     def __init__(self, diag: Sequence[complex]) -> None:
         r"""
         Args:
-            diag: List of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
-
-        Raises:
-            CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
-                if the number of diagonal entries is not :math:`2^k`, where :math:`k` denotes the
-                number of qubits.
+            diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
         """
         self._check_input(diag)
         num_qubits = int(math.log2(len(diag)))
 
-        circuit = QuantumCircuit(num_qubits, name="Diagonal")
+        super().__init__("diagonal", num_qubits, diag)
 
+    def _define(self):
         # Since the diagonal is a unitary, all its entries have absolute value
         # one and the diagonal is fully specified by the phases of its entries.
-        diag_phases = [cmath.phase(z) for z in diag]
-        n = len(diag)
+        diag_phases = [cmath.phase(z) for z in self.params]
+        n = len(diag_phases)
+        circuit = QuantumCircuit(self.num_qubits)
+
         while n >= 2:
             angles_rz = []
             for i in range(0, n, 2):
                 diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
                 angles_rz.append(rz_angle)
             num_act_qubits = int(math.log2(n))
-            ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
-            target_qubit = num_qubits - num_act_qubits
+            ctrl_qubits = list(range(self.num_qubits - num_act_qubits + 1, self.num_qubits))
+            target_qubit = self.num_qubits - num_act_qubits
 
             ucrz = UCRZGate(angles_rz)
             circuit.append(ucrz, [target_qubit] + ctrl_qubits)
@@ -111,36 +120,7 @@ class Diagonal(QuantumCircuit):
             n //= 2
         circuit.global_phase += diag_phases[0]
 
-        super().__init__(num_qubits, name="Diagonal")
-        self.append(circuit.to_gate(), self.qubits)
-
-    @staticmethod
-    def _check_input(diag):
-        """Check if ``diag`` is in valid format."""
-        if not isinstance(diag, (list, np.ndarray)):
-            raise CircuitError("Diagonal entries must be in a list or numpy array.")
-        num_qubits = math.log2(len(diag))
-        if num_qubits < 1 or not num_qubits.is_integer():
-            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
-        if not np.allclose(np.abs(diag), 1, atol=_EPS):
-            raise CircuitError("A diagonal element does not have absolute value one.")
-
-
-class DiagonalGate(Gate):
-    """Gate implementing a diagonal transformation."""
-
-    def __init__(self, diag: Sequence[complex]) -> None:
-        r"""
-        Args:
-            diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
-        """
-        Diagonal._check_input(diag)
-        num_qubits = int(math.log2(len(diag)))
-
-        super().__init__("diagonal", num_qubits, diag)
-
-    def _define(self):
-        self.definition = Diagonal(self.params).decompose()
+        self.definition = circuit
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
@@ -152,7 +132,21 @@ class DiagonalGate(Gate):
 
     def inverse(self, annotated: bool = False):
         """Return the inverse of the diagonal gate."""
+        if annotated:
+            return AnnotatedOperation(self.copy(), InverseModifier)
+
         return DiagonalGate([np.conj(entry) for entry in self.params])
+
+    @staticmethod
+    def _check_input(diag):
+        """Check if ``diag`` is in valid format."""
+        if not isinstance(diag, (list, np.ndarray)):
+            raise CircuitError("Diagonal entries must be in a list or numpy array.")
+        num_qubits = math.log2(len(diag))
+        if num_qubits < 1 or not num_qubits.is_integer():
+            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
+        if not np.allclose(np.abs(diag), 1, atol=_EPS):
+            raise CircuitError("A diagonal element does not have absolute value one.")
 
 
 def _extract_rz(phi1, phi2):

@@ -73,7 +73,8 @@ class TestStoreInstruction(QiskitTestCase):
     def test_rejects_c_if(self):
         instruction = Store(expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool()))
         with self.assertRaises(NotImplementedError):
-            instruction.c_if(Clbit(), False)
+            with self.assertWarns(DeprecationWarning):
+                instruction.c_if(Clbit(), False)
 
 
 class TestStoreCircuit(QiskitTestCase):
@@ -241,4 +242,5 @@ class TestStoreCircuit(QiskitTestCase):
         qc = QuantumCircuit([Clbit()], inputs=[a])
         instruction_set = qc.store(a, True)
         with self.assertRaises(NotImplementedError):
-            instruction_set.c_if(qc.clbits[0], False)
+            with self.assertWarns(DeprecationWarning):
+                instruction_set.c_if(qc.clbits[0], False)

@@ -1,0 +1,8 @@
+---
+features_circuits:
+  - |
+    :class:`~.library.UCGate` now includes a ``mux_simp`` boolean attribute that enables the search
+    for simplifications of Carvalho et al., implemented in :meth:`~.library.UCGate._simplify`.
+    This optimization, enabled by default, identifies and removes unnecessary controls from the
+    multiplexer, reducing the number of CX gates and circuit depth, especially in separable
+    state preparation with :class:`~.library.Initialize`.

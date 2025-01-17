@@ -74,7 +74,9 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
 
     Example:
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit import QuantumCircuit
             from qiskit.quantum_info.analysis import hellinger_fidelity

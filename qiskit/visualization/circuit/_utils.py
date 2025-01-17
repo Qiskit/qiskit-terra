@@ -503,7 +503,7 @@ def _get_gate_span(qubits, node):
     # type of op must be the only op in the layer
     if isinstance(node.op, ControlFlowOp):
         span = qubits
-    elif node.cargs or getattr(node.op, "condition", None):
+    elif node.cargs or getattr(node, "condition", None):
         span = qubits[min_index : len(qubits)]
     else:
         span = qubits[min_index : max_index + 1]
@@ -582,7 +582,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if (condition := getattr(node.op, "condition", None)) is not None:
+            if (condition := getattr(node, "condition", None)) is not None:
                 index_stop = max(
                     (self.measure_map[bit] for bit in condition_resources(condition).clbits),
                     default=index_stop,

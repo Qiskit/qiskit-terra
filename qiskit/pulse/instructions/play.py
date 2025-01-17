@@ -21,6 +21,7 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Play(Instruction):
@@ -32,6 +33,7 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
+    @deprecate_pulse_func
     def __init__(self, pulse: Pulse, channel: PulseChannel, name: str | None = None):
         """Create a new pulse instruction.
 

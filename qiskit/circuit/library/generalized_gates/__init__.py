@@ -14,7 +14,7 @@
 
 from .diagonal import Diagonal, DiagonalGate
 from .permutation import Permutation, PermutationGate
-from .mcmt import MCMT, MCMTVChain
+from .mcmt import MCMT, MCMTVChain, MCMTGate
 from .gms import GMS, MSGate
 from .gr import GR, GRX, GRY, GRZ
 from .pauli import PauliGate

@@ -1,0 +1,13 @@
+---
+features_transpiler:
+  - |
+    The :class:`.ConsolidateGates` pass will now run the equivalent of the
+    :class:`.Collect2qBlocks` pass internally if it was not run in a pass
+    manager prior to the pass. Previously it was required that
+    :class:`.Collect2qBlocks` or :class:`.Collect1qRuns` were run prior to
+    :class:`.ConsolidateBlocks` for :class:`.ConsolidateBlocks` to do
+    anything. By doing the collection internally the overhead of the pass
+    is reduced. If :class:`.Collect2qBlocks` or :class:`.Collect1qRuns` are
+    run prior to :class:`.ConsolidateBlocks` the collected runs by those
+    passes from the property set are used and there is no change in behavior
+    for the pass.

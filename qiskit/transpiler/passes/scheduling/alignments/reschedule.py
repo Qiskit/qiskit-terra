@@ -35,7 +35,7 @@ class ConstrainedReschedule(AnalysisPass):
 
         We assume executing the following circuit on a backend with 16 dt of acquire alignment.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├
@@ -46,7 +46,7 @@ class ConstrainedReschedule(AnalysisPass):
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
         This pass appends an extra 12 dt time shift to the input circuit.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(112[dt]) ├┤M├

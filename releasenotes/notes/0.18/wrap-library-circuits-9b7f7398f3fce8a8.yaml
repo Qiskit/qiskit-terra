@@ -16,7 +16,7 @@ upgrade:
 
     before looked like
 
-    .. parsed-literal::
+    .. code-block:: text
 
                                                   ┌───┐
         q_0: ────────────────────■────────■───────┤ H ├─X─
@@ -28,7 +28,7 @@ upgrade:
 
     and now looks like
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────┐
         q_0: ┤0     ├

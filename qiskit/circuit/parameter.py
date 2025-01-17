@@ -41,6 +41,7 @@ class Parameter(ParameterExpression):
         Construct a variable-rotation X gate using circuit parameters.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit.circuit import QuantumCircuit, Parameter
@@ -87,6 +88,8 @@ class Parameter(ParameterExpression):
         self._hash = hash((self._parameter_keys, self._symbol_expr))
         self._parameter_symbols = {self: symbol}
         self._name_map = None
+        self._qpy_replay = []
+        self._standalone_param = True
 
     def assign(self, parameter, value):
         if parameter != self:
@@ -172,3 +175,5 @@ class Parameter(ParameterExpression):
         self._hash = hash((self._parameter_keys, self._symbol_expr))
         self._parameter_symbols = {self: self._symbol_expr}
         self._name_map = None
+        self._qpy_replay = []
+        self._standalone_param = True

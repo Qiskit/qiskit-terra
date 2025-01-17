@@ -10,15 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-RZX based template for CX - RYGate - CX
-.. parsed-literal::
-          ┌────────┐     ┌─────────┐┌─────────┐┌──────────┐
-q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        ├┤ RX(-π/2) ├
-     ┌─┴─┐└────────┘┌─┴─┐└─────────┘│  RZX(ϴ) │└──────────┘
-q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
-     └───┘          └───┘           └─────────┘
-"""
+# pylint: disable=missing-module-docstring
+
 from __future__ import annotations
 
 import numpy as np
@@ -28,7 +21,16 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def rzx_yz(theta: ParameterValueType | None = None):
-    """Template for CX - RYGate - CX."""
+    """RZX-based template for CX - RYGate - CX.
+
+    .. code-block:: text
+
+                  ┌────────┐     ┌─────────┐┌─────────┐┌──────────┐
+        q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        ├┤ RX(-π/2) ├
+             ┌─┴─┐└────────┘┌─┴─┐└─────────┘│  RZX(ϴ) │└──────────┘
+        q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
+             └───┘          └───┘           └─────────┘
+    """
     if theta is None:
         theta = Parameter("ϴ")
 

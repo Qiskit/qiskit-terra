@@ -127,7 +127,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u1(0.25*pi) q[1];
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
-        qc = QuantumCircuit.from_qasm_str(qasmstr)
+        with self.assertWarns(DeprecationWarning):
+            qc = QuantumCircuit.from_qasm_str(qasmstr)
 
         pass_manager = PassManager()
         pass_manager.append(CollectMultiQBlocks())
@@ -166,11 +167,15 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         qc = QuantumCircuit(qr, cr)
         qc.p(0.1, 0)
-        qc.p(0.2, 0).c_if(cr, 0)
-        qc.p(0.3, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.p(0.2, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.p(0.3, 0).c_if(cr, 0)
         qc.cx(0, 1)
-        qc.cx(1, 0).c_if(cr, 0)
-        qc.cx(0, 1).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(cr, 1)
 
         pass_manager = PassManager()
         pass_manager.append(CollectMultiQBlocks())
@@ -284,6 +289,46 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(CollectMultiQBlocks(max_block_size=4))
 
         pass_manager.run(qc)
+
+    def test_collect_from_back(self):
+        """Test the option to collect blocks from the outputs towards
+        the inputs.
+             ┌───┐
+        q_0: ┤ H ├──■────■────■───────
+             └───┘┌─┴─┐  │    │
+        q_1: ─────┤ X ├──┼────┼───────
+                  └───┘┌─┴─┐  │
+        q_2: ──────────┤ X ├──┼───────
+                       └───┘┌─┴─┐┌───┐
+        q_3: ───────────────┤ X ├┤ H ├
+                            └───┘└───┘
+        """
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.h(3)
+
+        dag = circuit_to_dag(qc)
+        # For the circuit above, the topological order is unique
+        topo_ops = list(dag.topological_op_nodes())
+
+        # When collecting blocks of size-3 using the default direction,
+        # the first block should contain the H-gate and two CX-gates,
+        # and the second block should contain a single CX-gate and an H-gate.
+        pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=False)
+        pass_.run(dag)
+        expected_blocks = [[topo_ops[0], topo_ops[1], topo_ops[2]], [topo_ops[3], topo_ops[4]]]
+        self.assertEqual(pass_.property_set["block_list"], expected_blocks)
+
+        # When collecting blocks of size-3 using the opposite direction,
+        # the first block should contain the H-gate and a single CX-gate,
+        # and the second block should contain two CX-gates and an H-gate.
+        pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=True)
+        pass_.run(dag)
+        expected_blocks = [[topo_ops[0], topo_ops[1]], [topo_ops[2], topo_ops[3], topo_ops[4]]]
+        self.assertEqual(pass_.property_set["block_list"], expected_blocks)
 
 
 if __name__ == "__main__":

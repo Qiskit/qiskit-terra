@@ -21,6 +21,7 @@ from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class ShiftPhase(Instruction):
@@ -40,6 +41,7 @@ class ShiftPhase(Instruction):
     by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         phase: Union[complex, ParameterExpression],
@@ -101,6 +103,7 @@ class SetPhase(Instruction):
     The ``SetPhase`` instruction sets :math:`\phi` to the instruction's ``phase`` operand.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         phase: Union[complex, ParameterExpression],

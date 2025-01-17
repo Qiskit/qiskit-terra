@@ -23,7 +23,7 @@ from numpy.testing import assert_allclose
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
+from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -1152,6 +1152,31 @@ class TestStatevector(QiskitTestCase):
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
+    def test_expval_identity(self):
+        """Test whether the calculation for identity operator has been fixed"""
+
+        # 1 qubit case test
+        state_1 = Statevector.from_label("0")
+        state_1_n1 = 2 * state_1  # test the same state with different norms
+        state_1_n2 = (1 + 2j) * state_1
+        identity_op_1 = SparsePauliOp.from_list([("I", 1)])
+        expval_state_1 = state_1.expectation_value(identity_op_1)
+        expval_state_1_n1 = state_1_n1.expectation_value(identity_op_1)
+        expval_state_1_n2 = state_1_n2.expectation_value(identity_op_1)
+        self.assertAlmostEqual(expval_state_1, 1.0 + 0j)
+        self.assertAlmostEqual(expval_state_1_n1, 4 + 0j)
+        self.assertAlmostEqual(expval_state_1_n2, 5 + 0j)
+
+        # Let's try a multi-qubit case
+        n_qubits = 3
+        state_coeff = 3 - 4j
+        op_coeff = 2 - 2j
+        state_test = state_coeff * Statevector.from_label("0" * n_qubits)
+        op_test = SparsePauliOp.from_list([("I" * n_qubits, op_coeff)])
+        expval = state_test.expectation_value(op_test)
+        target = op_coeff * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval, target)
+
     @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):
         """Test probabilities method with qargs"""
@@ -1193,7 +1218,7 @@ class TestStatevector(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Statevector.from_instruction(circ1)
@@ -1204,7 +1229,7 @@ class TestStatevector(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)

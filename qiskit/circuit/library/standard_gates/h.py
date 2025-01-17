@@ -38,7 +38,7 @@ class HGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ H ├
@@ -142,7 +142,7 @@ class CHGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -170,7 +170,8 @@ class CHGate(SingletonControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ H ├
                  └─┬─┘

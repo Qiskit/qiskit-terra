@@ -45,7 +45,7 @@ class ZGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ Z ├
@@ -161,7 +161,7 @@ class CZGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │
@@ -257,7 +257,7 @@ class CCZGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │

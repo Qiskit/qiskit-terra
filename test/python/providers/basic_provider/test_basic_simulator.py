@@ -174,7 +174,8 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit_if_true.x(qr[1])
         circuit_if_true.measure(qr[0], cr[0])
         circuit_if_true.measure(qr[1], cr[1])
-        circuit_if_true.x(qr[2]).c_if(cr, 0x3)
+        with self.assertWarns(DeprecationWarning):
+            circuit_if_true.x(qr[2]).c_if(cr, 0x3)
         circuit_if_true.measure(qr[0], cr[0])
         circuit_if_true.measure(qr[1], cr[1])
         circuit_if_true.measure(qr[2], cr[2])
@@ -193,7 +194,8 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit_if_false.x(qr[0])
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
-        circuit_if_false.x(qr[2]).c_if(cr, 0x3)
+        with self.assertWarns(DeprecationWarning):
+            circuit_if_false.x(qr[2]).c_if(cr, 0x3)
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
@@ -230,7 +232,8 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit.x([qr[1], qr[2]])
         circuit.measure(qr[1], cr[1])
         circuit.measure(qr[2], cr[2])
-        circuit.h(qr[0]).c_if(cr[0], True)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[0], True)
         circuit.measure(qr[0], cr1[0])
         job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result().get_counts()
@@ -269,8 +272,10 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit.barrier(qr)
         circuit.measure(qr[0], cr0[0])
         circuit.measure(qr[1], cr1[0])
-        circuit.z(qr[2]).c_if(cr0, 1)
-        circuit.x(qr[2]).c_if(cr1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr[2]).c_if(cr0, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
         job = self.backend.run(
             transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed

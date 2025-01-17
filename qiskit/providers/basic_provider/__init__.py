@@ -20,7 +20,9 @@ BasicProvider: Python-based Simulators (:mod:`qiskit.providers.basic_provider`)
 A module of Python-based quantum simulators. Simulators can be accessed
 via the `BasicProvider` provider, e.g.:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
    from qiskit.providers.basic_provider import BasicProvider
 

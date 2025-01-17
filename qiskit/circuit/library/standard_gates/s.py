@@ -51,7 +51,7 @@ class SGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ S ├
@@ -163,7 +163,7 @@ class SdgGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐
         q_0: ┤ Sdg ├
@@ -262,7 +262,7 @@ class CSGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -350,7 +350,7 @@ class CSdgGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ───■───
              ┌──┴──┐

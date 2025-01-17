@@ -196,10 +196,12 @@ class TestQFT(QiskitTestCase):
                 module=r"qiskit\..*",
                 message=r".*precision loss in QFT.*",
             )
+            warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
             qft = QFT()
             # Even with the approximation this will trigger the warning.
             qft.num_qubits = 1080
             qft.approximation_degree = 20
+
         self.assertFalse(caught_warnings)
 
         # Short-circuit the build method so it exits after input validation, but without actually
@@ -272,8 +274,10 @@ class TestQFTGate(QiskitTestCase):
     def test_conditional(self):
         """Test adding conditional to a QFTGate."""
         qc = QuantumCircuit(5, 1)
-        qc.append(QFTGate(4), [1, 2, 0, 4]).c_if(0, 1)
-        self.assertIsNotNone(qc.data[0].operation.condition)
+        with self.assertWarns(DeprecationWarning):
+            qc.append(QFTGate(4), [1, 2, 0, 4]).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNotNone(qc.data[0].operation.condition)
 
     def test_qasm(self):
         """Test qasm for circuits with QFTGates."""

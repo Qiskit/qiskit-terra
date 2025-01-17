@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug that caused :meth:`.PauliList.insert` with ``qubit=True`` to produce a `phase`
+    attribute with the wrong shape when the original object was length 1.
+    Fixed `#13623 <https://github.com/Qiskit/qiskit/issues/13623>`__.

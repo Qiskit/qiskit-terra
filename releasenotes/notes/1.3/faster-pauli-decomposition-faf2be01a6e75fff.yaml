@@ -1,0 +1,7 @@
+---
+features_quantum_info:
+  - |
+    The performance of :meth:`.SparsePauliOp.from_operator` has been optimized on top of the
+    algorithm improvements methods introduced in Qiskit 1.0.  It is now approximately five times
+    faster than before for fully dense matrices, taking approximately 40ms to decompose a 10q
+    operator involving all Pauli terms.

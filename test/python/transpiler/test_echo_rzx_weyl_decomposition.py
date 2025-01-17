@@ -74,8 +74,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         unitary_circuit = qi.Operator(circuit).data
-
-        after = EchoRZXWeylDecomposition(self.inst_map)(circuit)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The entire Qiskit Pulse package",
+        ):
+            after = EchoRZXWeylDecomposition(self.inst_map)(circuit)
 
         unitary_after = qi.Operator(after).data
 
@@ -97,11 +100,19 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit_non_native.rzz(theta, qr[1], qr[0])
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The entire Qiskit Pulse package",
+        ):
+            pass_ = EchoRZXWeylDecomposition(self.inst_map)
         after = dag_to_circuit(pass_.run(dag))
 
         dag_non_native = circuit_to_dag(circuit_non_native)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The entire Qiskit Pulse package",
+        ):
+            pass_ = EchoRZXWeylDecomposition(self.inst_map)
         after_non_native = dag_to_circuit(pass_.run(dag_non_native))
 
         circuit_rzx_number = self.count_gate_number("rzx", after)
@@ -127,11 +138,19 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit_non_native.swap(qr[1], qr[0])
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The entire Qiskit Pulse package",
+        ):
+            pass_ = EchoRZXWeylDecomposition(self.inst_map)
         after = dag_to_circuit(pass_.run(dag))
 
         dag_non_native = circuit_to_dag(circuit_non_native)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The entire Qiskit Pulse package",
+        ):
+            pass_ = EchoRZXWeylDecomposition(self.inst_map)
         after_non_native = dag_to_circuit(pass_.run(dag_non_native))
 
         circuit_rzx_number = self.count_gate_number("rzx", after)
@@ -166,7 +185,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
             unitary_circuit = qi.Operator(circuit).data
 
             dag = circuit_to_dag(circuit)
-            pass_ = EchoRZXWeylDecomposition(self.inst_map)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="The entire Qiskit Pulse package",
+            ):
+                pass_ = EchoRZXWeylDecomposition(self.inst_map)
             after = dag_to_circuit(pass_.run(dag))
             dag_after = circuit_to_dag(after)
 
@@ -221,7 +244,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         unitary_circuit = qi.Operator(circuit).data
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The entire Qiskit Pulse package",
+        ):
+            pass_ = EchoRZXWeylDecomposition(self.inst_map)
         after = dag_to_circuit(pass_.run(dag))
 
         unitary_after = qi.Operator(after).data

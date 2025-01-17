@@ -1,0 +1,7 @@
+---
+deprecations_misc:
+  - |
+    The ``qiskit.result.mitigation`` module has been deprecated and will be removed in the 2.0 release.
+    The deprecation includes the ``LocalReadoutMitigator`` and ``CorrelatedReadoutMitigator`` classes 
+    as well as the associated utils. 
+    Their functionality has been superseded by the mthree package, found in https://github.com/Qiskit/qiskit-addon-mthree.

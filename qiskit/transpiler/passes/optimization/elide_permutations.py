@@ -15,10 +15,9 @@
 
 import logging
 
-from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.layout import Layout
+from qiskit._accelerate import elide_permutations as elide_permutations_rs
 
 logger = logging.getLogger(__name__)
 
@@ -67,38 +66,16 @@ class ElidePermutations(TransformationPass):
             )
             return dag
 
-        op_count = dag.count_ops(recurse=False)
-        if op_count.get("swap", 0) == 0 and op_count.get("permutation", 0) == 0:
+        result = elide_permutations_rs.run(dag)
+
+        # If the pass did not do anything, the result is None
+        if result is None:
             return dag
 
-        new_dag = dag.copy_empty_like()
-        qubit_mapping = list(range(len(dag.qubits)))
+        # Otherwise, the result is a pair consisting of the rewritten DAGCircuit and the
+        # qubit mapping.
+        (new_dag, qubit_mapping) = result
 
-        def _apply_mapping(qargs):
-            return tuple(dag.qubits[qubit_mapping[dag.find_bit(qubit).index]] for qubit in qargs)
-
-        for node in dag.topological_op_nodes():
-            if not isinstance(node.op, (SwapGate, PermutationGate)):
-                new_dag.apply_operation_back(
-                    node.op, _apply_mapping(node.qargs), node.cargs, check=False
-                )
-            elif getattr(node.op, "condition", None) is not None:
-                new_dag.apply_operation_back(
-                    node.op, _apply_mapping(node.qargs), node.cargs, check=False
-                )
-            elif isinstance(node.op, SwapGate):
-                index_0 = dag.find_bit(node.qargs[0]).index
-                index_1 = dag.find_bit(node.qargs[1]).index
-                qubit_mapping[index_1], qubit_mapping[index_0] = (
-                    qubit_mapping[index_0],
-                    qubit_mapping[index_1],
-                )
-            elif isinstance(node.op, PermutationGate):
-                starting_indices = [qubit_mapping[dag.find_bit(qarg).index] for qarg in node.qargs]
-                pattern = node.op.params[0]
-                updated_indices = [starting_indices[idx] for idx in pattern]
-                for i, j in zip(starting_indices, updated_indices):
-                    qubit_mapping[i] = j
         input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         if self.property_set["original_qubit_indices"] is None:

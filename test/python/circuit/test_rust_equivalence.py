@@ -146,6 +146,22 @@ class TestRustGateEquivalence(QiskitTestCase):
                 rs_def = standard_gate._to_matrix(params)
                 np.testing.assert_allclose(rs_def, py_def)
 
+    def test_inverse(self):
+        """Test that the inverse is the same in rust space."""
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # gate is not in rust yet
+                continue
+
+            with self.subTest(name=name):
+                params = [0.1 * (i + 1) for i in range(standard_gate._num_params())]
+                py_def = gate_class.base_class(*params).inverse()
+                rs_def = standard_gate._inverse(params)
+                if rs_def is not None:
+                    self.assertEqual(py_def.name, rs_def[0].name)
+                    np.testing.assert_allclose(py_def.params, rs_def[1])
+
     def test_name(self):
         """Test that the gate name properties match in rust space."""
         for name, gate_class in self.standard_gates.items():

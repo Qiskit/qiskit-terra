@@ -374,11 +374,13 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         # Change duration to 100 from the 50 in self.durations to make sure
         # gate duration is used correctly.
-        with pulse.builder.build() as x_sched:
-            pulse.builder.delay(100, pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.builder.build() as x_sched:
+                pulse.builder.delay(100, pulse.DriveChannel(0))
 
         circ_in = self.ghz4.measure_all(inplace=False)
-        circ_in.add_calibration(XGate(), (0,), x_sched)
+        with self.assertWarns(DeprecationWarning):
+            circ_in.add_calibration(XGate(), (0,), x_sched)
 
         ghz4_dd = pm.run(circ_in)
 
@@ -397,7 +399,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(Delay(300), [1])
 
         expected.measure_all()
-        expected.add_calibration(XGate(), (0,), x_sched)
+        with self.assertWarns(DeprecationWarning):
+            expected.add_calibration(XGate(), (0,), x_sched)
 
         self.assertEqual(ghz4_dd, expected)
 
@@ -430,11 +433,12 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         # Change duration to 100 from the 50 in self.durations to make sure
         # gate duration is used correctly.
         amp = Parameter("amp")
-        with pulse.builder.build() as sched:
-            pulse.builder.play(
-                pulse.Gaussian(100, amp=amp, sigma=10.0),
-                pulse.DriveChannel(0),
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.builder.build() as sched:
+                pulse.builder.play(
+                    pulse.Gaussian(100, amp=amp, sigma=10.0),
+                    pulse.DriveChannel(0),
+                )
 
         class Echo(Gate):
             """Dummy Gate subclass for testing
@@ -457,7 +461,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         echo = Echo("echo", 1, [amp, 10.0])
 
         circ_in = self.ghz4.measure_all(inplace=False)
-        circ_in.add_calibration(echo, (0,), sched)
+        with self.assertWarns(DeprecationWarning):
+            circ_in.add_calibration(echo, (0,), sched)
 
         dd_sequence = [echo, echo]
         pm = PassManager(
@@ -484,7 +489,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(Delay(300), [1])
 
         expected.measure_all()
-        expected.add_calibration(echo, (0,), sched)
+        with self.assertWarns(DeprecationWarning):
+            expected.add_calibration(echo, (0,), sched)
 
         self.assertEqual(ghz4_dd, expected)
 
@@ -857,10 +863,14 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         rx_duration = int(param_value * 1000)
 
-        with pulse.build() as rx:
-            pulse.play(pulse.Gaussian(rx_duration, 0.1, rx_duration // 4), pulse.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as rx:
+                pulse.play(
+                    pulse.Gaussian(rx_duration, 0.1, rx_duration // 4), pulse.DriveChannel(1)
+                )
 
-        circ.add_calibration("rx", (1,), rx, params=[param_value])
+        with self.assertWarns(DeprecationWarning):
+            circ.add_calibration("rx", (1,), rx, params=[param_value])
 
         durations = InstructionDurations([("x", None, 100), ("cx", None, 300)])
 

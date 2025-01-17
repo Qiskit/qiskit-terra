@@ -24,9 +24,9 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import Collect1qRuns
+from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import CheckMap
@@ -52,6 +52,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -280,7 +281,7 @@ def generate_routing_passmanager(
     coupling_map=None,
     vf2_call_limit=None,
     backend_properties=None,
-    seed_transpiler=None,
+    seed_transpiler=-1,
     check_trivial=False,
     use_barrier_before_measurement=True,
     vf2_max_trials=None,
@@ -299,7 +300,10 @@ def generate_routing_passmanager(
         backend_properties (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
+            the transpiler. This is currently only used for :class:`.VF2PostLayout` and the
+            default value of ``-1`` is strongly recommended (which is no randomization).
+            If a value of ``None`` is provided this will seed from system
+            entropy.
         check_trivial (bool): If set to true this will condition running the
             :class:`~.VF2PostLayout` pass after routing on whether a trivial
             layout was tried and was found to not be perfect. This is only
@@ -357,7 +361,7 @@ def generate_routing_passmanager(
                     target,
                     coupling_map,
                     backend_properties,
-                    seed_transpiler,
+                    seed=seed_transpiler,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,
                     strict_direction=False,
@@ -529,6 +533,7 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_scheduling(
     instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
 ):
@@ -540,7 +545,7 @@ def generate_scheduling(
             ``'asap'``/``'as_soon_as_possible'`` or
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
+        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gate to schedule.
         target (Target): The :class:`~.Target` object representing the backend
 
     Returns:

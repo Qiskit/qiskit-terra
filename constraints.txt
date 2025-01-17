@@ -3,10 +3,6 @@
 # https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
 scipy<1.11; python_version<'3.12'
 
-# Temporary pin to avoid CI issues caused by scipy 1.14.0
-# See https://github.com/Qiskit/qiskit/issues/12655 for current details.
-scipy==1.13.1; python_version=='3.12'
-
 # z3-solver from 4.12.3 onwards upped the minimum macOS API version for its
 # wheels to 11.7. The Azure VM images contain pre-built CPythons, of which at
 # least CPython 3.8 was compiled for an older macOS, so does not match a

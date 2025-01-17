@@ -89,7 +89,9 @@ class Gate(Instruction):
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         if not annotated:
-            return UnitaryGate(Operator(self).power(exponent), label=f"{self.name}^{exponent}")
+            return UnitaryGate(
+                Operator(self).power(exponent, assume_unitary=True), label=f"{self.name}^{exponent}"
+            )
         else:
             return AnnotatedOperation(self, PowerModifier(exponent))
 

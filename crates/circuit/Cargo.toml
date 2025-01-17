@@ -23,7 +23,7 @@ itertools.workspace = true
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
 
 [dependencies.hashbrown]
 workspace = true

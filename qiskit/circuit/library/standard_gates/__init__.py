@@ -43,12 +43,30 @@ from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate, CCZGate
 from .global_phase import GlobalPhaseGate
-from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 
 def get_standard_gate_name_mapping():
     """Return a dictionary mapping the name of standard gates and instructions to an object for
-    that name."""
+    that name.
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit.circuit.library import get_standard_gate_name_mapping
+
+            gate_name_map = get_standard_gate_name_mapping()
+            cx_object = gate_name_map["cx"]
+
+            print(cx_object)
+            print(type(cx_object))
+
+        .. code-block:: text
+
+            Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])
+            _SingletonCXGate
+    """
+
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.measure import Measure
     from qiskit.circuit.delay import Delay

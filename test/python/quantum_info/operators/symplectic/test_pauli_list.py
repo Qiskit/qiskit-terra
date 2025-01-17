@@ -1560,6 +1560,15 @@ class TestPauliListMethods(QiskitTestCase):
                 value1 = pauli.insert(1, insert)
                 self.assertEqual(value1, target1)
 
+        # Insert single column to length-1 PauliList:
+        with self.subTest(msg="length-1, single-column, single-val"):
+            pauli = PauliList(["X"])
+            insert = PauliList(["Y"])
+            target0 = PauliList(["YX"])
+            value0 = pauli.insert(1, insert, qubit=True)
+            self.assertEqual(value0, target0)
+            self.assertEqual(value0.phase.shape, (1,))
+
         # Insert single column
         pauli = PauliList(["X", "Y", "Z", "-iI"])
         for i in ["I", "X", "Y", "Z", "iY"]:

@@ -43,7 +43,7 @@ class U2Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤ U2(φ,λ) ├
@@ -144,3 +144,6 @@ class U2Gate(Gate):
             ],
             dtype=dtype or complex,
         )
+
+    def __eq__(self, other):
+        return isinstance(other, U2Gate) and self._compare_parameters(other)

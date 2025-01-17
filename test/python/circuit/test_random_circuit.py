@@ -49,18 +49,20 @@ class TestCircuitRandom(QiskitTestCase):
         """Test generating random circuits with conditional and reset."""
         num_qubits = 1
         depth = 100
-        circ = random_circuit(num_qubits, depth, conditional=True, reset=True, seed=5)
+        with self.assertWarns(DeprecationWarning):
+            circ = random_circuit(num_qubits, depth, conditional=True, reset=True, seed=5)
         self.assertEqual(circ.width(), 2 * num_qubits)
         self.assertIn("reset", circ.count_ops())
 
     def test_large_conditional(self):
         """Test that conditions do not fail with large conditionals.  Regression test of gh-6994."""
         # The main test is that this call actually returns without raising an exception.
-        circ = random_circuit(64, 2, conditional=True, seed=0)
+        with self.assertWarns(DeprecationWarning):
+            circ = random_circuit(64, 2, conditional=True, seed=0)
         # Test that at least one instruction had a condition generated.  It's possible that this
         # fails due to very bad luck with the random seed - if so, change the seed to ensure that a
         # condition _is_ generated, because we need to test that generation doesn't error.
-        conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
+        conditions = (getattr(instruction.operation, "_condition", None) for instruction in circ)
         conditions = [x for x in conditions if x is not None]
         self.assertNotEqual(conditions, [])
         for register, value in conditions:
@@ -72,14 +74,15 @@ class TestCircuitRandom(QiskitTestCase):
     def test_random_mid_circuit_measure_conditional(self):
         """Test random circuit with mid-circuit measurements for conditionals."""
         num_qubits = depth = 2
-        circ = random_circuit(num_qubits, depth, conditional=True, seed=16)
+        with self.assertWarns(DeprecationWarning):
+            circ = random_circuit(num_qubits, depth, conditional=True, seed=16)
         self.assertEqual(circ.width(), 2 * num_qubits)
         op_names = [instruction.operation.name for instruction in circ]
         # Before a condition, there needs to be measurement in all the qubits.
         self.assertEqual(4, len(op_names))
         self.assertEqual(["measure"] * num_qubits, op_names[1 : 1 + num_qubits])
         conditions = [
-            bool(getattr(instruction.operation, "condition", None)) for instruction in circ
+            bool(getattr(instruction.operation, "_condition", None)) for instruction in circ
         ]
         self.assertEqual([False, False, False, True], conditions)
 

@@ -1,0 +1,62 @@
+---
+fixes:
+  - |
+    Fixed an issue with :func:`.qpy.load` when loading a QPY file containing
+    a :class:`.ParameterExpression`, if the versions of ``symengine`` installed
+    in the generating and loading environments were not the same.  For example,
+    if a QPY file containing :class:`.ParameterExpression`\ s was generated
+    using Qiskit 1.2.2 with ``symengine==0.11.0`` installed, Qiskit 1.2.2 with
+    ``syengine==0.13.0`` installed would be unable to load it.
+
+    Previously, an error would have been raised by ``symengine`` around this
+    version mismatch. This has been worked around for ``symengine`` 0.11 and
+    0.13 (there was no 0.12), but if you're trying to use different versions of
+    ``symengine`` and there is a mismatch, this version of Qiskit still might not
+    work.
+issues:
+  - |
+    Versions of Qiskit before 1.2.4 will not be able to load QPY files dumped
+    using :func:`.qpy.dump`, even with ``version`` set appropriately, if:
+
+    * there are unbound :class:`.ParameterExpression`\ s in the QPY file,
+    * the ``use_symengine=True`` flag was set (which is the default in Qiskit >=
+      1.0.0) in :func:`.qpy.dump`,
+    * the version of ``symengine`` installed in the generating and loading
+      environments are not within the same minor version.
+
+    This applies regardless of the version of Qiskit used in the generation (at
+    least up to Qiskit 1.2.4 inclusive).
+
+    If you want to maximize compatibility with older versions of Qiskit, you
+    should set ``use_symengine=False``.  Newer versions of Qiskit should not
+    require this.
+  - |
+    QPY files from the Qiskit 0.45 series can, under a very specific and unlikely
+    set of circumstances, fail to load with any newer version of Qiskit,
+    including Qiskit 1.2.4.  The criteria are:
+
+    * the :class:`.QuantumCircuit` or :class:`.ScheduleBlock` to be dumped
+      contained unbound :class:`.ParameterExpression` objects,
+    * the installed version of ``symengine`` was in the 0.9 series (which was the
+      most recent release during the support window of Qiskit 0.45),
+    * the ``use_symengine=True`` flag was set (which was *not* the default).
+
+    Later versions of Qiskit used during generation are not affected, because
+    they required newer versions than ``symengine`` 0.9.
+
+    In this case, you can recover the QPY file by reloading it with an environment
+    with Qiskit 0.45.3 and ``symengine`` 0.9.2 installed.  Then, use
+    :func:`.qpy.dump` with ``use_symengine=False`` to re-export the file. This
+    will then be readable by any newer version of Qiskit.
+upgrade:
+  - |
+    The supported versions of `symengine <https://pypi.org/project/symengine/>`__
+    have been pre-emptively capped at < 0.14.0 (which is expected to be the next
+    minor version, as of this release of Qiskit).  This has been done to protect
+    against a potential incompatibility in :mod:`.qpy` when serializing
+    :class:`.ParameterExpression` objects. The serialization used in
+    :ref:`qpy_format` versions 10, 11, and 12 for :class:`.ParameterExpression`
+    objects is tied to the symengine version used to generate it, and there is the potential
+    for a future symengine release to not be compatible. This upper version cap is to prevent
+    a future release of symengine causing incompatibilities when trying to load QPY files
+    using :class:`.qpy.load`.

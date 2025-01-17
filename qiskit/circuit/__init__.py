@@ -64,6 +64,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -559,7 +560,11 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from
-"crossing" the barrier; that is, in::
+"crossing" the barrier; that is, in:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit.circuit import QuantumCircuit
 
@@ -777,6 +782,30 @@ automatically.
 
 Consult :ref:`the control-flow construction documentation <circuit-control-flow-methods>` for more
 information on how to build circuits with control flow.
+
+Investigating commutation relations
+-----------------------------------
+
+If two operations in a circuit commute, we can swap the order in which they are applied.
+This can allow for optimizations and simplifications, for example, if it allows to merge
+or cancel gates:
+
+.. code-block:: text
+
+         ┌─────────┐     ┌─────────┐               ┌─────────┐
+    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├
+         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘
+    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├───
+                    └───┘   └───┘   └───┘             └───┘
+
+Performing these optimizations are part of the transpiler, but the tools to investigate commutations
+are available in the :class:`CommutationChecker`.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
+
 
 .. _circuit-custom-gates:
 
@@ -1023,6 +1052,24 @@ Generating random circuits
 .. autofunction:: random_circuit
 .. currentmodule:: qiskit.circuit
 
+Apply Pauli twirling to a circuit
+---------------------------------
+
+There are two primary types of noise when executing quantum circuits. The first is stochastic,
+or incoherent, noise that is mainly due to the unwanted interaction between the quantum processor
+and the external environment in which it resides. The second is known as coherent error, and these
+errors arise due to imperfect control of a quantum system. This can be unwanted terms in a system
+Hamiltonian, i.e. incorrect unitary evolution, or errors from incorrect temporal control of the
+quantum system, which includes things like incorrect pulse-shapes for gates.
+
+Pauli twirling is a quantum error suppression technique that uses randomization to shape coherent
+error into stochastic errors by combining the results from many random, but logically equivalent
+circuits, together. Qiskit provides a function to apply Pauli twirling to a given circuit for
+standard two qubit gates. For more details you can refer to the documentation of the function
+below:
+
+.. autofunction:: qiskit.circuit.pauli_twirl_2q_gates
+
 
 Exceptions
 ==========
@@ -1098,6 +1145,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False
@@ -1268,3 +1316,4 @@ from .controlflow import (
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from .twirling import pauli_twirl_2q_gates

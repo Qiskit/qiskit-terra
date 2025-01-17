@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.UnitarySynthesis` transpiler pass where 
+    non-2-qubit gates would be included in the available 2 qubit basis,
+    causing the ``TwoQubitWeylDecomposition`` to panic because of 
+    the dimension mismatch.

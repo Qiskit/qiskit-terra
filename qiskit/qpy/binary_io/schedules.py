@@ -20,9 +20,6 @@ from io import BytesIO
 
 import numpy as np
 import symengine as sym
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
@@ -31,6 +28,7 @@ from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.utils.deprecate_pulse import ignore_pulse_deprecation_warnings
 
 
 def _read_channel(file_obj, version):
@@ -106,7 +104,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
         return None
     expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        return load_basic(expr_bytes)
+        return common.load_symengine_payload(expr_bytes)
     else:
         from sympy import parse_expr
 
@@ -513,6 +511,7 @@ def _dumps_reference_item(schedule, metadata_serializer, version):
     return type_key, data_bytes
 
 
+@ignore_pulse_deprecation_warnings
 def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
     """Read a single ScheduleBlock from the file like object.
 

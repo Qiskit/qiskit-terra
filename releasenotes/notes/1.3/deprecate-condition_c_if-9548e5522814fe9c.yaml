@@ -1,0 +1,38 @@
+---
+deprecations_circuits:
+  - |
+    Deprecated the :attr:`.Instruction.condition` attribute and the
+    :meth:`.Instruction.c_if` method. They will be removed
+    in Qiskit 2.0, along with any uses in the Qiskit data
+    model. This functionality has been superseded by the :class:`.IfElseOp` class
+    which can be used to describe a classical condition in a circuit. For
+    example, a circuit using  :meth:`.Instruction.c_if` like::
+
+        from qiskit.circuit import QuantumCircuit
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.x(0).c_if(0, 1)
+        qc.z(1.c_if(1, 0)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+    can be rewritten as::
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        with expected.if_test((expected.clbits[0], True)):
+            qc.x(0)
+        with expected.if_test((expected.clbits[1], False)):
+            qc.z(1)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+    The now deprecated :class:`.ConvertConditionsToIfOps` transpiler pass can
+    be used to automate this conversion for existing circuits.
+deprecations_transpiler:
+  - |
+    The transpiler pass :class:`.ConvertConditionsToIfOps` has been deprecated
+    and will be removed in Qiskit 2.0.0. This class is now deprecated because
+    the underlying data model for :attr:`.Instruction.condition` which this
+    pass is converting from has been deprecated and will be removed in 2.0.0.

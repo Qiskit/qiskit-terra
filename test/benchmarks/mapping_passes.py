@@ -35,7 +35,7 @@ class PassBenchmarks:
             n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
         )
         self.fresh_dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "iid"]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.cmap = [
             [0, 1],
             [1, 0],
@@ -166,7 +166,7 @@ class RoutedPassBenchmarks:
             n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
         )
         self.fresh_dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "iid"]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.cmap = [
             [0, 1],
             [1, 0],

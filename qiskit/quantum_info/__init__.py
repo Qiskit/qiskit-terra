@@ -28,6 +28,7 @@ Operators
    Pauli
    Clifford
    ScalarOp
+   SparseObservable
    SparsePauliOp
    CNOTDihedral
    PauliList
@@ -113,6 +114,9 @@ Analysis
 """
 
 from __future__ import annotations
+
+from qiskit._accelerate.sparse_observable import SparseObservable
+
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,

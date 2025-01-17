@@ -20,6 +20,7 @@ from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import barrier, chart, frame, snapshot, waveform
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
 def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
@@ -28,9 +29,11 @@ def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
     return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst, is_opaque=is_opaque)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestWaveformGenerators(QiskitTestCase):
     """Tests for waveform generators."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         style = stylesheet.QiskitPulseStyle()
@@ -400,9 +403,11 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertEqual(objs[1].text, "Gaussian(amp)")
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestChartGenerators(QiskitTestCase):
     """Tests for chart info generators."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         style = stylesheet.QiskitPulseStyle()
@@ -532,9 +537,11 @@ class TestChartGenerators(QiskitTestCase):
         self.assertDictEqual(obj.styles, ref_style)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFrameGenerators(QiskitTestCase):
     """Tests for frame info generators."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         style = stylesheet.QiskitPulseStyle()
@@ -736,9 +743,11 @@ class TestFrameGenerators(QiskitTestCase):
         self.assertDictEqual(obj.meta, ref_meta)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSnapshotGenerators(QiskitTestCase):
     """Tests for snapshot generators."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         style = stylesheet.QiskitPulseStyle()
@@ -830,9 +839,11 @@ class TestSnapshotGenerators(QiskitTestCase):
         self.assertDictEqual(obj.styles, ref_style)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBarrierGenerators(QiskitTestCase):
     """Tests for barrier generators."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         style = stylesheet.QiskitPulseStyle()

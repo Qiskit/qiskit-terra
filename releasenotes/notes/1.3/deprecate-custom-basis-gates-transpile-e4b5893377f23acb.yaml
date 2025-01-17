@@ -1,0 +1,18 @@
+---
+deprecations_transpiler:
+  - |
+    Providing custom gates through the ``basis_gates`` argument is deprecated 
+    for both :func:`.transpile` and :func:`generate_preset_pass_manager`, this functionality
+    will be removed in Qiskit 2.0. Custom gates are still supported in the :class:`.Target` model,
+    and can be provided through the ``target`` argument. One can build a :class:`.Target` instance
+    from scratch or use the :meth:`.Target.from_configuration` method with the ``custom_name_mapping`` 
+    argument. For example::
+    
+        from qiskit.circuit.library import XGate
+        from qiskit.transpiler.target import Target
+        
+        basis_gates = ["my_x", "cx"]
+        custom_name_mapping = {"my_x": XGate()}
+        target = Target.from_configuration(
+            basis_gates=basis_gates, num_qubits=2, custom_name_mapping=custom_name_mapping
+        )

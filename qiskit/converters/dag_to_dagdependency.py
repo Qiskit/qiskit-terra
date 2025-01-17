@@ -50,6 +50,6 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
 
     # copy metadata
     dagdependency.global_phase = dag.global_phase
-    dagdependency.calibrations = dag.calibrations
+    dagdependency._calibrations_prop = dag._calibrations_prop
 
     return dagdependency

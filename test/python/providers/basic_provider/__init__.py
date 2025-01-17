@@ -20,7 +20,9 @@ class BasicProviderBackendTestMixin:
 
     def test_configuration(self):
         """Test backend.configuration()."""
-        configuration = self.backend.configuration()
+        with self.assertWarns(DeprecationWarning):
+            # The method is deprecated
+            configuration = self.backend.configuration()
         return configuration
 
     def test_run_circuit(self):

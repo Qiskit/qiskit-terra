@@ -195,10 +195,12 @@ class TestGatesOnWires(QiskitTestCase):
         qreg = QuantumRegister(2)
         creg = ClassicalRegister(4)
         circuit = QuantumCircuit(qreg, creg)
-        circuit.h(0).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(0).c_if(creg, 3)
 
         expected = QuantumCircuit(qreg, creg)
-        expected.h(qreg[0]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg[0]).c_if(creg, 3)
 
         self.assertEqual(circuit, expected)
 
@@ -333,11 +335,14 @@ class TestGatesOnWireRange(QiskitTestCase):
         qreg1 = QuantumRegister(2)
         creg = ClassicalRegister(2)
         circuit = QuantumCircuit(qreg0, qreg1, creg)
-        circuit.h(range(1, 3)).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(range(1, 3)).c_if(creg, 3)
 
         expected = QuantumCircuit(qreg0, qreg1, creg)
-        expected.h(qreg0[1]).c_if(creg, 3)
-        expected.h(qreg1[0]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg0[1]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg1[0]).c_if(creg, 3)
 
         self.assertEqual(circuit, expected)
 
@@ -466,11 +471,14 @@ class TestGatesOnWireSlice(QiskitTestCase):
         qreg1 = QuantumRegister(2)
         creg = ClassicalRegister(2)
         circuit = QuantumCircuit(qreg0, qreg1, creg)
-        circuit.h(slice(1, 3)).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(slice(1, 3)).c_if(creg, 3)
 
         expected = QuantumCircuit(qreg0, qreg1, creg)
-        expected.h(qreg0[1]).c_if(creg, 3)
-        expected.h(qreg1[0]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg0[1]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg1[0]).c_if(creg, 3)
 
         self.assertEqual(circuit, expected)
 
@@ -504,10 +512,12 @@ class TestBitConditional(QiskitTestCase):
         qreg = QuantumRegister(1)
         creg = ClassicalRegister(2)
         circuit = QuantumCircuit(qreg, creg)
-        circuit.h(0).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(0).c_if(0, True)
 
         expected = QuantumCircuit(qreg, creg)
-        expected.h(qreg[0]).c_if(creg[0], True)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg[0]).c_if(creg[0], True)
         self.assertEqual(circuit, expected)
 
     def test_bit_conditional_multiple_gates(self):
@@ -516,12 +526,18 @@ class TestBitConditional(QiskitTestCase):
         creg = ClassicalRegister(2)
         creg1 = ClassicalRegister(1)
         circuit = QuantumCircuit(qreg, creg, creg1)
-        circuit.h(0).c_if(0, True)
-        circuit.h(1).c_if(1, False)
-        circuit.cx(1, 0).c_if(2, True)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(0).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(1).c_if(1, False)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(1, 0).c_if(2, True)
 
         expected = QuantumCircuit(qreg, creg, creg1)
-        expected.h(qreg[0]).c_if(creg[0], True)
-        expected.h(qreg[1]).c_if(creg[1], False)
-        expected.cx(qreg[1], qreg[0]).c_if(creg1[0], True)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg[0]).c_if(creg[0], True)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(qreg[1]).c_if(creg[1], False)
+        with self.assertWarns(DeprecationWarning):
+            expected.cx(qreg[1], qreg[0]).c_if(creg1[0], True)
         self.assertEqual(circuit, expected)

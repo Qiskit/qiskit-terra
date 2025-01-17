@@ -69,7 +69,9 @@ class SparsePauliOp(LinearOp):
     configure this by passing ``np.ndarray`` with a different dtype.  For example, a parameterized
     :class:`SparsePauliOp` can be made as follows:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         >>> import numpy as np
         >>> from qiskit.circuit import ParameterVector
@@ -165,7 +167,16 @@ class SparsePauliOp(LinearOp):
             # move the phase of `pauli_list` to `self._coeffs`
             phase = pauli_list._phase
             count_y = pauli_list._count_y()
-            self._coeffs = np.asarray((-1j) ** (phase - count_y) * coeffs, dtype=coeffs.dtype)
+
+            # Compute exponentiation via integer arithmetic and lookup table to avoid
+            # floating point errors
+            exponent = (phase - count_y) % 4
+            lookup = np.array([1 + 0j, -1j, -1 + 0j, 1j], dtype=coeffs.dtype)
+
+            vals = lookup[exponent]
+            self._coeffs = vals * coeffs
+
+            # Update pauli_list phase
             pauli_list._phase = np.mod(count_y, 4)
             self._pauli_list = pauli_list
 
@@ -530,7 +541,9 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp argsort.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -560,7 +573,7 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
@@ -599,7 +612,9 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp sort.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -629,7 +644,7 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
@@ -792,7 +807,9 @@ class SparsePauliOp(LinearOp):
 
         can be constructed as
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info import SparsePauliOp
 
@@ -858,7 +875,9 @@ class SparsePauliOp(LinearOp):
 
         can be constructed as
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info import SparsePauliOp
 
@@ -934,6 +953,14 @@ class SparsePauliOp(LinearOp):
         if array:
             return labels
         return labels.tolist()
+
+    def to_sparse_list(self):
+        """Convert to a sparse Pauli list format with elements (pauli, qubits, coefficient)."""
+        pauli_labels = self.paulis.to_labels()
+        sparse_list = [
+            (*sparsify_label(label), coeff) for label, coeff in zip(pauli_labels, self.coeffs)
+        ]
+        return sparse_list
 
     def to_matrix(self, sparse: bool = False, force_serial: bool = False) -> np.ndarray:
         """Convert to a dense or sparse matrix.
@@ -1055,7 +1082,9 @@ class SparsePauliOp(LinearOp):
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.  For example:
 
-                .. code-block:: python
+                .. plot::
+                   :include-source:
+                   :nofigs:
 
                     >>> from qiskit.quantum_info import SparsePauliOp
                     >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
@@ -1174,6 +1203,14 @@ class SparsePauliOp(LinearOp):
             return type(self)(["I" * n_qubits] * self.size, self.coeffs)
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
+
+
+def sparsify_label(pauli_string):
+    """Return a sparse format of a Pauli string, e.g. "XIIIZ" -> ("XZ", [0, 4])."""
+    qubits = [i for i, label in enumerate(reversed(pauli_string)) if label != "I"]
+    sparse_label = "".join(pauli_string[~i] for i in qubits)
+
+    return sparse_label, qubits
 
 
 # Update docstrings for API docs

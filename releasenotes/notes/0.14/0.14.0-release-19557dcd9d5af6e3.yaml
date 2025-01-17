@@ -51,7 +51,7 @@ prelude: |
   
     >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
   
-  .. parsed-literal::
+  .. code-block:: text
 
                     ┌───┐                   ┌─────┐                ┌───┐
         lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────

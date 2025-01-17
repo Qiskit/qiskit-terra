@@ -30,13 +30,17 @@ class TestCanvas(QiskitTestCase):
         circ.cx(0, 2)
         circ.cx(1, 3)
 
-        self.circ = transpile(
-            circ,
-            scheduling_method="alap",
-            basis_gates=["h", "cx"],
-            instruction_durations=[("h", 0, 200), ("cx", [0, 2], 1000), ("cx", [1, 3], 1000)],
-            optimization_level=0,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            self.circ = transpile(
+                circ,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", 0, 200), ("cx", [0, 2], 1000), ("cx", [1, 3], 1000)],
+                optimization_level=0,
+            )
 
     def test_time_range(self):
         """Test calculating time range."""
@@ -153,13 +157,17 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        circ = transpile(
-            circ,
-            scheduling_method="alap",
-            basis_gates=[],
-            instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-            optimization_level=0,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            circ = transpile(
+                circ,
+                scheduling_method="alap",
+                basis_gates=[],
+                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
+                optimization_level=0,
+            )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": False})
@@ -184,13 +192,17 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        circ = transpile(
-            circ,
-            scheduling_method="alap",
-            basis_gates=[],
-            instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-            optimization_level=0,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            circ = transpile(
+                circ,
+                scheduling_method="alap",
+                basis_gates=[],
+                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
+                optimization_level=0,
+            )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": True})

@@ -1,0 +1,14 @@
+---
+features_circuits:
+  - |
+    Quantum circuits in :mod:`qiskit.circuit.library.boolean_logic` now have equivalent
+    representations as :class:`.Gate` objects:
+
+    * :class:`~qiskit.circuit.library.AndGate`,
+      representing :class:`~qiskit.circuit.library.AND`,
+    * :class:`~qiskit.circuit.library.OrGate`,
+      representing :class:`~qiskit.circuit.library.OR`,
+    * :class:`~qiskit.circuit.library.BitwiseXorGate`,
+      representing :class:`~qiskit.circuit.library.XOR`,
+    * :class:`~qiskit.circuit.library.InnerProductGate`,
+      representing :class:`~qiskit.circuit.library.InnerProduct`.

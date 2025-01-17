@@ -12,7 +12,7 @@ features:
                                           right_clbit0: self.left_clbit1,
                                           right_clbit1: self.left_clbit0})
 
-    .. parsed-literal::
+    .. code-block:: text
 
                     ┌───┐                    ┌─────┐┌─┐
         lqr_1_0: ───┤ H ├───     rqr_0: ──■──┤ Tdg ├┤M├

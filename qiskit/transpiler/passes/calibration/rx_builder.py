@@ -24,6 +24,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.library.symbolic_pulses import Drag
 from qiskit.transpiler.passes.calibration.base_builder import CalibrationBuilder
 from qiskit.transpiler.target import Target
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class RXCalibrationBuilder(CalibrationBuilder):
@@ -36,7 +37,9 @@ class RXCalibrationBuilder(CalibrationBuilder):
     It is recommended to place this pass in the post-optimization stage of a passmanager.
     A simple demo:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
        from qiskit.providers.fake_provider import GenericBackendV2
        from qiskit.transpiler import PassManager, PassManagerConfig
@@ -75,6 +78,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
           `arXiv:2004.11205 <https://arxiv.org/abs/2004.11205>`
     """
 
+    @deprecate_pulse_dependency
     def __init__(
         self,
         target: Target = None,
@@ -99,13 +103,15 @@ class RXCalibrationBuilder(CalibrationBuilder):
         """
         return (
             isinstance(node_op, RXGate)
-            and self.target.has_calibration("sx", tuple(qubits))
-            and (len(self.target.get_calibration("sx", tuple(qubits)).instructions) == 1)
+            and self.target._has_calibration("sx", tuple(qubits))
+            and (len(self.target._get_calibration("sx", tuple(qubits)).instructions) == 1)
             and isinstance(
-                self.target.get_calibration("sx", tuple(qubits)).instructions[0][1].pulse,
+                self.target._get_calibration("sx", tuple(qubits)).instructions[0][1].pulse,
                 ScalableSymbolicPulse,
             )
-            and self.target.get_calibration("sx", tuple(qubits)).instructions[0][1].pulse.pulse_type
+            and self.target._get_calibration("sx", tuple(qubits))
+            .instructions[0][1]
+            .pulse.pulse_type
             == "Drag"
         )
 
@@ -122,13 +128,13 @@ class RXCalibrationBuilder(CalibrationBuilder):
             raise QiskitError("Target rotation angle is not assigned.") from ex
 
         params = (
-            self.target.get_calibration("sx", tuple(qubits))
+            self.target._get_calibration("sx", tuple(qubits))
             .instructions[0][1]
             .pulse.parameters.copy()
         )
         new_rx_sched = _create_rx_sched(
             rx_angle=angle,
-            channel=self.target.get_calibration("sx", tuple(qubits)).channels[0],
+            channel=self.target._get_calibration("sx", tuple(qubits)).channels[0],
             duration=params["duration"],
             amp=params["amp"],
             sigma=params["sigma"],

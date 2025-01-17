@@ -19,7 +19,7 @@ import itertools
 from qiskit.quantum_info import random_clifford
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import EfficientSU2, QuantumVolume
+from qiskit.circuit.library import efficient_su2, quantum_volume
 from .utils import dtc_unitary, multi_control_circuit
 
 SEED = 12345
@@ -112,7 +112,7 @@ class ParamaterizedDifferentCircuit:
         """Measures an SDKs ability to build a 100Q
         QV circit from scratch.
         """
-        return QuantumVolume(circuit_size, num_qubits, seed=SEED)
+        return quantum_volume(circuit_size, num_qubits, seed=SEED)
 
     def time_DTC100_set_build(self, circuit_size, num_qubits):
         """Measures an SDKs ability to build a set
@@ -154,7 +154,7 @@ class ParameterizedCirc:
         over 100Q utilizing 4 repetitions.  This will yield a
         circuit with 1000 parameters
         """
-        out = EfficientSU2(num_qubits, reps=4, entanglement="circular", flatten=True)
+        out = efficient_su2(num_qubits, reps=4, entanglement="circular")
         out._build()
         return out
 

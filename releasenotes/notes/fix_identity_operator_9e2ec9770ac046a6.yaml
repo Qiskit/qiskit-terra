@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug that caused :meth:`.Statevector.expectation_value` to yield incorrect results
+    for the identity operator when the statevector was not normalized.

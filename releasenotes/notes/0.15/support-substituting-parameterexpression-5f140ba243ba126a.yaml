@@ -19,7 +19,7 @@ features:
         x = Parameter('x')
         source.assign_parameters({p: x*x})
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤ Rz(x**2) ├

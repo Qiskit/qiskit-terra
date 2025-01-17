@@ -1,0 +1,23 @@
+name: Build wheels
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      # Above are the defaults for the PR trigger, below are our insertions.
+      # Trigger on 'labeled' so we catch the initial manual labelling event.
+      - labeled
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref_name }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  test-wheels:
+    name: Build
+    if: '${{ contains(github.event.pull_request.labels.*.name, ''ci: test wheels'') }}'
+    uses: './.github/workflows/wheels-build.yml'
+    with:
+      default-action: "build"

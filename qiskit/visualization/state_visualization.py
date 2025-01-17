@@ -70,10 +70,11 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             import numpy as np
@@ -214,6 +215,7 @@ def plot_bloch_vector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit.visualization import plot_bloch_vector
@@ -221,6 +223,7 @@ def plot_bloch_vector(
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            import numpy as np
@@ -290,6 +293,7 @@ def plot_bloch_multivector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit
@@ -304,6 +308,7 @@ def plot_bloch_multivector(
             plot_bloch_multivector(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -406,6 +411,7 @@ def plot_state_city(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can choose different colors for the real and imaginary parts of the density matrix.
@@ -422,6 +428,7 @@ def plot_state_city(
            plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can make the bars more transparent to better see the ones that are behind
@@ -643,6 +650,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can set a color for all the bars.
@@ -659,6 +667,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
            plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # If you introduce a list with less colors than bars, the color of the bars will
@@ -816,12 +825,13 @@ def plot_state_qsphere(
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
         QiskitError: Input statevector does not have valid dimensions.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -836,6 +846,7 @@ def plot_state_qsphere(
            plot_state_qsphere(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can show the phase of each state and use

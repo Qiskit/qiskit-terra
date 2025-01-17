@@ -129,11 +129,15 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         qc = QuantumCircuit(qr, cr)
         qc.p(0.1, 0)
-        qc.p(0.2, 0).c_if(cr, 0)
-        qc.p(0.3, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.p(0.2, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.p(0.3, 0).c_if(cr, 0)
         qc.cx(0, 1)
-        qc.cx(1, 0).c_if(cr, 0)
-        qc.cx(0, 1).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(cr, 1)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())

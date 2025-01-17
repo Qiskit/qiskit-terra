@@ -13,10 +13,10 @@
 """Define a Quantum Fourier Transform circuit (QFT) and a native gate (QFTGate)."""
 
 from __future__ import annotations
-import warnings
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, CircuitInstruction, Gate
+from qiskit.circuit.quantumcircuit import QuantumRegister, CircuitInstruction, Gate
+from qiskit.utils.deprecation import deprecate_func
 from ..blueprintcircuit import BlueprintCircuit
 
 
@@ -38,6 +38,7 @@ class QFT(BlueprintCircuit):
     For 4 qubits, the circuit that implements this transformation is:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QFT
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -48,6 +49,7 @@ class QFT(BlueprintCircuit):
     The respective circuit diagram is:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QFT
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -64,6 +66,7 @@ class QFT(BlueprintCircuit):
     on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QFT
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -72,6 +75,14 @@ class QFT(BlueprintCircuit):
 
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg=(
+            "Use qiskit.circuit.library.QFTGate or qiskit.synthesis.qft.synth_qft_full instead, "
+            "for access to all previous arguments.",
+        ),
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,
@@ -232,22 +243,6 @@ class QFT(BlueprintCircuit):
         inverted._inverse = not self._inverse
         return inverted
 
-    def _warn_if_precision_loss(self):
-        """Issue a warning if constructing the circuit will lose precision.
-
-        If we need an angle smaller than ``pi * 2**-1022``, we start to lose precision by going into
-        the subnormal numbers.  We won't lose _all_ precision until an exponent of about 1075, but
-        beyond 1022 we're using fractional bits to represent leading zeros."""
-        max_num_entanglements = self.num_qubits - self.approximation_degree - 1
-        if max_num_entanglements > -np.finfo(float).minexp:  # > 1022 for doubles.
-            warnings.warn(
-                "precision loss in QFT."
-                f" The rotation needed to represent {max_num_entanglements} entanglements"
-                " is smaller than the smallest normal floating-point number.",
-                category=RuntimeWarning,
-                stacklevel=3,
-            )
-
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         """Check if the current configuration is valid."""
         valid = True
@@ -255,7 +250,6 @@ class QFT(BlueprintCircuit):
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits has not been set.")
-        self._warn_if_precision_loss()
         return valid
 
     def _build(self) -> None:
@@ -270,25 +264,16 @@ class QFT(BlueprintCircuit):
         if num_qubits == 0:
             return
 
-        circuit = QuantumCircuit(*self.qregs, name=self.name)
-        for j in reversed(range(num_qubits)):
-            circuit.h(j)
-            num_entanglements = max(0, j - max(0, self.approximation_degree - (num_qubits - j - 1)))
-            for k in reversed(range(j - num_entanglements, j)):
-                # Use negative exponents so that the angle safely underflows to zero, rather than
-                # using a temporary variable that overflows to infinity in the worst case.
-                lam = np.pi * (2.0 ** (k - j))
-                circuit.cp(lam, j, k)
+        from qiskit.synthesis.qft import synth_qft_full
 
-            if self.insert_barriers:
-                circuit.barrier()
-
-        if self._do_swaps:
-            for i in range(num_qubits // 2):
-                circuit.swap(i, num_qubits - i - 1)
-
-        if self._inverse:
-            circuit = circuit.inverse()
+        circuit = synth_qft_full(
+            num_qubits,
+            do_swaps=self._do_swaps,
+            insert_barriers=self._insert_barriers,
+            approximation_degree=self._approximation_degree,
+            inverse=self._inverse,
+            name=self.name,
+        )
 
         wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
         self.compose(wrapped, qubits=self.qubits, inplace=True)

@@ -12,11 +12,14 @@
 
 """Quantum Volume model circuit."""
 
+from __future__ import annotations
+
 from typing import Optional, Union
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
+from qiskit._accelerate.circuit_library import quantum_volume as qv_rs
 
 
 class QuantumVolume(QuantumCircuit):
@@ -32,6 +35,7 @@ class QuantumVolume(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QuantumVolume
        circuit = QuantumVolume(5, 6, seed=10)
@@ -40,6 +44,7 @@ class QuantumVolume(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QuantumVolume
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -80,36 +85,86 @@ class QuantumVolume(QuantumCircuit):
         depth = depth or num_qubits  # how many layers of SU(4)
         width = num_qubits // 2  # how many SU(4)s fit in each layer
         rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
-        if seed is None:
+        seed_name = seed
+        if seed_name is None:
             # Get the internal entropy used to seed the default RNG, if no seed was given.  This
             # stays in the output name, so effectively stores a way of regenerating the circuit.
             # This is just best-effort only, for backwards compatibility, and isn't critical (if
             # someone needs full reproducibility, they should be manually controlling the seeding).
-            seed = getattr(getattr(rng.bit_generator, "seed_seq", None), "entropy", None)
+            seed_name = getattr(getattr(rng.bit_generator, "seed_seq", None), "entropy", None)
 
         super().__init__(
-            num_qubits, name="quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
+            num_qubits,
+            name="quantum_volume_" + str([num_qubits, depth, seed_name]).replace(" ", ""),
         )
-        base = self if flatten else QuantumCircuit(num_qubits, name=self.name)
-
-        # For each layer, generate a permutation of qubits
-        # Then generate and apply a Haar-random SU(4) to each pair
-        unitaries = scipy.stats.unitary_group.rvs(4, depth * width, rng).reshape(depth, width, 4, 4)
-        qubits = tuple(base.qubits)
-        for row in unitaries:
-            perm = rng.permutation(num_qubits)
-            if classical_permutation:
-                for w, unitary in enumerate(row):
-                    gate = UnitaryGate(unitary, check_input=False, num_qubits=2)
-                    qubit = 2 * w
-                    base._append(
-                        CircuitInstruction(gate, (qubits[perm[qubit]], qubits[perm[qubit + 1]]))
-                    )
+        if classical_permutation:
+            if seed is not None:
+                max_value = np.iinfo(np.int64).max
+                seed = rng.integers(max_value, dtype=np.int64)
+            qv_circ = quantum_volume(num_qubits, depth, seed)
+            qv_circ.name = self.name
+            if flatten:
+                self.compose(qv_circ, inplace=True)
             else:
+                self._append(CircuitInstruction(qv_circ.to_instruction(), tuple(self.qubits)))
+        else:
+            if seed is None:
+                seed = seed_name
+
+            base = self if flatten else QuantumCircuit(num_qubits, name=self.name)
+
+            # For each layer, generate a permutation of qubits
+            # Then generate and apply a Haar-random SU(4) to each pair
+            unitaries = scipy.stats.unitary_group.rvs(4, depth * width, rng).reshape(
+                depth, width, 4, 4
+            )
+            qubits = tuple(base.qubits)
+            for row in unitaries:
+                perm = rng.permutation(num_qubits)
                 base._append(CircuitInstruction(PermutationGate(perm), qubits))
                 for w, unitary in enumerate(row):
                     gate = UnitaryGate(unitary, check_input=False, num_qubits=2)
                     qubit = 2 * w
                     base._append(CircuitInstruction(gate, qubits[qubit : qubit + 2]))
-        if not flatten:
-            self._append(CircuitInstruction(base.to_instruction(), tuple(self.qubits)))
+            if not flatten:
+                self._append(CircuitInstruction(base.to_instruction(), tuple(self.qubits)))
+
+
+def quantum_volume(
+    num_qubits: int,
+    depth: int | None = None,
+    seed: int | np.random.Generator | None = None,
+) -> QuantumCircuit:
+    """A quantum volume model circuit.
+
+    The model circuits are random instances of circuits used to measure
+    the Quantum Volume metric, as introduced in [1].
+
+    The model circuits consist of layers of Haar random
+    elements of SU(4) applied between corresponding pairs
+    of qubits in a random bipartition.
+
+    This function is multithreaded and will launch a thread pool with threads equal to the number
+    of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
+    environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
+
+    **Reference Circuit:**
+
+    .. plot::
+       :alt: Diagram illustrating the previously described circuit.
+
+       from qiskit.circuit.library import quantum_volume
+       circuit = quantum_volume(5, 6, seed=10)
+       circuit.draw('mpl')
+
+    **References:**
+
+    [1] A. Cross et al. Validating quantum computers using
+    randomized model circuits, Phys. Rev. A 100, 032328 (2019).
+    `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
+    """
+    if isinstance(seed, np.random.Generator):
+        seed = seed.integers(0, dtype=np.uint64)
+    depth = depth or num_qubits
+    return QuantumCircuit._from_circuit_data(qv_rs(num_qubits, depth, seed))

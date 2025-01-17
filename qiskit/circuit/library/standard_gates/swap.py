@@ -36,7 +36,7 @@ class SwapGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─X─
               │
@@ -150,7 +150,7 @@ class CSwapGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │
@@ -185,7 +185,7 @@ class CSwapGate(SingletonControlledGate):
         which in our case would be q_2. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
 
             q_0: ─X─
                   │

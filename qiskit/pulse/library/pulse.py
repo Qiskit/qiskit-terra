@@ -18,6 +18,7 @@ from __future__ import annotations
 import typing
 from abc import ABC, abstractmethod
 from typing import Any
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 
@@ -36,6 +37,7 @@ class Pulse(ABC):
     limit_amplitude = True
 
     @abstractmethod
+    @deprecate_pulse_func
     def __init__(
         self,
         duration: int | ParameterExpression,

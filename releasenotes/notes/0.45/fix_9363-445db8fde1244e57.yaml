@@ -25,7 +25,7 @@ fixes:
 
     Which would print
 
-    .. parsed-literal::
+    .. code-block:: text
 
            Before             After
 

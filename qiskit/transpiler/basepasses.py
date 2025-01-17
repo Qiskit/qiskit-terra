@@ -201,7 +201,7 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
         if state.workflow_status.previous_run == RunState.SUCCESS:
             if isinstance(new_dag, DAGCircuit):
                 # Copy calibration data from the original program
-                new_dag.calibrations = passmanager_ir.calibrations
+                new_dag._calibrations_prop = passmanager_ir._calibrations_prop
             else:
                 raise TranspilerError(
                     "Transformation passes should return a transformed dag."

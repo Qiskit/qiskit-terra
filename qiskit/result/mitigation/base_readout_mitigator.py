@@ -21,7 +21,7 @@ from ..counts import Counts
 
 
 class BaseReadoutMitigator(ABC):
-    """Base readout error mitigator class."""
+    """This class is DEPRECATED. Base readout error mitigator class."""
 
     @abstractmethod
     def quasi_probabilities(

@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
 use std::ptr::NonNull;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -504,17 +504,17 @@ pub struct PackedInstruction {
     pub extra_attrs: ExtraInstructionAttributes,
 
     #[cfg(feature = "cache_pygates")]
-    /// This is hidden in a `OnceCell` because it's just an on-demand cache; we don't create this
-    /// unless asked for it.  A `OnceCell` of a non-null pointer type (like `Py<T>`) is the same
+    /// This is hidden in a `OnceLock` because it's just an on-demand cache; we don't create this
+    /// unless asked for it.  A `OnceLock` of a non-null pointer type (like `Py<T>`) is the same
     /// size as a pointer and there are no runtime checks on access beyond the initialisation check,
     /// which is a simple null-pointer check.
     ///
-    /// WARNING: remember that `OnceCell`'s `get_or_init` method is no-reentrant, so the initialiser
+    /// WARNING: remember that `OnceLock`'s `get_or_init` method is no-reentrant, so the initialiser
     /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.
-    pub py_op: OnceCell<Py<PyAny>>,
+    pub py_op: OnceLock<Py<PyAny>>,
 }
 
 impl PackedInstruction {
@@ -581,7 +581,7 @@ impl PackedInstruction {
             }
         };
 
-        // `OnceCell::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
         // and for another to attempt the initialisation.

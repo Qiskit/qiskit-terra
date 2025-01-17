@@ -17,11 +17,13 @@ import warnings
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
+    @deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
     def __init__(
         self,
         initial_layout=None,
@@ -160,7 +162,7 @@ class PassManagerConfig:
                     if defaults is not None:
                         res.inst_map = defaults.instruction_schedule_map
             else:
-                res.inst_map = backend.instruction_schedule_map
+                res.inst_map = backend._instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
                 cmap_edge_list = getattr(config, "coupling_map", None)

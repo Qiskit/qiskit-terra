@@ -1,0 +1,17 @@
+---
+features_circuits:
+  - |
+    Added a new circuit manipulation function :func:`.pauli_twirl_2q_gates` that can be used to apply
+    Pauli twirling to a given circuit. This only works for twirling a fixed set of two-qubit
+    gates, currently :class:`.CXGate`, :class:`.ECRGate`, :class:`.CZGate`, :class:`.iSwapGate`.
+    For example:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit import QuantumCircuit, pauli_twirl_2q_gates
+
+       qc = QuantumCircuit(2)
+       qc.cx(0, 1)
+       twirled_circuit = pauli_twirl_2q_gates(qc, seed=123456)
+       twirled_circuit.draw("mpl")

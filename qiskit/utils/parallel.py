@@ -147,7 +147,9 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
     Examples:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import time
             from qiskit.utils import parallel_map

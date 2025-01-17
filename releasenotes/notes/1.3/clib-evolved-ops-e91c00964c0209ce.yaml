@@ -1,0 +1,13 @@
+---
+features_circuits:
+  - |
+    Added :func:`.evolved_operator_ansatz`, :func:`.hamiltonian_variational_ansatz`, and
+    :func:`.qaoa_ansatz` to the circuit library to implement variational circuits based on
+    operator evolutions. :func:`.evolved_operator_ansatz` and :func:`.qaoa_ansatz` are
+    functionally equivalent to :class:`.EvolvedOperatorAnsatz` and :class:`.QAOAAnsatz`, but
+    generally more performant.
+
+    The :func:`.hamiltonian_variational_ansatz` is designed to take a single Hamiltonian and
+    automatically split it into commuting terms to implement a Hamiltonian variational ansatz.
+    This could already be achieved manually by using the :class:`.EvolvedOperatorAnsatz`, but
+    is now more convenient to use.

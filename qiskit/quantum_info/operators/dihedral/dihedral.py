@@ -46,7 +46,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. code-block::
+     .. plot::
+        :include-source:
+        :nofigs:
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -62,7 +64,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
          # Print the CNOTDihedral element
          print(elem)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         phase polynomial =
         0 + 3*x_0 + 3*x_1 + 2*x_0*x_1

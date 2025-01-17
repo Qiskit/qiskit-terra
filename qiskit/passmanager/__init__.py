@@ -87,7 +87,10 @@ Such task might be easily done by converting the input numbers into string.
 We use the pass manager framework here, putting the efficiency aside for
 a moment to learn how to build a custom Qiskit compiler.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     from qiskit.passmanager import BasePassManager, GenericPass, ConditionalController
 
@@ -111,7 +114,10 @@ the final conversion.
 
 Next, we implement a pass that removes a digit when the number is five.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     class RemoveFive(GenericPass):
 
@@ -124,7 +130,10 @@ Finally, we instantiate a pass manager and schedule the task with it.
 Running the pass manager with random row of numbers returns
 new numbers that don't contain five.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     pm = ToyPassManager()
     pm.append(task)
@@ -133,7 +142,7 @@ new numbers that don't contain five.
 
 Output:
 
-.. parsed-literal::
+.. code-block:: text
 
     [12346789, 464, 36784]
 
@@ -143,7 +152,10 @@ six digits or less. Such control can be implemented by a flow controller.
 We start from an analysis pass that provides the flow controller
 with information about the number of digits.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     class CountDigits(GenericPass):
 
@@ -155,7 +167,10 @@ with information about the number of digits.
 Then, we wrap the remove five task with the :class:`.ConditionalController`
 that runs the stored tasks only when the condition is met.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     def digit_condition(property_set):
         # Return True when condition is met.
@@ -168,7 +183,10 @@ that runs the stored tasks only when the condition is met.
 
 As before, we schedule these passes with the pass manager and run.
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     pm = ToyPassManager()
     pm.append(analysis_task)
@@ -178,7 +196,7 @@ As before, we schedule these passes with the pass manager and run.
 
 Output:
 
-.. parsed-literal::
+.. code-block:: text
 
     [12346789, 45654, 36784]
 

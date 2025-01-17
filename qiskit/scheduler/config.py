@@ -16,11 +16,13 @@ from typing import List
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.utils import format_meas_map
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class ScheduleConfig:
     """Configuration for pulse scheduling."""
 
+    @deprecate_pulse_dependency(moving_to_dynamics=True)
     def __init__(self, inst_map: InstructionScheduleMap, meas_map: List[List[int]], dt: float):
         """
         Container for information needed to schedule a QuantumCircuit into a pulse Schedule.

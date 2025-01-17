@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`~qiskit.quantum_info.random_clifford` that stopped it
+    from sampling the full Clifford group.

@@ -83,7 +83,7 @@ clifford_gate_names = (
 
 def _is_clifford_gate(node, matrix_based=False):
     """Specifies whether a node holds a clifford gate."""
-    if getattr(node.op, "condition", None) is not None:
+    if getattr(node.op, "_condition", None) is not None:
         return False
     if node.op.name in clifford_gate_names:
         return True

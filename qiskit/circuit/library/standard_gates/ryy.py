@@ -33,7 +33,7 @@ class RYYGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤1        ├

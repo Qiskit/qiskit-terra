@@ -135,13 +135,17 @@ class TestCircuitKey(QiskitTestCase):
         with self.subTest("pulse circuit"):
 
             def test_with_scheduling(n):
-                custom_gate = pulse.Schedule(name="custom_x_gate")
-                custom_gate.insert(
-                    0, pulse.Play(pulse.Constant(160 * n, 0.1), pulse.DriveChannel(0)), inplace=True
-                )
-                qc = QuantumCircuit(1)
+                with self.assertWarns(DeprecationWarning):
+                    custom_gate = pulse.Schedule(name="custom_x_gate")
+                    custom_gate.insert(
+                        0,
+                        pulse.Play(pulse.Constant(160 * n, 0.1), pulse.DriveChannel(0)),
+                        inplace=True,
+                    )
+                    qc = QuantumCircuit(1)
                 qc.x(0)
-                qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
+                with self.assertWarns(DeprecationWarning):
+                    qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
                 backend = GenericBackendV2(
                     num_qubits=2, basis_gates=["id", "u1", "u2", "u3", "cx"], seed=42
@@ -159,7 +163,8 @@ class TestCircuitKey(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                qc.break_loop().c_if(0, True)
 
         self.assertIsInstance(hash(_circuit_key(qc)), int)
         self.assertIsInstance(json.dumps(_circuit_key(qc)), str)

@@ -15,15 +15,265 @@
 from __future__ import annotations
 from collections.abc import Sequence
 
+import typing
+import warnings
+import itertools
 import numpy as np
 
 from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+from qiskit._accelerate.circuit_library import pauli_evolution
 
 from .n_local import NLocal
+
+if typing.TYPE_CHECKING:
+    from qiskit.synthesis.evolution import EvolutionSynthesis
+
+
+def evolved_operator_ansatz(
+    operators: BaseOperator | Sequence[BaseOperator],
+    reps: int = 1,
+    evolution: EvolutionSynthesis | None = None,
+    insert_barriers: bool = False,
+    name: str = "EvolvedOps",
+    parameter_prefix: str | Sequence[str] = "t",
+    remove_identities: bool = True,
+    flatten: bool | None = None,
+) -> QuantumCircuit:
+    r"""Construct an ansatz out of operator evolutions.
+
+    For a set of operators :math:`[O_1, ..., O_J]` and :math:`R` repetitions (``reps``), this circuit
+    is defined as
+
+    .. math::
+
+        \prod_{r=1}^{R} \left( \prod_{j=J}^1 e^{-i\theta_{j, r} O_j} \right)
+
+    where the exponentials :math:`exp(-i\theta O_j)` are expanded using the product formula
+    specified by ``evolution``.
+
+    Examples:
+
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
+            :include-source:
+
+            from qiskit.circuit.library import evolved_operator_ansatz
+            from qiskit.quantum_info import Pauli
+
+            ops = [Pauli("ZZI"), Pauli("IZZ"), Pauli("IXI")]
+            ansatz = evolved_operator_ansatz(ops, reps=3, insert_barriers=True)
+            ansatz.draw("mpl")
+
+    Args:
+        operators: The operators to evolve. Can be a single operator or a sequence thereof.
+        reps: The number of times to repeat the evolved operators.
+        evolution: A specification of which evolution synthesis to use for the
+            :class:`.PauliEvolutionGate`. Defaults to first order Trotterization. Note, that
+            operators of type :class:`.Operator` are evolved using the :class:`.HamiltonianGate`,
+            as there are no Hamiltonian terms to expand in Trotterization.
+        insert_barriers: Whether to insert barriers in between each evolution.
+        name: The name of the circuit.
+        parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
+            will be used for each parameters. Can also be a list to specify a prefix per
+            operator.
+        remove_identities: If ``True``, ignore identity operators (note that we do not check
+            :class:`.Operator` inputs). This will also remove parameters associated with identities.
+        flatten: If ``True``, a flat circuit is returned instead of nesting it inside multiple
+            layers of gate objects. Setting this to ``False`` is significantly less performant,
+            especially for parameter binding, but can be desirable for a cleaner visualization.
+    """
+    if reps < 0:
+        raise ValueError("reps must be a non-negative integer.")
+
+    if isinstance(operators, BaseOperator):
+        operators = [operators]
+    elif len(operators) == 0:
+        return QuantumCircuit()
+
+    num_operators = len(operators)
+    if not isinstance(parameter_prefix, str):
+        if num_operators != len(parameter_prefix):
+            raise ValueError(
+                f"Mismatching number of operators ({len(operators)}) and parameter_prefix "
+                f"({len(parameter_prefix)})."
+            )
+
+    num_qubits = operators[0].num_qubits
+    if remove_identities:
+        operators, parameter_prefix = _remove_identities(operators, parameter_prefix)
+
+    if any(op.num_qubits != num_qubits for op in operators):
+        raise ValueError("Inconsistent numbers of qubits in the operators.")
+
+    # get the total number of parameters
+    if isinstance(parameter_prefix, str):
+        parameters = ParameterVector(parameter_prefix, reps * num_operators)
+        param_iter = iter(parameters)
+    else:
+        # this creates the parameter vectors per operator, e.g.
+        #    [[a0, a1, a2, ...], [b0, b1, b2, ...], [c0, c1, c2, ...]]
+        # and turns them into an iterator
+        #    a0 -> b0 -> c0 -> a1 -> b1 -> c1 -> a2 -> ...
+        per_operator = [ParameterVector(prefix, reps).params for prefix in parameter_prefix]
+        param_iter = itertools.chain.from_iterable(zip(*per_operator))
+
+    # fast, Rust-path
+    if (
+        flatten is not False  # captures None and True
+        and evolution is None
+        and all(isinstance(op, SparsePauliOp) for op in operators)
+    ):
+        sparse_labels = [op.to_sparse_list() for op in operators]
+        expanded_paulis = []
+        for _ in range(reps):
+            for term in sparse_labels:
+                param = next(param_iter)
+                expanded_paulis += [
+                    (pauli, indices, 2 * coeff * param) for pauli, indices, coeff in term
+                ]
+
+        data = pauli_evolution(num_qubits, expanded_paulis, insert_barriers, False)
+        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+        circuit.name = name
+
+        return circuit
+
+    # slower, Python-path
+    if evolution is None:
+        from qiskit.synthesis.evolution import LieTrotter
+
+        evolution = LieTrotter(insert_barriers=insert_barriers)
+
+    circuit = QuantumCircuit(num_qubits, name=name)
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
+
+    for rep in range(reps):
+        for i, op in enumerate(operators):
+            if isinstance(op, Operator):
+                gate = HamiltonianGate(op, next(param_iter))
+                if flatten:
+                    warnings.warn(
+                        "Cannot flatten the evolution of an Operator, flatten is set to "
+                        "False for this operator."
+                    )
+                flatten_operator = False
+
+            elif isinstance(op, BaseOperator):
+                gate = PauliEvolutionGate(op, next(param_iter), synthesis=evolution)
+                flatten_operator = flatten is True or flatten is None
+            else:
+                raise ValueError(f"Unsupported operator type: {type(op)}")
+
+            if flatten_operator:
+                circuit.compose(gate.definition, inplace=True)
+            else:
+                circuit.append(gate, circuit.qubits)
+
+            if insert_barriers and (rep < reps - 1 or i < num_operators - 1):
+                circuit.barrier()
+
+    return circuit
+
+
+def hamiltonian_variational_ansatz(
+    hamiltonian: SparsePauliOp | Sequence[SparsePauliOp],
+    reps: int = 1,
+    insert_barriers: bool = False,
+    name: str = "HVA",
+    parameter_prefix: str = "t",
+) -> QuantumCircuit:
+    r"""Construct a Hamiltonian variational ansatz.
+
+    For a Hamiltonian :math:`H = \sum_{k=1}^K H_k` where the terms :math:`H_k` consist of only
+    commuting Paulis, but the terms do not commute among each other :math:`[H_k, H_{k'}] \neq 0`, the
+    Hamiltonian variational ansatz (HVA) is
+
+    .. math::
+
+        \prod_{r=1}^{R} \left( \prod_{k=K}^1 e^{-i\theta_{k, r} H_k} \right)
+
+    where the exponentials :math:`exp(-i\theta H_k)` are implemented exactly [1, 2]. Note that this
+    differs from :func:`.evolved_operator_ansatz`, where no assumptions on the structure of the
+    operators are done.
+
+    The Hamiltonian can be passed as :class:`.SparsePauliOp`, in which case we split the Hamiltonian
+    into commuting terms :math:`\{H_k\}_k`. Note, that this may not be optimal and if the
+    minimal set of commuting terms is known it can be passed as sequence into this function.
+
+    Examples:
+
+        A single operator will be split into commuting terms automatically:
+
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
+            :include-source:
+
+            from qiskit.quantum_info import SparsePauliOp
+            from qiskit.circuit.library import hamiltonian_variational_ansatz
+
+            # this Hamiltonian will be split into the two terms [ZZI, IZZ] and [IXI]
+            hamiltonian = SparsePauliOp(["ZZI", "IZZ", "IXI"])
+            ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=2)
+            ansatz.draw("mpl")
+
+        Alternatively, we can directly provide the terms:
+
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
+            :include-source:
+
+            from qiskit.quantum_info import SparsePauliOp
+            from qiskit.circuit.library import hamiltonian_variational_ansatz
+
+            zz = SparsePauliOp(["ZZI", "IZZ"])
+            x = SparsePauliOp(["IXI"])
+            ansatz = hamiltonian_variational_ansatz([zz, x], reps=2)
+            ansatz.draw("mpl")
+
+
+    Args:
+        hamiltonian: The Hamiltonian to evolve. If given as single operator, it will be split into
+            commuting terms. If a sequence of :class:`.SparsePauliOp`, then it is assumed that
+            each element consists of commuting terms, but the elements do not commute among each
+            other.
+        reps: The number of times to repeat the evolved operators.
+        insert_barriers: Whether to insert barriers in between each evolution.
+        name: The name of the circuit.
+        parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
+            will be used for each parameters. Can also be a list to specify a prefix per
+            operator.
+
+    References:
+
+        [1] D. Wecker et al. Progress towards practical quantum variational algorithms (2015)
+            `Phys Rev A 92, 042303 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.92.042303>`__
+        [2] R. Wiersema et al. Exploring entanglement and optimization within the Hamiltonian
+            Variational Ansatz (2020) `arXiv:2008.02941 <https://arxiv.org/abs/2008.02941>`__
+
+    """
+    # If a single operator is given, check if it is a sum of operators (a SparsePauliOp),
+    # and split it into commuting terms. Otherwise treat it as single operator.
+    if isinstance(hamiltonian, SparsePauliOp):
+        hamiltonian = hamiltonian.group_commuting()
+
+    return evolved_operator_ansatz(
+        hamiltonian,
+        reps=reps,
+        evolution=None,
+        insert_barriers=insert_barriers,
+        name=name,
+        parameter_prefix=parameter_prefix,
+        flatten=True,
+    )
 
 
 class EvolvedOperatorAnsatz(NLocal):
@@ -254,3 +504,15 @@ def _is_pauli_identity(operator):
     if isinstance(operator, Pauli):
         return not np.any(np.logical_or(operator.x, operator.z))
     return False
+
+
+def _remove_identities(operators, prefixes):
+    identity_ops = {index for index, op in enumerate(operators) if _is_pauli_identity(op)}
+
+    if len(identity_ops) == 0:
+        return operators, prefixes
+
+    cleaned_ops = [op for i, op in enumerate(operators) if i not in identity_ops]
+    cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
+
+    return cleaned_ops, cleaned_prefix

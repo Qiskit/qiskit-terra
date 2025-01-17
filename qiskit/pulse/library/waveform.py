@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Waveform(Pulse):
@@ -25,6 +26,7 @@ class Waveform(Pulse):
     duration of the backend cycle-time, dt.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         samples: np.ndarray | list[complex],

@@ -13,13 +13,127 @@
 """The real-amplitudes 2-local circuit."""
 
 from __future__ import annotations
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RYGate, CXGate
+from qiskit.utils.deprecation import deprecate_func
+from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
+
+
+def real_amplitudes(
+    num_qubits: int,
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ) = "reverse_linear",
+    reps: int = 3,
+    skip_unentangled_qubits: bool = False,
+    skip_final_rotation_layer: bool = False,
+    parameter_prefix: str = "θ",
+    insert_barriers: bool = False,
+    name: str = "RealAmplitudes",
+) -> QuantumCircuit:
+    r"""Construct a real-amplitudes 2-local circuit.
+
+    This circuit is a heuristic trial wave function used, e.g., as ansatz in chemistry, optimization
+    or machine learning applications. The circuit consists of alternating layers of :math:`Y`
+    rotations and :math:`CX` entanglements. The entanglement pattern can be user-defined or selected
+    from a predefined set. This circuit is  "real amplitudes" since the prepared quantum states will
+    only have real amplitudes.
+
+    For example a ``real_amplitudes`` circuit with 2 repetitions on 3 qubits with ``"reverse_linear"``
+    entanglement is
+
+    .. parsed-literal::
+
+         ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
+         ┤ Ry(θ[0]) ├─░────────■───░─┤ Ry(θ[3]) ├─░────────■───░─┤ Ry(θ[6]) ├
+         ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤
+         ┤ Ry(θ[1]) ├─░───■──┤ X ├─░─┤ Ry(θ[4]) ├─░───■──┤ X ├─░─┤ Ry(θ[7]) ├
+         ├──────────┤ ░ ┌─┴─┐└───┘ ░ ├──────────┤ ░ ┌─┴─┐└───┘ ░ ├──────────┤
+         ┤ Ry(θ[2]) ├─░─┤ X ├──────░─┤ Ry(θ[5]) ├─░─┤ X ├──────░─┤ Ry(θ[8]) ├
+         └──────────┘ ░ └───┘      ░ └──────────┘ ░ └───┘      ░ └──────────┘
+
+    The entanglement can be set using the ``entanglement`` keyword as string or a list of
+    index-pairs. See the documentation of :func:`.n_local`. Additional options that can be set include
+    the number of repetitions, skipping rotation gates on qubits that are not entangled, leaving out
+    the final rotation layer and inserting barriers in between the rotation and entanglement
+    layers.
+
+    Examples:
+
+        .. plot::
+           :alt: Circuit diagram output by the previous code.
+           :include-source:
+           :context:
+
+           from qiskit.circuit.library import real_amplitudes
+
+           ansatz = real_amplitudes(3, reps=2)  # create the circuit on 3 qubits
+           ansatz.draw("mpl")
+
+        .. plot::
+           :alt: Circuit diagram output by the previous code.
+           :include-source:
+           :context: close-figs
+
+           ansatz = real_amplitudes(3, entanglement="full", reps=2)  # it is the same unitary as above
+           ansatz.draw("mpl")
+
+        .. plot::
+           :alt: Circuit diagram output by the previous code.
+           :include-source:
+           :context: close-figs
+
+           ansatz = real_amplitudes(3, entanglement="linear", reps=2, insert_barriers=True)
+           ansatz.draw("mpl")
+
+        .. plot::
+           :alt: Circuit diagram output by the previous code.
+           :include-source:
+           :context: close-figs
+
+           ansatz = real_amplitudes(4, reps=2, entanglement=[[0,3], [0,2]], skip_unentangled_qubits=True)
+           ansatz.draw("mpl")
+
+    Args:
+        num_qubits: The number of qubits of the RealAmplitudes circuit.
+        reps: Specifies how often the structure of a rotation layer followed by an entanglement
+            layer is repeated.
+        entanglement: The indices specifying on which qubits the input blocks act.
+            See :func:`.n_local` for detailed information.
+        skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
+        skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
+            are entangled. If ``False``, the rotation gates act on all qubits.
+        parameter_prefix: The name of the free parameters.
+        insert_barriers: If True, barriers are inserted in between each layer. If False,
+            no barriers are inserted.
+        name: The name of the circuit.
+
+    Returns:
+        A real-amplitudes circuit.
+    """
+    # Set entanglement_blocks to None when num_qubits == 1
+    entanglement_blocks = ["cx"] if num_qubits > 1 else []
+
+    return n_local(
+        num_qubits,
+        ["ry"],
+        entanglement_blocks,
+        entanglement,
+        reps,
+        insert_barriers,
+        parameter_prefix,
+        True,
+        skip_final_rotation_layer,
+        skip_unentangled_qubits,
+        name,
+    )
 
 
 class RealAmplitudes(TwoLocal):
@@ -35,7 +149,8 @@ class RealAmplitudes(TwoLocal):
     For example a ``RealAmplitudes`` circuit with 2 repetitions on 3 qubits with ``'reverse_linear'``
     entanglement is
 
-    .. parsed-literal::
+    .. code-block:: text
+
          ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
          ┤ Ry(θ[0]) ├─░────────■───░─┤ Ry(θ[3]) ├─░────────■───░─┤ Ry(θ[6]) ├
          ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤
@@ -58,7 +173,7 @@ class RealAmplitudes(TwoLocal):
     Examples:
 
         >>> ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
-        >>> print(ansatz)
+        >>> print(ansatz.decompose())
              ┌──────────┐                 ┌──────────┐                 ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├──────────■──────┤ Ry(θ[3]) ├──────────■──────┤ Ry(θ[6]) ├
              ├──────────┤        ┌─┴─┐    ├──────────┤        ┌─┴─┐    ├──────────┤
@@ -67,7 +182,7 @@ class RealAmplitudes(TwoLocal):
         q_2: ┤ Ry(θ[2]) ├┤ X ├┤ Ry(θ[5]) ├────────────┤ X ├┤ Ry(θ[8]) ├────────────
              └──────────┘└───┘└──────────┘            └───┘└──────────┘
 
-        >>> ansatz = RealAmplitudes(3, entanglement='full', reps=2)  # it is the same unitary as above
+        >>> ansatz = RealAmplitudes(3, entanglement='full', reps=2, flatten=True)
         >>> print(ansatz)
              ┌──────────┐          ┌──────────┐                      ┌──────────┐
         q_0: ┤ RY(θ[0]) ├──■────■──┤ RY(θ[3]) ├──────────────■────■──┤ RY(θ[6]) ├────────────
@@ -77,7 +192,8 @@ class RealAmplitudes(TwoLocal):
         q_2: ┤ RY(θ[2]) ├─────┤ X ├───┤ X ├────┤ RY(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├
              └──────────┘     └───┘   └───┘    └──────────┘     └───┘   └───┘    └──────────┘
 
-        >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
+        >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True,
+        ... flatten=True)
         >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
         >>> qc.compose(ansatz, inplace=True)
         >>> qc.draw()
@@ -89,7 +205,8 @@ class RealAmplitudes(TwoLocal):
         q_2: ┤ RY(θ[2]) ├─░──────┤ X ├─░─┤ RY(θ[5]) ├─░──────┤ X ├─░─┤ RY(θ[8]) ├
              └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
 
-        >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
+        >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True,
+        ... flatten=True)
         >>> print(ansatz)
              ┌──────────┐ ░ ┌───┐                ░ ┌──────────┐
         q_0: ┤ RY(θ[0]) ├─░─┤ X ├──■─────────────░─┤ RY(θ[4]) ├
@@ -102,7 +219,7 @@ class RealAmplitudes(TwoLocal):
              └──────────┘ ░                └───┘ ░ └──────────┘
 
         >>> ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
-        ... skip_unentangled_qubits=True)
+        ... skip_unentangled_qubits=True, flatten=True)
         >>> print(ansatz)
              ┌──────────┐                 ┌──────────┐                 ┌──────────┐
         q_0: ┤ RY(θ[0]) ├──■───────■──────┤ RY(θ[3]) ├──■───────■──────┤ RY(θ[6]) ├
@@ -114,8 +231,17 @@ class RealAmplitudes(TwoLocal):
         q_3: ┤ RY(θ[2]) ├┤ X ├┤ RY(θ[5]) ├────────────┤ X ├┤ RY(θ[8]) ├────────────
              └──────────┘└───┘└──────────┘            └───┘└──────────┘
 
+    .. seealso::
+
+        The :func:`.real_amplitudes` function constructs a functionally equivalent circuit, but faster.
+
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.real_amplitudes instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

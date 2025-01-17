@@ -35,7 +35,7 @@ class RZXGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤0        ├
@@ -65,7 +65,7 @@ class RZXGate(Gate):
         Instead, if we apply it on (q_1, q_0), the matrix will
         be :math:`Z \otimes X`:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────┐
             q_0: ┤1        ├

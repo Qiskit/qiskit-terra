@@ -212,16 +212,18 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.p(0.1, qr).c_if(cr, 1)
-        circuit.p(0.2, qr).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.p(0.1, qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.p(0.2, qr).c_if(cr, 3)
         circuit.p(0.3, qr)
         circuit.p(0.4, qr)
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
-
-        self.assertTrue(Operator(circuit).equiv(Operator(result)))
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(Operator(circuit).equiv(Operator(result)))
 
     @ddt.data(
         ["cx", "u3"],

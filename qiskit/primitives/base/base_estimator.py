@@ -70,7 +70,9 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 
     Here is an example of how the estimator is used.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.primitives import Estimator
         from qiskit.circuit.library import RealAmplitudes

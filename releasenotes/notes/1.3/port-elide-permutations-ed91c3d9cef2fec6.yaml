@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    Port most of the logic of the transpiler pass :class:`~.ElidePermutations`
+    to Rust.

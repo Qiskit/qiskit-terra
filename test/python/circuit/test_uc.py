@@ -31,6 +31,8 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
+_had = 1 / np.sqrt(2) * np.matrix([[1, 1], [1, -1]])
+_rand = random_unitary(2, seed=541234).data
 
 
 @ddt
@@ -44,29 +46,36 @@ class TestUCGate(QiskitTestCase):
             [_id, _id],
             [_id, 1j * _id],
             [_id, _not, _id, _not],
+            [_rand, _had, _rand, _had, _rand, _had, _rand, _had],
+            [_had, _had, _had, _had, _had, _had, _had, _had],
             [random_unitary(2, seed=541234).data for _ in range(2**2)],
             [random_unitary(2, seed=975163).data for _ in range(2**3)],
             [random_unitary(2, seed=629462).data for _ in range(2**4)],
         ],
         up_to_diagonal=[True, False],
+        mux_simp=[True, False],
     )
-    def test_ucg(self, squs, up_to_diagonal):
+    def test_ucg(self, squs, up_to_diagonal, mux_simp):
         """Test uniformly controlled gates."""
         num_con = int(np.log2(len(squs)))
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
 
-        uc = UCGate(squs, up_to_diagonal=up_to_diagonal)
+        uc = UCGate(squs, up_to_diagonal=up_to_diagonal, mux_simp=mux_simp)
         qc.append(uc, q)
 
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
+
         # Simulate the decomposed gate
         unitary = Operator(qc).data
         if up_to_diagonal:
-            ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
-            unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
+            ucg = UCGate(squs, up_to_diagonal=up_to_diagonal, mux_simp=mux_simp)
+            diag = np.diagflat(ucg._get_diagonal())
+            unitary = np.dot(diag, unitary)
+
         unitary_desired = _get_ucg_matrix(squs)
+
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
     def test_global_phase_ucg(self):
@@ -99,6 +108,21 @@ class TestUCGate(QiskitTestCase):
         unitary_desired = np.identity(2**qc.num_qubits)
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
+
+    def test_ucge(self):
+        """test ucg simplification"""
+        gate_list = [_had, _had, _had, _had, _had, _had, _had, _had]
+
+        qc1 = QuantumCircuit(4)
+        uc1 = UCGate(gate_list, up_to_diagonal=False, mux_simp=False)
+        qc1.append(uc1, range(4))
+        op1 = Operator(qc1).data
+
+        qc2 = QuantumCircuit(4)
+        uc2 = UCGate(gate_list, up_to_diagonal=False, mux_simp=True)
+        qc2.append(uc2, range(4))
+        op2 = Operator(qc2).data
+        self.assertTrue(np.allclose(op1, op2))
 
     def test_repeat(self):
         """test repeat operation"""

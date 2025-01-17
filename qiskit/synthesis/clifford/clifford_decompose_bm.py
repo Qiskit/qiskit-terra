@@ -41,7 +41,6 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
     circuit = QuantumCircuit._from_circuit_data(
-        synth_clifford_bm_inner(clifford.tableau.astype(bool)), add_regs=True
+        synth_clifford_bm_inner(clifford.tableau.astype(bool)), add_regs=True, name=str(clifford)
     )
-    circuit.name = str(clifford)
     return circuit

@@ -1,0 +1,14 @@
+---
+deprecations_transpiler:
+  - |
+    The following :func:`.transpile` and :func:`.generate_preset_pass_manager` arguments are deprecated in favor of
+    defining a custom :class:`.Target`: ``instruction_durations``, ``timing_constraints``, and ``backend_properties``.
+    These arguments can be used to build a target with :meth:`.Target.from_configuration`::
+    
+      Target.from_configuration(
+           ...
+           backend_properties = backend_properties,
+           instruction_durations = instruction_durations,
+           timing_constraints = timing_constraints
+      )
+

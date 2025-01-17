@@ -27,11 +27,14 @@ from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
 from qiskit.pulse.utils import format_parameter_value
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class ParameterTestBase(QiskitTestCase):
     """A base class for parameter manager unittest, providing test schedule."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         """Just some useful, reusable Parameters, constants, schedules."""
         super().setUp()
@@ -100,6 +103,7 @@ class ParameterTestBase(QiskitTestCase):
         self.test_sched = long_schedule
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestParameterGetter(ParameterTestBase):
     """Test getting parameters."""
 
@@ -183,6 +187,7 @@ class TestParameterGetter(ParameterTestBase):
         self.assertEqual(len(visitor.parameters), 17)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestParameterSetter(ParameterTestBase):
     """Test setting parameters."""
 
@@ -451,6 +456,7 @@ class TestParameterSetter(ParameterTestBase):
         self.assertEqual(assigned, ref_obj)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAssignFromProgram(QiskitTestCase):
     """Test managing parameters from programs. Parameter manager is implicitly called."""
 
@@ -554,6 +560,7 @@ class TestAssignFromProgram(QiskitTestCase):
         self.assertEqual(sched1.instructions[3][1].phase, 1.57)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScheduleTimeslots(QiskitTestCase):
     """Test for edge cases of timing overlap on parametrized channels.
 
@@ -632,6 +639,7 @@ class TestScheduleTimeslots(QiskitTestCase):
 
 
 @ddt.ddt
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFormatParameter(QiskitTestCase):
     """Test format_parameter_value function."""
 

@@ -1,0 +1,12 @@
+---
+features_circuits:
+  - |
+    Added the :func:`~qiskit.circuit.library.iqp` function to construct
+    Instantaneous Quantum Polynomial time (IQP) circuits. In addition to the 
+    existing :class:`.IQP` class, the function also allows construction of random
+    IQP circuits::
+
+      from qiskit.circuit.library import iqp
+
+      random_iqp = iqp(num_qubits=4)
+      print(random_iqp.draw())

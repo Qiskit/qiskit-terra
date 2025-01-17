@@ -1,0 +1,6 @@
+---
+features_circuits:
+  - |
+    Specialized implementations of :meth:`~object.__eq__` have been added for all standard-library circuit gates.
+    Most of the standard gates already specialized this method, but a few did not, and could cause significant
+    slowdowns in unexpected places.

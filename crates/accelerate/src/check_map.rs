@@ -30,10 +30,7 @@ fn recurse<'py>(
     let check_qubits = |qubits: &[Qubit]| -> bool {
         match wire_map {
             Some(wire_map) => {
-                let mapped_bits = [
-                    wire_map[qubits[0].0 as usize],
-                    wire_map[qubits[1].0 as usize],
-                ];
+                let mapped_bits = [wire_map[qubits[0].index()], wire_map[qubits[1].index()]];
                 edge_set.contains(&[mapped_bits[0].into(), mapped_bits[1].into()])
             }
             None => edge_set.contains(&[qubits[0].into(), qubits[1].into()]),
@@ -58,7 +55,7 @@ fn recurse<'py>(
                             .map(|inner| {
                                 let outer = qubits[inner];
                                 match wire_map {
-                                    Some(wire_map) => wire_map[outer.0 as usize],
+                                    Some(wire_map) => wire_map[outer.index()],
                                     None => outer,
                                 }
                             })

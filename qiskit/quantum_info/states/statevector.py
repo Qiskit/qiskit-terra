@@ -18,6 +18,7 @@ import copy as _copy
 import math
 import re
 from numbers import Number
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -37,27 +38,34 @@ from qiskit._accelerate.pauli_expval import (
     expval_pauli_with_x,
 )
 
+if TYPE_CHECKING:
+    from qiskit import circuit
+
 
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(
         self,
-        data: np.ndarray | list | Statevector | Operator | QuantumCircuit | Instruction,
+        data: (
+            np.ndarray
+            | list
+            | Statevector
+            | Operator
+            | QuantumCircuit
+            | circuit.instruction.Instruction
+        ),
         dims: int | tuple | list | None = None,
     ):
         """Initialize a statevector object.
 
         Args:
-            data (np.array or list or Statevector or Operator or QuantumCircuit or
-                  qiskit.circuit.Instruction):
-                Data from which the statevector can be constructed. This can be either a complex
+            data: Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector, a ``Operator`` with only one column or a
                 ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
                 the statevector is constructed by assuming that all qubits are initialized to the
                 zero state.
-            dims (int or tuple or list): Optional. The subsystem dimension of
-                                         the state (See additional information).
+            dims: The subsystem dimension of the state (See additional information).
 
         Raises:
             QiskitError: if input data is not valid.
@@ -173,6 +181,7 @@ class Statevector(QuantumState, TolerancesMixin):
             Plot one of the Bell states
 
             .. plot::
+               :alt: Output from the previous code.
                :include-source:
 
                 from numpy import sqrt
@@ -476,7 +485,7 @@ class Statevector(QuantumState, TolerancesMixin):
         pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
 
         if x_mask + z_mask == 0:
-            return pauli_phase * np.linalg.norm(self.data)
+            return pauli_phase * np.linalg.norm(self.data) ** 2
 
         if x_mask == 0:
             return pauli_phase * expval_pauli_no_x(self.data, self.num_qubits, z_mask)
@@ -536,7 +545,9 @@ class Statevector(QuantumState, TolerancesMixin):
             Consider a 2-qubit product state
             :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import Statevector
 
@@ -554,7 +565,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_qubit_1 = psi.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Qubit-0 probs: [1. 0.]
@@ -563,7 +574,9 @@ class Statevector(QuantumState, TolerancesMixin):
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import Statevector
 
@@ -578,7 +591,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_swapped = psi.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Swapped probs: [0.5 0.5 0.  0. ]
@@ -787,21 +800,25 @@ class Statevector(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit statevector
             :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit.quantum_info import Statevector
 
                 psi = Statevector.from_label('-0')
                 print(psi.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '10': (-0.7071067811865475+0j)}
 
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -812,7 +829,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '22': (0.7071067811865475+0j)}
 
@@ -820,7 +837,9 @@ class Statevector(QuantumState, TolerancesMixin):
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -831,7 +850,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '91': (0.7071067811865475+0j)}
 

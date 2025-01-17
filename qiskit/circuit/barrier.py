@@ -19,6 +19,7 @@ with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 from __future__ import annotations
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils import deprecate_func
 from .instruction import Instruction
 
 
@@ -44,5 +45,6 @@ class Barrier(Instruction):
         """Special case. Return self."""
         return Barrier(self.num_qubits)
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         raise QiskitError("Barriers are compiler directives and cannot be conditional.")

@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    Added a new option, ``collect_from_back``, to 
+    :class:`~qiskit.transpiler.passes.CollectMultiQBlocks`.
+    When set to ``True``, the blocks are collected in the reverse direction, 
+    from the outputs towards the inputs of the circuit. The blocks are still
+    reported following the normal topological order. 
+    This leads to an additional flexibility provided by the pass, and 
+    additional optimization opportunities when combined with a circuit 
+    resynthesis method.

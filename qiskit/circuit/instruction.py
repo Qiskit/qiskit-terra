@@ -103,7 +103,23 @@ class Instruction(Operation):
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
+        if duration is not None:
+            warnings.warn(
+                "Setting a custom duration per instruction is deprecated as of Qiskit "
+                "1.3.0. It will be removed in Qiskit 2.0.0. An instruction's duration "
+                "is defined in a backend's Target object.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._duration = duration
+        if unit is not None and unit != "dt":
+            warnings.warn(
+                "Setting a custom unit for duration per instruction is deprecated as of Qiskit "
+                "1.3.0. It will be removed in Qiskit 2.0.0. An instruction's duration "
+                "is defined in a backend's Target object which has a fixed unit in seconds.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
@@ -160,6 +176,7 @@ class Instruction(Operation):
         return self.copy()
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition(self):
         """The classical condition on the instruction."""
         return self._condition
@@ -347,9 +364,9 @@ class Instruction(Operation):
         return self._duration
 
     @duration.setter
-    def duration(self, duration):
+    def duration(self, value):
         """Set the duration."""
-        self._duration = duration
+        self._duration = value
 
     @property
     @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
@@ -358,9 +375,9 @@ class Instruction(Operation):
         return self._unit
 
     @unit.setter
-    def unit(self, unit):
+    def unit(self, value):
         """Set the time unit of duration."""
-        self._unit = unit
+        self._unit = value
 
     @deprecate_func(
         since="1.2",
@@ -394,8 +411,8 @@ class Instruction(Operation):
         # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
-        if self.condition:
-            instruction._condition = self.condition
+        if self._condition:
+            instruction._condition = self._condition
         return instruction
 
     @property
@@ -501,6 +518,7 @@ class Instruction(Operation):
         inverse_gate.definition = inverse_definition
         return inverse_gate
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
         ``classical`` and value ``val``.
@@ -616,7 +634,7 @@ class Instruction(Operation):
             qargs = tuple(qc.qubits)
             cargs = tuple(qc.clbits)
             base = self.copy()
-            if self.condition:
+            if self._condition:
                 # Condition is handled on the outer instruction.
                 base = base.to_mutable()
                 base.condition = None
@@ -624,18 +642,19 @@ class Instruction(Operation):
                 qc._append(CircuitInstruction(base, qargs, cargs))
 
             instruction.definition = qc
-        if self.condition:
-            instruction = instruction.c_if(*self.condition)
+        if self._condition:
+            instruction = instruction.c_if(*self._condition)
         return instruction
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition_bits(self) -> List[Clbit]:
         """Get Clbits in condition."""
         from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
 
-        if self.condition is None:
+        if self._condition is None:
             return []
-        return list(condition_resources(self.condition).clbits)
+        return list(condition_resources(self._condition).clbits)
 
     @property
     def name(self):

@@ -42,6 +42,7 @@ from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
 from qiskit.pulse.calibration_entries import PulseQobjDef
 from qiskit.providers.models.pulsedefaults import MeasurementKernel, Discriminator
 from qiskit.qobj.pulse_qobj import QobjMeasurementOption
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
 # Noise default values/ranges for duration and error of supported
 # instructions. There are two possible formats:
@@ -518,6 +519,8 @@ class GenericBackendV2(BackendV2):
     transpilation.
     """
 
+    @deprecate_pulse_arg("pulse_channels")
+    @deprecate_pulse_arg("calibrate_instructions")
     def __init__(
         self,
         num_qubits: int,
@@ -560,7 +563,7 @@ class GenericBackendV2(BackendV2):
             control_flow: Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_instructions: Instruction calibration settings, this argument
+            calibrate_instructions: DEPRECATED. Instruction calibration settings, this argument
                 supports both boolean and :class:`.InstructionScheduleMap` as
                 input types, and is ``None`` by default:
 
@@ -578,7 +581,7 @@ class GenericBackendV2(BackendV2):
 
             seed: Optional seed for generation of default values.
 
-            pulse_channels: If true, sets default pulse channel information on the backend.
+            pulse_channels: DEPRECATED. If true, sets default pulse channel information on the backend.
 
             noise_info: If true, associates gates and qubits with default noise information.
         """
@@ -648,14 +651,17 @@ class GenericBackendV2(BackendV2):
         return self._target.concurrent_measurements
 
     def _build_default_channels(self) -> None:
-        channels_map = {
-            "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
-            "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
-            "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
-            "control": {
-                (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self._coupling_map)
-            },
-        }
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # Prevent pulse deprecation warnings from being emitted
+            channels_map = {
+                "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
+                "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
+                "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
+                "control": {
+                    (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self._coupling_map)
+                },
+            }
         setattr(self, "channels_map", channels_map)
 
     def _get_noise_defaults(self, name: str, num_qubits: int) -> tuple:
@@ -867,27 +873,33 @@ class GenericBackendV2(BackendV2):
             duration, error = (
                 noise_params
                 if len(noise_params) == 2
-                else (self._rng.uniform(*noise_params[:2]), self._rng.uniform(*noise_params[2:]))
-            )
-            if (
-                calibration_inst_map is not None
-                and instruction.name not in ["reset", "delay"]
-                and qarg in calibration_inst_map.qubits_with_instruction(instruction.name)
-            ):
-                # Do NOT call .get method. This parses Qobj immediately.
-                # This operation is computationally expensive and should be bypassed.
-                calibration_entry = calibration_inst_map._get_calibration_entry(
-                    instruction.name, qargs
+                else (
+                    self._rng.uniform(*noise_params[:2]),
+                    self._rng.uniform(*noise_params[2:]),
                 )
-            else:
-                calibration_entry = None
-            if duration is not None and len(noise_params) > 2:
-                # Ensure exact conversion of duration from seconds to dt
-                dt = _QUBIT_PROPERTIES["dt"]
-                rounded_duration = round(duration / dt) * dt
-                # Clamp rounded duration to be between min and max values
-                duration = max(noise_params[0], min(rounded_duration, noise_params[1]))
-            props.update({qargs: InstructionProperties(duration, error, calibration_entry)})
+            )
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # Prevent pulse deprecations from being emitted
+                if (
+                    calibration_inst_map is not None
+                    and instruction.name not in ["reset", "delay"]
+                    and qarg in calibration_inst_map.qubits_with_instruction(instruction.name)
+                ):
+                    # Do NOT call .get method. This parses Qobj immediately.
+                    # This operation is computationally expensive and should be bypassed.
+                    calibration_entry = calibration_inst_map._get_calibration_entry(
+                        instruction.name, qargs
+                    )
+                else:
+                    calibration_entry = None
+                if duration is not None and len(noise_params) > 2:
+                    # Ensure exact conversion of duration from seconds to dt
+                    dt = _QUBIT_PROPERTIES["dt"]
+                    rounded_duration = round(duration / dt) * dt
+                    # Clamp rounded duration to be between min and max values
+                    duration = max(noise_params[0], min(rounded_duration, noise_params[1]))
+                props.update({qargs: InstructionProperties(duration, error, calibration_entry)})
         self._target.add_instruction(instruction, props)
 
         # The "measure" instruction calibrations need to be added qubit by qubit, once the
@@ -990,6 +1002,7 @@ class GenericBackendV2(BackendV2):
         else:
             return BasicSimulator._default_options()
 
+    @deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
         qubits = (qubit,)
@@ -997,6 +1010,7 @@ class GenericBackendV2(BackendV2):
             return drive_channels_map[qubits][0]
         return None
 
+    @deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
         qubits = (qubit,)
@@ -1004,6 +1018,7 @@ class GenericBackendV2(BackendV2):
             return measure_channels_map[qubits][0]
         return None
 
+    @deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
         qubits = (qubit,)
@@ -1011,6 +1026,7 @@ class GenericBackendV2(BackendV2):
             return acquire_channels_map[qubits][0]
         return None
 
+    @deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         control_channels_map = getattr(self, "channels_map", {}).get("control", {})
         qubits = tuple(qubits)

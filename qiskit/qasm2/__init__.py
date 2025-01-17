@@ -133,7 +133,10 @@ Exporting examples
 
 Export a simple :class:`.QuantumCircuit` to an OpenQASM 2 string:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context: reset
 
     import qiskit.qasm2
     from qiskit.circuit import QuantumCircuit
@@ -183,7 +186,9 @@ Parsing examples
 
 Use :func:`loads` to import an OpenQASM 2 program in a string into a :class:`.QuantumCircuit`:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     import qiskit.qasm2
     program = """
@@ -259,7 +264,9 @@ Sometimes you may want to influence the :class:`.Gate` objects that the importer
 named instructions.  Gates that are defined by the statement ``include "qelib1.inc";`` will
 automatically be associated with a suitable Qiskit circuit-library gate, but you can extend this:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit.circuit import Gate
     from qiskit.qasm2 import loads, CustomInstruction
@@ -292,7 +299,9 @@ defined gates (which are computed on demand).  Here we provide a Python version 
 which mathematically is :math:`\arctan(y/x)` but correctly handling angle quadrants and infinities,
 and a custom ``add_one`` function:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     import math
     from qiskit.qasm2 import loads, CustomClassical
@@ -356,7 +365,10 @@ the header file, you can use :class:`CustomInstruction` to override how Qiskit b
 For the standard ``qelib1.inc`` include there is only one point of difference, and so the override
 needed to switch its phase convention is:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context: reset
 
     from qiskit import qasm2
     from qiskit.circuit.library import PhaseGate
@@ -376,7 +388,10 @@ needed to switch its phase convention is:
 This will use Qiskit's :class:`.PhaseGate` class to represent the ``rz`` instruction, which is
 equal (including the phase) to :class:`.U1Gate`:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
 
     Operator(qasm2.loads(program, custom_instructions=custom))
 

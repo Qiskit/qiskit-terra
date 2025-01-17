@@ -19,6 +19,7 @@ from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
 from .base_readout_mitigator import BaseReadoutMitigator
@@ -26,7 +27,7 @@ from .utils import counts_probability_vector, z_diagonal, str2diag
 
 
 class LocalReadoutMitigator(BaseReadoutMitigator):
-    """1-qubit tensor product readout error mitigator.
+    """This class is DEPRECATED. 1-qubit tensor product readout error mitigator.
 
     Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
     The mitigator should either be calibrated using qiskit experiments,
@@ -37,6 +38,13 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     so it is more efficient than the :class:`CorrelatedReadoutMitigator` class.
     """
 
+    @deprecate_func(
+        since="1.3",
+        package_name="Qiskit",
+        removal_timeline="in Qiskit 2.0",
+        additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+        "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+    )
     def __init__(
         self,
         assignment_matrices: Optional[List[np.ndarray]] = None,

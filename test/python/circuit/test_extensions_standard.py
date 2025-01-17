@@ -76,7 +76,8 @@ class TestStandard1Q(QiskitTestCase):
     def test_conditional_barrier_invalid(self):
         qc = self.circuit
         barrier = qc.barrier(self.qr)
-        self.assertRaises(QiskitError, barrier.c_if, self.cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, barrier.c_if, self.cr, 0)
 
     def test_barrier_reg(self):
         self.circuit.barrier(self.qr)
@@ -131,16 +132,20 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
 
     def test_cif_reg(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr, 7)
+        with self.assertWarns(DeprecationWarning):
+            self.circuit.h(self.qr[0]).c_if(self.cr, 7)
         self.assertEqual(self.circuit[0].operation.name, "h")
         self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        self.assertEqual(self.circuit[0].operation.condition, (self.cr, 7))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.circuit[0].operation.condition, (self.cr, 7))
 
     def test_cif_single_bit(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
+        with self.assertWarns(DeprecationWarning):
+            self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
         self.assertEqual(self.circuit[0].operation.name, "h")
         self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        self.assertEqual(self.circuit[0].operation.condition, (self.cr[0], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.circuit[0].operation.condition, (self.cr[0], True))
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])

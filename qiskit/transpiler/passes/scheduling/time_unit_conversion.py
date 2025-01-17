@@ -12,6 +12,7 @@
 
 """Unify time unit in circuit for scheduling and following passes."""
 from typing import Set
+import warnings
 
 from qiskit.circuit import Delay
 from qiskit.dagcircuit import DAGCircuit
@@ -121,11 +122,15 @@ class TimeUnitConversion(TransformationPass):
         """
         circ_durations = InstructionDurations()
 
-        if dag.calibrations:
+        if dag._calibrations_prop:
             cal_durations = []
-            for gate, gate_cals in dag.calibrations.items():
-                for (qubits, parameters), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
+                # `schedule.duration` emits pulse deprecation warnings which we don't want
+                # to see here
+                for gate, gate_cals in dag._calibrations_prop.items():
+                    for (qubits, parameters), schedule in gate_cals.items():
+                        cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if self._durations_provided:

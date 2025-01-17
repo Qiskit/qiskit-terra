@@ -20,11 +20,14 @@ from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class BaseTestBlock(QiskitTestCase):
     """ScheduleBlock tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -52,6 +55,7 @@ class BaseTestBlock(QiskitTestCase):
         self.assertEqual(transforms.target_qobj_transform(target), reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestTransformation(BaseTestBlock):
     """Test conversion of ScheduleBlock to Schedule."""
 
@@ -140,6 +144,7 @@ class TestTransformation(BaseTestBlock):
         self.assertScheduleEqual(block_main, ref_sched)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBlockOperation(BaseTestBlock):
     """Test fundamental operation on schedule block.
 
@@ -150,6 +155,7 @@ class TestBlockOperation(BaseTestBlock):
     This operation should be tested in `test.python.pulse.test_block.TestTransformation`.
     """
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -372,6 +378,7 @@ class TestBlockOperation(BaseTestBlock):
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBlockEquality(BaseTestBlock):
     """Test equality of blocks.
 
@@ -611,9 +618,11 @@ class TestBlockEquality(BaseTestBlock):
         self.assertNotEqual(block2_a, block2_b)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestParametrizedBlockOperation(BaseTestBlock):
     """Test fundamental operation with parametrization."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -719,6 +728,7 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         self.assertScheduleEqual(block, ref_sched)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBlockFilter(BaseTestBlock):
     """Test ScheduleBlock filtering methods."""
 

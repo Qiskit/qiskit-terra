@@ -1,0 +1,29 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass, :class:`.RemoveIdentityEquivalent` that is used
+    to remove gates that are equivalent to an identity up to some tolerance.
+    For example if you had a circuit like:
+
+        .. plot::
+
+           from qiskit.circuit import QuantumCircuit
+
+           qc = QuantumCircuit(2)
+           qc.cp(1e-20, 0, 1)
+           qc.draw("mpl")
+
+    running the pass would eliminate the :class:`.CPhaseGate`:
+
+        .. plot::
+           :include-source:
+
+           from qiskit.circuit import QuantumCircuit
+           from qiskit.transpiler.passes import RemoveIdentityEquivalent
+
+           qc = QuantumCircuit(2)
+           qc.cp(1e-20, 0, 1)
+
+           removal_pass = RemoveIdentityEquivalent()
+           result = removal_pass(qc)
+           result.draw("mpl")

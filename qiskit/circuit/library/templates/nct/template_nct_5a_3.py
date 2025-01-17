@@ -10,22 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Template 5a_3:
-.. parsed-literal::
-    q_0: ───────■─────────■────■──
-              ┌─┴─┐     ┌─┴─┐  │
-    q_1: ──■──┤ X ├──■──┤ X ├──┼──
-         ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
-    q_2: ┤ X ├─────┤ X ├─────┤ X ├
-         └───┘     └───┘     └───┘
-"""
+# pylint: disable=missing-module-docstring
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def template_nct_5a_3():
     """
+    Template 5a_3:
+
+    .. code-block:: text
+
+        q_0: ───────■─────────■────■──
+                  ┌─┴─┐     ┌─┴─┐  │
+        q_1: ──■──┤ X ├──■──┤ X ├──┼──
+             ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+        q_2: ┤ X ├─────┤ X ├─────┤ X ├
+             └───┘     └───┘     └───┘
+
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """

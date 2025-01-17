@@ -77,7 +77,8 @@ def synth_clifford_layers(
 
     For example, a 5-qubit Clifford circuit is decomposed into the following layers:
 
-    .. parsed-literal::
+    .. code-block:: text
+
              ┌─────┐┌─────┐┌────────┐┌─────┐┌─────┐┌─────┐┌─────┐┌────────┐
         q_0: ┤0    ├┤0    ├┤0       ├┤0    ├┤0    ├┤0    ├┤0    ├┤0       ├
              │     ││     ││        ││     ││     ││     ││     ││        │

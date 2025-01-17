@@ -15,8 +15,10 @@
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2 import events
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestChannelEvents(QiskitTestCase):
     """Tests for ChannelEvents."""
 

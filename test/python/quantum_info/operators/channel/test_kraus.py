@@ -19,7 +19,7 @@ from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info import Kraus
+from qiskit.quantum_info import Kraus, Operator
 from .channel_test_case import ChannelTestCase
 
 
@@ -68,7 +68,14 @@ class TestKraus(ChannelTestCase):
         circuit, target = self.simple_circuit_no_measure()
         op = Kraus(circuit)
         target = Kraus(target)
-        self.assertEqual(op, target)
+        # The given separable circuit should only have a single Kraus operator.
+        self.assertEqual(len(op.data), 1)
+        self.assertEqual(len(target.data), 1)
+        kraus_op = Operator(op.data[0])
+        kraus_target = Operator(target.data[0])
+        # THe Kraus representation is not unique, but for a single operator, the only gauge freedom
+        # is the global phase.
+        self.assertTrue(kraus_op.equiv(kraus_target))
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""

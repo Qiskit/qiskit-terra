@@ -455,6 +455,7 @@ class TranspileLayout:
     let the input circuit be:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -470,6 +471,7 @@ class TranspileLayout:
     Suppose that during the layout stage the transpiler reorders the qubits to be:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit import QuantumCircuit
@@ -498,6 +500,7 @@ class TranspileLayout:
     becomes:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit import QuantumCircuit

@@ -53,11 +53,19 @@ class WhileLoopOp(ControlFlowOp):
         num_clbits = body.num_clbits
 
         super().__init__("while_loop", num_qubits, num_clbits, [body], label=label)
-        self.condition = validate_condition(condition)
+        self._condition = validate_condition(condition)
 
     @property
     def params(self):
         return self._params
+
+    @property
+    def condition(self):
+        return self._condition
+
+    @condition.setter
+    def condition(self, value):
+        self._condition = value
 
     @params.setter
     def params(self, parameters):
@@ -88,7 +96,7 @@ class WhileLoopOp(ControlFlowOp):
 
     def replace_blocks(self, blocks):
         (body,) = blocks
-        return WhileLoopOp(self.condition, body, label=self.label)
+        return WhileLoopOp(self._condition, body, label=self.label)
 
     def c_if(self, classical, val):
         raise NotImplementedError(

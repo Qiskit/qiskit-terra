@@ -20,7 +20,7 @@ from ddt import data, ddt
 from numpy.testing import assert_allclose
 
 from qiskit import QiskitError, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFT, HGate
+from qiskit.circuit.library import QFTGate, HGate
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
@@ -1186,7 +1186,7 @@ class TestDensityMatrix(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = DensityMatrix.from_instruction(circ1)
@@ -1197,7 +1197,7 @@ class TestDensityMatrix(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         dm = DensityMatrix.from_instruction(qc1)
         with self.subTest(msg="str(density_matrix)"):
             str(dm)

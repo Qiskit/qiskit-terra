@@ -53,7 +53,10 @@ def synth_mcx_n_dirty_i15(
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
-    num_qubits = 2 * num_ctrl_qubits - 1
+    if num_ctrl_qubits == 1:
+        num_qubits = 2
+    else:
+        num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]

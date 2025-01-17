@@ -440,7 +440,7 @@ class TestBackendEstimator(QiskitTestCase):
                 estimator.set_transpile_options(seed_transpiler=15, optimization_level=1)
                 value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
-                ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
+                ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.934
             else:
                 ref_value = -1
             self.assertEqual(value, ref_value)
@@ -493,7 +493,8 @@ class TestBackendEstimator(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(1, 0)
-            qc.break_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                qc.break_loop().c_if(0, True)
 
         observable = SparsePauliOp("IZ")
 

@@ -363,12 +363,14 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.swap(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.swap(qr[0], qr[1]).c_if(cr, 1)
         circuit.measure(qr[0], cr[0])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.swap(qr[0], qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.swap(qr[0], qr[1]).c_if(cr, 1)
         expected.measure(qr[0], cr[0])
 
         pass_ = OptimizeSwapBeforeMeasure()

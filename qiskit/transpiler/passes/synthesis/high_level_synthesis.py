@@ -28,7 +28,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlledGate, EquivalenceLibrary, equivalence
+from qiskit.circuit import ControlledGate, EquivalenceLibrary, equivalence, Qubit
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -42,8 +42,8 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 
+from qiskit._accelerate.high_level_synthesis import QubitTracker, QubitContext
 from .plugin import HighLevelSynthesisPluginManager
-from .qubit_tracker import QubitTracker
 
 if typing.TYPE_CHECKING:
     from qiskit.dagcircuit import DAGOpNode
@@ -271,96 +271,161 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
         qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
+        context = QubitContext(list(range(len(dag.qubits))))
+        tracker = QubitTracker(num_qubits=dag.num_qubits())
         if self.qubits_initially_zero:
-            clean, dirty = set(qubits), set()
-        else:
-            clean, dirty = set(), set(qubits)
+            tracker.set_clean(context.to_globals(qubits))
 
-        tracker = QubitTracker(qubits=qubits, clean=clean, dirty=dirty)
-        return self._run(dag, tracker)
+        out_dag = self._run(dag, tracker, context, use_ancillas=True, top_level=True)
+        return out_dag
 
-    def _run(self, dag: DAGCircuit, tracker: QubitTracker) -> DAGCircuit:
-        # Check if HighLevelSynthesis can be skipped.
-        for node in dag.op_nodes():
-            qubits = tuple(dag.find_bit(q).index for q in node.qargs)
-            if not self._definitely_skip_node(node, qubits, dag):
-                break
-        else:
-            # The for-loop terminates without reaching the break statement
-            return dag
+    def _run(
+        self,
+        dag: DAGCircuit,
+        tracker: QubitTracker,
+        context: QubitContext,
+        use_ancillas: bool,
+        top_level: bool,
+    ) -> DAGCircuit:
+        """
+        The main recursive function that synthesizes a DAGCircuit.
 
-        # Start by analyzing the nodes in the DAG. This for-loop is a first version of a potentially
-        # more elaborate approach to find good operation/ancilla allocations. It greedily iterates
-        # over the nodes, checking whether we can synthesize them, while keeping track of the
-        # qubit states. It does not trade-off allocations and just gives all available qubits
-        # to the current operation (a "the-first-takes-all" approach).
+        Input:
+            dag: the DAG to be synthesized.
+            tracker: the global tracker, tracking the state of original qubits.
+            context: the correspondence between the dag's qubits and the global qubits.
+            use_ancillas: if True, synthesis algorithms are allowed to use ancillas.
+            top_level: specifies if this is the top-level of the recursion.
+
+        The function returns the synthesized DAG.
+
+        Note that by using the auxiliary qubits to synthesize operations present in the input DAG,
+        the synthesized DAG may be defined over more qubits than the input DAG. In this case,
+        the function update in-place the global qubits tracker and extends the local-to-global
+        context.
+        """
+
+        if dag.num_qubits() != context.num_qubits():
+            raise TranspilerError("HighLevelSynthesis internal error.")
+
+        # STEP 1: Check if HighLevelSynthesis can be skipped altogether. This is only
+        # done at the top-level since this does not update the global qubits tracker.
+        if top_level:
+            for node in dag.op_nodes():
+                qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+                if not self._definitely_skip_node(node, qubits, dag):
+                    break
+            else:
+                # The for-loop terminates without reaching the break statement
+                if dag.num_qubits() != context.num_qubits():
+                    raise TranspilerError("HighLevelSynthesis internal error.")
+                return dag
+
+        # STEP 2: Analyze the nodes in the DAG. For each node in the DAG that needs
+        # to be synthesized, we recursively synthesize it and store the result. For
+        # instance, the result of synthesizing a custom gate is a DAGCircuit corresponding
+        # to the (recursively synthesized) gate's definition. When the result is a
+        # DAG, we also store its context (the mapping of its qubits to global qubits).
+        # In addition, we keep track of the qubit states using the (global) qubits tracker.
+        #
+        # Note: This is a first version of a potentially more elaborate approach to find
+        # good operation/ancilla allocations. The current approach is greedy and just gives
+        # all available ancilla qubits to the current operation ("the-first-takes-all" approach).
+        # It does not distribute ancilla qubits between different operations present in the DAG.
         synthesized_nodes = {}
 
         for node in dag.topological_op_nodes():
             qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+            processed = False
             synthesized = None
-            used_qubits = None
+            synthesized_context = None
+
+            # Start by handling special operations. Other cases can also be
+            # considered: swaps, automatically simplifying control gate (e.g. if
+            # a control is 0).
+            if node.op.name in ["id", "delay", "barrier"]:
+                # tracker not updated, these are no-ops
+                processed = True
+
+            elif node.op.name == "reset":
+                # reset qubits to 0
+                tracker.set_clean(context.to_globals(qubits))
+                processed = True
 
             # check if synthesis for the operation can be skipped
-            if self._definitely_skip_node(node, qubits, dag):
-                pass
+            elif self._definitely_skip_node(node, qubits, dag):
+                tracker.set_dirty(context.to_globals(qubits))
 
             # next check control flow
             elif node.is_control_flow():
-                dag.substitute_node(
-                    node,
-                    control_flow.map_blocks(partial(self._run, tracker=tracker.copy()), node.op),
-                    propagate_condition=False,
+                inner_context = context.restrict(qubits)
+                synthesized = control_flow.map_blocks(
+                    partial(
+                        self._run,
+                        tracker=tracker,
+                        context=inner_context,
+                        use_ancillas=False,
+                        top_level=False,
+                    ),
+                    node.op,
                 )
 
             # now we are free to synthesize
             else:
-                # this returns the synthesized operation and the qubits it acts on -- note that this
-                # may be different from the original qubits, since we may use auxiliary qubits
-                synthesized, used_qubits = self._synthesize_operation(node.op, qubits, tracker)
+                # This returns the synthesized operation and its context (when the result is
+                # a DAG, it's the correspondence between its qubits and the global qubits).
+                # Also note that the DAG may use auxiliary qubits. The qubits tracker and the
+                # current DAG's context are updated in-place.
+                synthesized, synthesized_context = self._synthesize_operation(
+                    node.op, qubits, tracker, context, use_ancillas=use_ancillas
+                )
 
-            # if the synthesis changed the operation (i.e. it is not None), store the result
-            # and mark the operation qubits as used
+            # If the synthesis changed the operation (i.e. it is not None), store the result.
             if synthesized is not None:
-                synthesized_nodes[node] = (synthesized, used_qubits)
-                tracker.used(qubits)  # assumes that auxiliary are returned in the same state
+                synthesized_nodes[node._node_id] = (synthesized, synthesized_context)
 
-            # if the synthesis did not change anything, just update the qubit tracker
-            # other cases can be added: swaps, controlled gates (e.g. if control is 0), ...
-            else:
-                if node.op.name in ["id", "delay", "barrier"]:
-                    pass  # tracker not updated, these are no-ops
-                elif node.op.name == "reset":
-                    tracker.reset(qubits)  # reset qubits to 0
-                else:
-                    tracker.used(qubits)  # any other op used the clean state up
+            # If the synthesis did not change anything, just update the qubit tracker.
+            elif not processed:
+                tracker.set_dirty(context.to_globals(qubits))
 
-        # we did not change anything just return the input
+        # We did not change anything just return the input.
         if len(synthesized_nodes) == 0:
+            if dag.num_qubits() != context.num_qubits():
+                raise TranspilerError("HighLevelSynthesis internal error.")
             return dag
 
-        # Otherwise, we will rebuild with the new operations. Note that we could also
+        # STEP 3. We rebuild the DAG with new operations. Note that we could also
         # check if no operation changed in size and substitute in-place, but rebuilding is
         # generally as fast or faster, unless very few operations are changed.
         out = dag.copy_empty_like()
-        index_to_qubit = dict(enumerate(dag.qubits))
+        num_additional_qubits = context.num_qubits() - out.num_qubits()
+
+        if num_additional_qubits > 0:
+            out.add_qubits([Qubit() for _ in range(num_additional_qubits)])
+
+        index_to_qubit = dict(enumerate(out.qubits))
+        outer_to_local = context.to_local_mapping()
 
         for node in dag.topological_op_nodes():
-            if node in synthesized_nodes:
-                op, qubits = synthesized_nodes[node]
-                qargs = tuple(index_to_qubit[index] for index in qubits)
+
+            if op_tuple := synthesized_nodes.get(node._node_id, None):
+                op, op_context = op_tuple
+
                 if isinstance(op, Operation):
-                    out.apply_operation_back(op, qargs, cargs=[])
+                    out.apply_operation_back(op, node.qargs, node.cargs)
                     continue
 
                 if isinstance(op, QuantumCircuit):
                     op = circuit_to_dag(op, copy_operations=False)
 
+                inner_to_global = op_context.to_global_mapping()
                 if isinstance(op, DAGCircuit):
                     qubit_map = {
-                        qubit: index_to_qubit[index] for index, qubit in zip(qubits, op.qubits)
+                        q: index_to_qubit[outer_to_local[inner_to_global[i]]]
+                        for (i, q) in enumerate(op.qubits)
                     }
                     clbit_map = dict(zip(op.clbits, node.cargs))
+
                     for sub_node in op.op_nodes():
                         out.apply_operation_back(
                             sub_node.op,
@@ -368,10 +433,14 @@ class HighLevelSynthesis(TransformationPass):
                             tuple(clbit_map[carg] for carg in sub_node.cargs),
                         )
                     out.global_phase += op.global_phase
+
                 else:
-                    raise RuntimeError(f"Unexpected synthesized type: {type(op)}")
+                    raise TranspilerError(f"Unexpected synthesized type: {type(op)}")
             else:
                 out.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+
+        if out.num_qubits() != context.num_qubits():
+            raise TranspilerError("HighLevelSynthesis internal error.")
 
         return out
 
@@ -380,7 +449,23 @@ class HighLevelSynthesis(TransformationPass):
         operation: Operation,
         qubits: tuple[int],
         tracker: QubitTracker,
-    ) -> tuple[QuantumCircuit | Operation | DAGCircuit | None, list[int] | None]:
+        context: QubitContext,
+        use_ancillas: bool,
+    ) -> tuple[QuantumCircuit | Operation | DAGCircuit | None, QubitContext | None]:
+        """
+        Synthesizes an operation. The function receives the qubits on which the operation
+        is defined in the current DAG, the correspondence between the qubits of the current
+        DAG and the global qubits and the global qubits tracker. The function returns the
+        result of synthesizing the operation. The value of `None` means that the operation
+        should remain as it is. When it's a circuit, we also return the context, i.e. the
+        correspondence of its local qubits and the global qubits. The function changes
+        in-place the tracker (state of the global qubits), the qubits (when the synthesized
+        operation is defined over additional ancilla qubits), and the context (to keep track
+        of where these ancilla qubits maps to).
+        """
+
+        synthesized_context = None
+
         # Try to synthesize the operation. We'll go through the following options:
         #  (1) Annotations: if the operator is annotated, synthesize the base operation
         #       and then apply the modifiers. Returns a circuit (e.g. applying a power)
@@ -389,31 +474,62 @@ class HighLevelSynthesis(TransformationPass):
         #       if the operation is a Clifford). Returns a circuit.
         #  (3) Unrolling custom definitions: try defining the operation if it is not yet
         #       in the set of supported instructions. Returns a circuit.
+        #
         # If any of the above were triggered, we will recurse and go again through these steps
         # until no further change occurred. At this point, we convert circuits to DAGs (the final
         # possible return type). If there was no change, we just return ``None``.
+        num_original_qubits = len(qubits)
+        qubits = list(qubits)
+
         synthesized = None
 
         # Try synthesizing via AnnotatedOperation. This is faster than an isinstance check
         # but a bit less safe since someone could create operations with a ``modifiers`` attribute.
         if len(modifiers := getattr(operation, "modifiers", [])) > 0:
-            # The base operation must be synthesized without using potential control qubits
+            # Note: the base operation must be synthesized without using potential control qubits
             # used in the modifiers.
             num_ctrl = sum(
                 mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
             )
             baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
-            baseop_tracker = tracker.copy(drop=qubits[:num_ctrl])  # no access to control qubits
 
             # get qubits of base operation
+            control_qubits = qubits[0:num_ctrl]
+
+            # Do not allow access to control qubits
+            tracker.disable(context.to_globals(control_qubits))
             synthesized_base_op, _ = self._synthesize_operation(
-                operation.base_op, baseop_qubits, baseop_tracker
+                operation.base_op,
+                baseop_qubits,
+                tracker,
+                context,
+                use_ancillas=use_ancillas,
             )
+
             if synthesized_base_op is None:
                 synthesized_base_op = operation.base_op
             elif isinstance(synthesized_base_op, DAGCircuit):
                 synthesized_base_op = dag_to_circuit(synthesized_base_op)
 
+            # Handle the case that synthesizing the base operation introduced
+            # additional qubits (e.g. the base operation is a circuit that includes
+            # an MCX gate).
+            if synthesized_base_op.num_qubits > len(baseop_qubits):
+                global_aux_qubits = tracker.borrow(
+                    synthesized_base_op.num_qubits - len(baseop_qubits),
+                    context.to_globals(baseop_qubits),
+                )
+                global_to_local = context.to_local_mapping()
+                for aq in global_aux_qubits:
+                    if aq in global_to_local:
+                        qubits.append(global_to_local[aq])
+                    else:
+                        new_local_qubit = context.add_qubit(aq)
+                        qubits.append(new_local_qubit)
+            # Restore access to control qubits.
+            tracker.enable(context.to_globals(control_qubits))
+
+            # This step currently does not introduce ancilla qubits.
             synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
 
         # If it was no AnnotatedOperation, try synthesizing via HLS or by unrolling.
@@ -421,57 +537,106 @@ class HighLevelSynthesis(TransformationPass):
             # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
             indices = qubits if self._use_qubit_indices else None
             if len(hls_methods := self._methods_to_try(operation.name)) > 0:
+                if use_ancillas:
+                    num_clean_available = tracker.num_clean(context.to_globals(qubits))
+                    num_dirty_available = tracker.num_dirty(context.to_globals(qubits))
+                else:
+                    num_clean_available = 0
+                    num_dirty_available = 0
                 synthesized = self._synthesize_op_using_plugins(
                     hls_methods,
                     operation,
                     indices,
-                    tracker.num_clean(qubits),
-                    tracker.num_dirty(qubits),
+                    num_clean_available,
+                    num_dirty_available,
                 )
+
+                # It may happen that the plugin synthesis method uses clean/dirty ancilla qubits
+                if (synthesized is not None) and (synthesized.num_qubits > len(qubits)):
+                    # need to borrow more qubits from tracker
+                    global_aux_qubits = tracker.borrow(
+                        synthesized.num_qubits - len(qubits), context.to_globals(qubits)
+                    )
+                    global_to_local = context.to_local_mapping()
+
+                    for aq in global_aux_qubits:
+                        if aq in global_to_local:
+                            qubits.append(global_to_local[aq])
+                        else:
+                            new_local_qubit = context.add_qubit(aq)
+                            qubits.append(new_local_qubit)
 
             # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
             if synthesized is None and not self._top_level_only:
-                synthesized = self._unroll_custom_definition(operation, indices)
+                synthesized = self._get_custom_definition(operation, indices)
 
         if synthesized is None:
-            # if we didn't synthesize, there was nothing to unroll, so just set the used qubits
-            used_qubits = qubits
+            # if we didn't synthesize, there was nothing to unroll
+            # updating the tracker will be handled upstream
+            pass
+
+        # if it has been synthesized, recurse and finally store the decomposition
+        elif isinstance(synthesized, Operation):
+            resynthesized, resynthesized_context = self._synthesize_operation(
+                synthesized, qubits, tracker, context, use_ancillas=use_ancillas
+            )
+
+            if resynthesized is not None:
+                synthesized = resynthesized
+            else:
+                tracker.set_dirty(context.to_globals(qubits))
+            if isinstance(resynthesized, DAGCircuit):
+                synthesized_context = resynthesized_context
+
+        elif isinstance(synthesized, QuantumCircuit):
+            # Synthesized is a quantum circuit which we want to process recursively.
+            # For example, it's the definition circuit of a custom gate
+            # or a circuit obtained by calling a synthesis method on a high-level-object.
+            # In the second case, synthesized may have more qubits than the original node.
+
+            as_dag = circuit_to_dag(synthesized, copy_operations=False)
+            inner_context = context.restrict(qubits)
+
+            if as_dag.num_qubits() != inner_context.num_qubits():
+                raise TranspilerError("HighLevelSynthesis internal error.")
+
+            # We save the current state of the tracker to be able to return the ancilla
+            # qubits to the current positions. Note that at this point we do not know
+            # which ancilla qubits will be allocated.
+            saved_tracker = tracker.copy()
+            synthesized = self._run(
+                as_dag, tracker, inner_context, use_ancillas=use_ancillas, top_level=False
+            )
+            synthesized_context = inner_context
+
+            if (synthesized is not None) and (synthesized.num_qubits() > len(qubits)):
+                # need to borrow more qubits from tracker
+                global_aux_qubits = tracker.borrow(
+                    synthesized.num_qubits() - len(qubits), context.to_globals(qubits)
+                )
+                global_to_local = context.to_local_mapping()
+
+                for aq in global_aux_qubits:
+                    if aq in global_to_local:
+                        qubits.append(global_to_local[aq])
+                    else:
+                        new_local_qubit = context.add_qubit(aq)
+                        qubits.append(new_local_qubit)
+
+            if len(qubits) > num_original_qubits:
+                tracker.replace_state(
+                    saved_tracker, context.to_globals(qubits[num_original_qubits:])
+                )
 
         else:
-            # if it has been synthesized, recurse and finally store the decomposition
-            if isinstance(synthesized, Operation):
-                re_synthesized, qubits = self._synthesize_operation(
-                    synthesized, qubits, tracker.copy()
-                )
-                if re_synthesized is not None:
-                    synthesized = re_synthesized
-                used_qubits = qubits
+            raise TranspilerError(f"Unexpected synthesized type: {type(synthesized)}")
 
-            elif isinstance(synthesized, QuantumCircuit):
-                aux_qubits = tracker.borrow(synthesized.num_qubits - len(qubits), qubits)
-                used_qubits = qubits + tuple(aux_qubits)
-                as_dag = circuit_to_dag(synthesized, copy_operations=False)
+        if isinstance(synthesized, DAGCircuit) and synthesized_context is None:
+            raise TranspilerError("HighLevelSynthesis internal error.")
 
-                # map used qubits to subcircuit
-                new_qubits = [as_dag.find_bit(q).index for q in as_dag.qubits]
-                qubit_map = dict(zip(used_qubits, new_qubits))
+        return synthesized, synthesized_context
 
-                synthesized = self._run(as_dag, tracker.copy(qubit_map))
-                if synthesized.num_qubits() != len(used_qubits):
-                    raise RuntimeError(
-                        f"Mismatching number of qubits, using {synthesized.num_qubits()} "
-                        f"but have {len(used_qubits)}."
-                    )
-
-            else:
-                raise RuntimeError(f"Unexpected synthesized type: {type(synthesized)}")
-
-        if synthesized is not None and used_qubits is None:
-            raise RuntimeError("Failed to find qubit indices on", synthesized)
-
-        return synthesized, used_qubits
-
-    def _unroll_custom_definition(
+    def _get_custom_definition(
         self, inst: Instruction, qubits: list[int] | None
     ) -> QuantumCircuit | None:
         # check if the operation is already supported natively
@@ -646,9 +811,10 @@ class HighLevelSynthesis(TransformationPass):
         node (which is _most_ nodes)."""
 
         if (
-            dag.has_calibration_for(node)
+            dag._has_calibration_for(node)
             or len(node.qargs) < self._min_qubits
             or node.is_directive()
+            or (self._instruction_supported(node.name, qubits) and not node.is_control_flow())
         ):
             return True
 
@@ -666,15 +832,12 @@ class HighLevelSynthesis(TransformationPass):
             # If all the above constraints hold, and it's already supported or the basis translator
             # can handle it, we'll leave it be.
             and (
-                self._instruction_supported(node.name, qubits)
                 # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
                 # `BasisTranslator`, and this is supposed to just be temporary til this is moved
                 # into Rust space.
-                or (
-                    self._equiv_lib is not None
-                    and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
-                    in self._equiv_lib.keys()
-                )
+                self._equiv_lib is not None
+                and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
+                in self._equiv_lib.keys()
             )
         )
 

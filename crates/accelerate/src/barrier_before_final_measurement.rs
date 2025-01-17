@@ -24,6 +24,7 @@ use qiskit_circuit::Qubit;
 static FINAL_OP_NAMES: [&str; 2] = ["measure", "barrier"];
 
 #[pyfunction]
+#[pyo3(signature=(dag, label=None))]
 pub fn barrier_before_final_measurements(
     py: Python,
     dag: &mut DAGCircuit,

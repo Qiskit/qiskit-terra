@@ -132,7 +132,7 @@ impl<'py> Iterator for BroadcastQubitsIter<'py> {
         (self.len - self.offset, Some(self.len - self.offset))
     }
 }
-impl<'py> ExactSizeIterator for BroadcastQubitsIter<'py> {}
+impl ExactSizeIterator for BroadcastQubitsIter<'_> {}
 
 struct BroadcastMeasureIter<'a, 'py> {
     py: Python<'py>,
@@ -142,7 +142,7 @@ struct BroadcastMeasureIter<'a, 'py> {
     carg: &'a BroadcastItem,
 }
 
-impl<'a, 'py> Iterator for BroadcastMeasureIter<'a, 'py> {
+impl<'py> Iterator for BroadcastMeasureIter<'_, 'py> {
     type Item = (Bound<'py, PyTuple>, Bound<'py, PyTuple>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -165,7 +165,7 @@ impl<'a, 'py> Iterator for BroadcastMeasureIter<'a, 'py> {
         (self.len - self.offset, Some(self.len - self.offset))
     }
 }
-impl<'a, 'py> ExactSizeIterator for BroadcastMeasureIter<'a, 'py> {}
+impl ExactSizeIterator for BroadcastMeasureIter<'_, '_> {}
 
 fn broadcast_bits_for_identifier<T: PyRegister>(
     py: Python,

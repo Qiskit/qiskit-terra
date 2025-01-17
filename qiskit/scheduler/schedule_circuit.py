@@ -20,8 +20,10 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
 from qiskit.providers import BackendV1, BackendV2
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def schedule_circuit(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ahash::RandomState;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
@@ -20,11 +21,14 @@ use numpy::prelude::*;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 
 use hashbrown::HashMap;
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
+use indexmap::IndexMap;
+use ndarray::{s, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
-use qiskit_circuit::util::{c64, C_ONE, C_ZERO};
 use rayon::prelude::*;
+use thiserror::Error;
+
+use qiskit_circuit::util::{c64, C_ZERO};
 
 use crate::rayon_ext::*;
 
@@ -68,14 +72,6 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
         indices.into_pyarray_bound(py).into(),
         inverses.into_pyarray_bound(py).into(),
     )
-}
-
-#[derive(Clone, Copy)]
-enum Pauli {
-    I,
-    X,
-    Y,
-    Z,
 }
 
 /// Pack a 2D array of Booleans into a given width.  Returns an error if the input array is
@@ -188,10 +184,9 @@ impl ZXPaulis {
 }
 
 /// Intermediate structure that represents readonly views onto the Python-space sparse Pauli data.
-/// This is used in the chained methods so that the syntactical temporary lifetime extension can
-/// occur; we can't have the readonly array temporaries only live within a method that returns
-/// [ZXPaulisView], because otherwise the lifetimes of the [PyReadonlyArray] elements will be too
-/// short.
+/// This is used in the chained methods so that the lifetime extension can occur; we can't have the
+/// readonly array temporaries only live within a method that returns [ZXPaulisView], because
+/// otherwise the lifetimes of the [PyReadonlyArray] elements will be too short.
 pub struct ZXPaulisReadonly<'a> {
     x: PyReadonlyArray2<'a, bool>,
     z: PyReadonlyArray2<'a, bool>,
@@ -221,7 +216,7 @@ pub struct ZXPaulisView<'py> {
     coeffs: ArrayView1<'py, Complex64>,
 }
 
-impl<'py> ZXPaulisView<'py> {
+impl ZXPaulisView<'_> {
     /// The number of qubits this operator acts on.
     pub fn num_qubits(&self) -> usize {
         self.x.shape()[1]
@@ -305,7 +300,11 @@ impl MatrixCompressedPaulis {
     /// explicitly stored operations, if there are duplicates.  After the summation, any terms that
     /// have become zero are dropped.
     pub fn combine(&mut self) {
-        let mut hash_table = HashMap::<(u64, u64), Complex64>::with_capacity(self.coeffs.len());
+        let mut hash_table =
+            IndexMap::<(u64, u64), Complex64, RandomState>::with_capacity_and_hasher(
+                self.coeffs.len(),
+                RandomState::new(),
+            );
         for (key, coeff) in self
             .x_like
             .drain(..)
@@ -325,175 +324,609 @@ impl MatrixCompressedPaulis {
     }
 }
 
+#[derive(Clone, Debug)]
+struct DecomposeOut {
+    z: Vec<bool>,
+    x: Vec<bool>,
+    phases: Vec<u8>,
+    coeffs: Vec<Complex64>,
+    scale: f64,
+    tol: f64,
+    num_qubits: usize,
+}
+
+#[derive(Error, Debug)]
+enum DecomposeError {
+    #[error("operators must have two dimensions, not {0}")]
+    BadDimension(usize),
+    #[error("operators must be square with a power-of-two side length, not {0:?}")]
+    BadShape([usize; 2]),
+}
+impl From<DecomposeError> for PyErr {
+    fn from(value: DecomposeError) -> PyErr {
+        PyValueError::new_err(value.to_string())
+    }
+}
+
 /// Decompose a dense complex operator into the symplectic Pauli representation in the
 /// ZX-convention.
 ///
 /// This is an implementation of the "tensorized Pauli decomposition" presented in
 /// `Hantzko, Binkowski and Gupta (2023) <https://arxiv.org/abs/2310.13421>`__.
+///
+/// Implementation
+/// --------------
+///
+/// The original algorithm was described recurisvely, allocating new matrices for each of the
+/// block-wise sums (e.g. `op[top_left] + op[bottom_right]`).  This implementation differs in two
+/// major ways:
+///
+/// - We do not allocate new matrices recursively, but instead produce a single copy of the input
+///   and repeatedly overwrite subblocks of it at each point of the decomposition.
+/// - The implementation is rewritten as an iteration rather than a recursion.  The current "state"
+///   of the iteration is encoded in a single machine word (the `PauliLocation` struct below).
+///
+/// We do the decomposition in three "stages", with the stage changing whenever we need to change
+/// the input/output types.  The first level is mathematically the same as the middle levels, it
+/// just gets handled separately because it does the double duty of moving the data out of the
+/// Python-space strided array into a Rust-space contiguous array that we can modify in-place.
+/// The middle levels all act in-place on this newly created scratch space.  Finally, at the last
+/// level, we've completed the decomposition and need to be writing the result into the output
+/// data structures rather than into the scratch space.
+///
+/// Each "level" is handling one qubit in the operator, equivalently to the recursive procedure
+/// described in the paper referenced in the docstring.  This implementation is iterative
+/// stack-based and in place, rather than recursive.
+///
+/// We can get away with overwriting our scratch-space matrix at each point, because each
+/// element of a given subblock is used exactly twice during each decomposition - once for the `a +
+/// b` case, and once for the `a - b` case.  The second operand is the same in both cases.
+/// Illustratively, at each step we're decomposing a submatrix blockwise, where we label the blocks
+/// like this:
+///
+///   +---------+---------+          +---------+---------+
+///   |         |         |          |         |         |
+///   |    I    |    X    |          |  I + Z  |  X + Y  |
+///   |         |         |          |         |         |
+///   +---------+---------+  =====>  +---------+---------+
+///   |         |         |          |         |         |
+///   |    Y    |    Z    |          |  X - Y  |  I - Z  |
+///   |         |         |          |         |         |
+///   +---------+---------+          +---------+---------+
+///
+/// Each addition or subtraction is done elementwise, so as long as we iterate through the two pairs
+/// of coupled blocks in order in lockstep, we can write out the answers together without
+/// overwriting anything we need again.  We ignore all factors of 1/2 until the very last step, and
+/// apply them all at once.  This minimises the number of floating-point operations we have to do.
+///
+/// We store the iteration order as a stack of `PauliLocation`s, whose own docstring explains how it
+/// tracks the top-left corner and the size of the submatrix it represents.
 #[pyfunction]
 pub fn decompose_dense(
     py: Python,
     operator: PyReadonlyArray2<Complex64>,
     tolerance: f64,
 ) -> PyResult<ZXPaulis> {
-    let num_qubits = operator.shape()[0].ilog2() as usize;
-    let size = 1 << num_qubits;
-    if operator.shape() != [size, size] {
-        return Err(PyValueError::new_err(format!(
-            "input with shape {:?} cannot be interpreted as a multiqubit operator",
-            operator.shape()
-        )));
+    let array_view = operator.as_array();
+    let out = py.allow_threads(|| decompose_dense_inner(array_view, tolerance))?;
+    Ok(ZXPaulis {
+        z: PyArray1::from_vec_bound(py, out.z)
+            .reshape([out.phases.len(), out.num_qubits])?
+            .into(),
+        x: PyArray1::from_vec_bound(py, out.x)
+            .reshape([out.phases.len(), out.num_qubits])?
+            .into(),
+        phases: PyArray1::from_vec_bound(py, out.phases).into(),
+        coeffs: PyArray1::from_vec_bound(py, out.coeffs).into(),
+    })
+}
+
+/// Rust-only inner component of the `SparsePauliOp` decomposition.
+///
+/// See the top-level documentation of [decompose_dense] for more information on the internal
+/// algorithm at play.
+fn decompose_dense_inner(
+    operator: ArrayView2<Complex64>,
+    tolerance: f64,
+) -> Result<DecomposeOut, DecomposeError> {
+    let op_shape = match operator.shape() {
+        [a, b] => [*a, *b],
+        shape => return Err(DecomposeError::BadDimension(shape.len())),
+    };
+    if op_shape[0].is_zero() {
+        return Err(DecomposeError::BadShape(op_shape));
     }
-    let mut paulis = vec![];
-    let mut coeffs = vec![];
-    if num_qubits > 0 {
-        decompose_dense_inner(
-            C_ONE,
-            num_qubits,
-            &[],
-            operator.as_array(),
-            &mut paulis,
-            &mut coeffs,
-            tolerance * tolerance,
-        );
+    let num_qubits = op_shape[0].ilog2() as usize;
+    let side = 1 << num_qubits;
+    if op_shape != [side, side] {
+        return Err(DecomposeError::BadShape(op_shape));
     }
-    if coeffs.is_empty() {
-        Ok(ZXPaulis {
-            z: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
-            x: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
-            phases: PyArray1::zeros_bound(py, [0], false).into(),
-            coeffs: PyArray1::zeros_bound(py, [0], false).into(),
-        })
-    } else {
-        // Constructing several arrays of different shapes at once is rather awkward in iterator
-        // logic, so we just loop manually.
-        let mut z = Array2::<bool>::uninit([paulis.len(), num_qubits]);
-        let mut x = Array2::<bool>::uninit([paulis.len(), num_qubits]);
-        let mut phases = Array1::<u8>::uninit(paulis.len());
-        for (i, paulis) in paulis.drain(..).enumerate() {
-            let mut phase = 0u8;
-            for (j, pauli) in paulis.into_iter().rev().enumerate() {
-                match pauli {
-                    Pauli::I => {
-                        z[[i, j]].write(false);
-                        x[[i, j]].write(false);
-                    }
-                    Pauli::X => {
-                        z[[i, j]].write(false);
-                        x[[i, j]].write(true);
-                    }
-                    Pauli::Y => {
-                        z[[i, j]].write(true);
-                        x[[i, j]].write(true);
-                        phase = phase.wrapping_add(1);
-                    }
-                    Pauli::Z => {
-                        z[[i, j]].write(true);
-                        x[[i, j]].write(false);
-                    }
+    if num_qubits.is_zero() {
+        // We have to special-case the zero-qubit operator because our `decompose_last_level` still
+        // needs to "consume" a qubit.
+        return Ok(DecomposeOut {
+            z: vec![],
+            x: vec![],
+            phases: vec![],
+            coeffs: vec![operator[[0, 0]]],
+            scale: 1.0,
+            tol: tolerance,
+            num_qubits: 0,
+        });
+    }
+    let (stack, mut out_list, mut scratch) = decompose_first_level(operator, num_qubits);
+    decompose_middle_levels(stack, &mut out_list, &mut scratch, num_qubits);
+    Ok(decompose_last_level(
+        &mut out_list,
+        &scratch,
+        num_qubits,
+        tolerance,
+    ))
+}
+
+/// Apply the matrix-addition decomposition at the first level.
+///
+/// This is split out from the middle levels because it acts on an `ArrayView2`, and is responsible
+/// for copying the operator over into the contiguous scratch space.  We can't write over the
+/// operator the user gave us (it's not ours to do that to), and anyway, we want to drop to a chunk
+/// of memory that we can 100% guarantee is contiguous, so we can elide all the stride checking.
+/// We split this out so we can do the first decomposition at the same time as scanning over the
+/// operator to copy it.
+///
+/// # Panics
+///
+/// If the number of qubits in the operator is zero.
+fn decompose_first_level(
+    in_op: ArrayView2<Complex64>,
+    num_qubits: usize,
+) -> (Vec<PauliLocation>, Vec<PauliLocation>, Vec<Complex64>) {
+    let side = 1 << num_qubits;
+    let mut stack = Vec::<PauliLocation>::with_capacity(4);
+    let mut out_list = Vec::<PauliLocation>::new();
+    let mut scratch = Vec::<Complex64>::with_capacity(side * side);
+    match num_qubits {
+        0 => panic!("number of qubits must be greater than zero"),
+        1 => {
+            // If we've only got one qubit, we just want to copy the data over in the correct
+            // continuity and let the base case of the iteration take care of outputting it.
+            scratch.extend(in_op.iter());
+            out_list.push(PauliLocation::begin(num_qubits));
+        }
+        _ => {
+            // We don't write out the operator in contiguous-index order, but we can easily
+            // guarantee that we'll write to each index exactly once without reading it - we still
+            // visit every index, just in 2x2 blockwise order, not row-by-row.
+            unsafe { scratch.set_len(scratch.capacity()) };
+            let mut ptr = 0usize;
+
+            let cur_qubit = num_qubits - 1;
+            let mid = 1 << cur_qubit;
+            let loc = PauliLocation::begin(num_qubits);
+            let mut i_nonzero = false;
+            let mut x_nonzero = false;
+            let mut y_nonzero = false;
+            let mut z_nonzero = false;
+
+            let i_row_0 = loc.row();
+            let i_col_0 = loc.col();
+
+            let x_row_0 = loc.row();
+            let x_col_0 = loc.col() + mid;
+
+            let y_row_0 = loc.row() + mid;
+            let y_col_0 = loc.col();
+
+            let z_row_0 = loc.row() + mid;
+            let z_col_0 = loc.col() + mid;
+
+            for off_row in 0..mid {
+                let i_row = i_row_0 + off_row;
+                let z_row = z_row_0 + off_row;
+                for off_col in 0..mid {
+                    let i_col = i_col_0 + off_col;
+                    let z_col = z_col_0 + off_col;
+                    let value = in_op[[i_row, i_col]] + in_op[[z_row, z_col]];
+                    scratch[ptr] = value;
+                    ptr += 1;
+                    i_nonzero = i_nonzero || (value != C_ZERO);
+                }
+
+                let x_row = x_row_0 + off_row;
+                let y_row = y_row_0 + off_row;
+                for off_col in 0..mid {
+                    let x_col = x_col_0 + off_col;
+                    let y_col = y_col_0 + off_col;
+                    let value = in_op[[x_row, x_col]] + in_op[[y_row, y_col]];
+                    scratch[ptr] = value;
+                    ptr += 1;
+                    x_nonzero = x_nonzero || (value != C_ZERO);
                 }
             }
-            phases[i].write(phase % 4);
+            for off_row in 0..mid {
+                let x_row = x_row_0 + off_row;
+                let y_row = y_row_0 + off_row;
+                for off_col in 0..mid {
+                    let x_col = x_col_0 + off_col;
+                    let y_col = y_col_0 + off_col;
+                    let value = in_op[[x_row, x_col]] - in_op[[y_row, y_col]];
+                    scratch[ptr] = value;
+                    ptr += 1;
+                    y_nonzero = y_nonzero || (value != C_ZERO);
+                }
+                let i_row = i_row_0 + off_row;
+                let z_row = z_row_0 + off_row;
+                for off_col in 0..mid {
+                    let i_col = i_col_0 + off_col;
+                    let z_col = z_col_0 + off_col;
+                    let value = in_op[[i_row, i_col]] - in_op[[z_row, z_col]];
+                    scratch[ptr] = value;
+                    ptr += 1;
+                    z_nonzero = z_nonzero || (value != C_ZERO);
+                }
+            }
+            // The middle-levels `stack` is a LIFO, so if we push in this order, we'll consider the
+            // Pauli terms in lexicographical order, which is the canonical order from
+            // `SparsePauliOp.sort`.  Populating the `out_list` (an initially empty `Vec`)
+            // effectively reverses the stack, so we want to push its elements in the IXYZ order.
+            if loc.qubit() == 1 {
+                i_nonzero.then(|| out_list.push(loc.push_i()));
+                x_nonzero.then(|| out_list.push(loc.push_x()));
+                y_nonzero.then(|| out_list.push(loc.push_y()));
+                z_nonzero.then(|| out_list.push(loc.push_z()));
+            } else {
+                z_nonzero.then(|| stack.push(loc.push_z()));
+                y_nonzero.then(|| stack.push(loc.push_y()));
+                x_nonzero.then(|| stack.push(loc.push_x()));
+                i_nonzero.then(|| stack.push(loc.push_i()));
+            }
         }
-        // These are safe because the above loops write into every element.  It's guaranteed that
-        // each of the elements of the `paulis` vec will have `num_qubits` because they're all
-        // reading from the same base array.
-        let z = unsafe { z.assume_init() };
-        let x = unsafe { x.assume_init() };
-        let phases = unsafe { phases.assume_init() };
-        Ok(ZXPaulis {
-            z: z.into_pyarray_bound(py).into(),
-            x: x.into_pyarray_bound(py).into(),
-            phases: phases.into_pyarray_bound(py).into(),
-            coeffs: PyArray1::from_vec_bound(py, coeffs).into(),
-        })
+    }
+    (stack, out_list, scratch)
+}
+
+/// Iteratively decompose the matrix at all levels other than the first and last.
+///
+/// This populates the `out_list` with locations.  This is mathematically the same as the first
+/// level of the decomposition, except now we're acting in-place on our Rust-space contiguous
+/// scratch space, rather than the strided Python-space array we were originally given.
+fn decompose_middle_levels(
+    mut stack: Vec<PauliLocation>,
+    out_list: &mut Vec<PauliLocation>,
+    scratch: &mut [Complex64],
+    num_qubits: usize,
+) {
+    let side = 1 << num_qubits;
+    // The stack is a LIFO, which is how we implement the depth-first iteration.  Depth-first
+    // means `stack` never grows very large; it reaches at most `3*num_qubits - 2` elements (if all
+    // terms are zero all the way through the first subblock decomposition).  `out_list`, on the
+    // other hand, can be `4 ** (num_qubits - 1)` entries in the worst-case scenario of a
+    // completely dense (in Pauli terms) operator.
+    while let Some(loc) = stack.pop() {
+        // Here we work pairwise, writing out the new values into both I and Z simultaneously (etc
+        // for X and Y) so we can re-use their scratch space and avoid re-allocating.  We're doing
+        // the multiple assignment `(I, Z) = (I + Z, I - Z)`.
+        //
+        // See the documentation of `decompose_dense` for more information on how this works.
+        let mid = 1 << loc.qubit();
+        let mut i_nonzero = false;
+        let mut z_nonzero = false;
+        let i_row_0 = loc.row();
+        let i_col_0 = loc.col();
+        let z_row_0 = loc.row() + mid;
+        let z_col_0 = loc.col() + mid;
+        for off_row in 0..mid {
+            let i_loc_0 = (i_row_0 + off_row) * side + i_col_0;
+            let z_loc_0 = (z_row_0 + off_row) * side + z_col_0;
+            for off_col in 0..mid {
+                let i_loc = i_loc_0 + off_col;
+                let z_loc = z_loc_0 + off_col;
+                let add = scratch[i_loc] + scratch[z_loc];
+                let sub = scratch[i_loc] - scratch[z_loc];
+                scratch[i_loc] = add;
+                scratch[z_loc] = sub;
+                i_nonzero = i_nonzero || (add != C_ZERO);
+                z_nonzero = z_nonzero || (sub != C_ZERO);
+            }
+        }
+
+        let mut x_nonzero = false;
+        let mut y_nonzero = false;
+        let x_row_0 = loc.row();
+        let x_col_0 = loc.col() + mid;
+        let y_row_0 = loc.row() + mid;
+        let y_col_0 = loc.col();
+        for off_row in 0..mid {
+            let x_loc_0 = (x_row_0 + off_row) * side + x_col_0;
+            let y_loc_0 = (y_row_0 + off_row) * side + y_col_0;
+            for off_col in 0..mid {
+                let x_loc = x_loc_0 + off_col;
+                let y_loc = y_loc_0 + off_col;
+                let add = scratch[x_loc] + scratch[y_loc];
+                let sub = scratch[x_loc] - scratch[y_loc];
+                scratch[x_loc] = add;
+                scratch[y_loc] = sub;
+                x_nonzero = x_nonzero || (add != C_ZERO);
+                y_nonzero = y_nonzero || (sub != C_ZERO);
+            }
+        }
+        // The middle-levels `stack` is a LIFO, so if we push in this order, we'll consider the
+        // Pauli terms in lexicographical order, which is the canonical order from
+        // `SparsePauliOp.sort`.  Populating the `out_list` (an initially empty `Vec`) effectively
+        // reverses the stack, so we want to push its elements in the IXYZ order.
+        if loc.qubit() == 1 {
+            i_nonzero.then(|| out_list.push(loc.push_i()));
+            x_nonzero.then(|| out_list.push(loc.push_x()));
+            y_nonzero.then(|| out_list.push(loc.push_y()));
+            z_nonzero.then(|| out_list.push(loc.push_z()));
+        } else {
+            z_nonzero.then(|| stack.push(loc.push_z()));
+            y_nonzero.then(|| stack.push(loc.push_y()));
+            x_nonzero.then(|| stack.push(loc.push_x()));
+            i_nonzero.then(|| stack.push(loc.push_i()));
+        }
     }
 }
 
-/// Recurse worker routine of `decompose_dense`.  Should be called with at least one qubit.
-fn decompose_dense_inner(
-    factor: Complex64,
+/// Write out the results of the final decomposition into the Pauli ZX form.
+///
+/// The calculation here is the same as the previous two sets of decomposers, but we don't want to
+/// write the result out into the scratch space to iterate needlessly once more; we want to
+/// associate each non-zero coefficient with the final Pauli in the ZX format.
+///
+/// This function applies all the factors of 1/2 that we've been skipping during the intermediate
+/// decompositions.  This means that the factors are applied to the output with `2 * output_len`
+/// floating-point operations (real and imaginary), which is a huge reduction compared to repeatedly
+/// doing it during the decomposition.
+fn decompose_last_level(
+    out_list: &mut Vec<PauliLocation>,
+    scratch: &[Complex64],
     num_qubits: usize,
-    paulis: &[Pauli],
-    block: ArrayView2<Complex64>,
-    out_paulis: &mut Vec<Vec<Pauli>>,
-    out_coeffs: &mut Vec<Complex64>,
-    square_tolerance: f64,
-) {
-    if num_qubits == 0 {
-        // It would be safe to `return` here, but if it's unreachable then LLVM is allowed to
-        // optimize out this branch entirely in release mode, which is good for a ~2% speedup.
-        unreachable!("should not call this with an empty operator")
+    tolerance: f64,
+) -> DecomposeOut {
+    let side = 1 << num_qubits;
+    let scale = 0.5f64.powi(num_qubits as i32);
+    // Pessimistically allocate assuming that there will be no zero terms in the out list.  We
+    // don't really pay much cost if we overallocate, but underallocating means that all four
+    // outputs have to copy their data across to a new allocation.
+    let mut out = DecomposeOut {
+        z: Vec::with_capacity(4 * num_qubits * out_list.len()),
+        x: Vec::with_capacity(4 * num_qubits * out_list.len()),
+        phases: Vec::with_capacity(4 * out_list.len()),
+        coeffs: Vec::with_capacity(4 * out_list.len()),
+        scale,
+        tol: (tolerance * tolerance) / (scale * scale),
+        num_qubits,
+    };
+
+    for loc in out_list.drain(..) {
+        let row = loc.row();
+        let col = loc.col();
+        let base = row * side + col;
+        let i_value = scratch[base] + scratch[base + side + 1];
+        let z_value = scratch[base] - scratch[base + side + 1];
+        let x_value = scratch[base + 1] + scratch[base + side];
+        let y_value = scratch[base + 1] - scratch[base + side];
+
+        let x = row ^ col;
+        let z = row;
+        let phase = (x & z).count_ones() as u8;
+        // Pushing the last Pauli onto the `loc` happens "forwards" to maintain lexicographical
+        // ordering in `out`, since this is the construction of the final object.
+        push_pauli_if_nonzero(x, z, phase, i_value, &mut out);
+        push_pauli_if_nonzero(x | 1, z, phase, x_value, &mut out);
+        push_pauli_if_nonzero(x | 1, z | 1, phase + 1, y_value, &mut out);
+        push_pauli_if_nonzero(x, z | 1, phase, z_value, &mut out);
     }
-    // Base recursion case.
-    if num_qubits == 1 {
-        let mut push_if_nonzero = |extra: Pauli, value: Complex64| {
-            if value.norm_sqr() <= square_tolerance {
-                return;
-            }
-            let paulis = {
-                let mut vec = Vec::with_capacity(paulis.len() + 1);
-                vec.extend_from_slice(paulis);
-                vec.push(extra);
-                vec
-            };
-            out_paulis.push(paulis);
-            out_coeffs.push(value);
-        };
-        push_if_nonzero(Pauli::I, 0.5 * factor * (block[[0, 0]] + block[[1, 1]]));
-        push_if_nonzero(Pauli::X, 0.5 * factor * (block[[0, 1]] + block[[1, 0]]));
-        push_if_nonzero(
-            Pauli::Y,
-            0.5 * Complex64::i() * factor * (block[[0, 1]] - block[[1, 0]]),
-        );
-        push_if_nonzero(Pauli::Z, 0.5 * factor * (block[[0, 0]] - block[[1, 1]]));
+    // If we _wildly_ overallocated, then shrink back to a sensible size to avoid tying up too much
+    // memory as we return to Python space.
+    if out.z.capacity() / 4 > out.z.len() {
+        out.z.shrink_to_fit();
+        out.x.shrink_to_fit();
+        out.phases.shrink_to_fit();
+        out.coeffs.shrink_to_fit();
+    }
+    out
+}
+
+// This generates lookup tables of the form
+//      const LOOKUP: [[bool; 2] 4] = [[false, false], [true, false], [false, true], [true, true]];
+// when called `pauli_lookup!(LOOKUP, 2, [_, _])`.  The last argument is like a dummy version of
+// an individual lookup rule, which is consumed to make an inner "loop" with a declarative macro.
+macro_rules! pauli_lookup {
+    ($name:ident, $n:literal, [$head:expr$ (, $($tail:expr),*)?]) => {
+        static $name: [[bool; $n]; 1<<$n] = pauli_lookup!(@acc, [$($($tail),*)?], [[false], [true]]);
+    };
+    (@acc, [$head:expr $(, $($tail:expr),*)?], [$([$($bools:tt),*]),+]) => {
+        pauli_lookup!(@acc, [$($($tail),*)?], [$([$($bools),*, false]),+, $([$($bools),*, true]),+])
+    };
+    (@acc, [], $init:expr) => { $init };
+}
+pauli_lookup!(PAULI_LOOKUP_2, 2, [(), ()]);
+pauli_lookup!(PAULI_LOOKUP_4, 4, [(), (), (), ()]);
+pauli_lookup!(PAULI_LOOKUP_8, 8, [(), (), (), (), (), (), (), ()]);
+
+/// Push a complete Pauli chain into the output (`out`), if the corresponding entry is non-zero.
+///
+/// `x` and `z` represent the symplectic X and Z bitvectors, packed into `usize`, where LSb n
+/// corresponds to qubit `n`.
+fn push_pauli_if_nonzero(
+    mut x: usize,
+    mut z: usize,
+    phase: u8,
+    value: Complex64,
+    out: &mut DecomposeOut,
+) {
+    if value.norm_sqr() <= out.tol {
         return;
     }
-    let mut recurse_if_nonzero = |extra: Pauli, factor: Complex64, values: Array2<Complex64>| {
-        let mut is_zero = true;
-        for value in values.iter() {
-            if !value.is_zero() {
-                is_zero = false;
-                break;
-            }
-        }
-        if is_zero {
-            return;
-        }
-        let mut new_paulis = Vec::with_capacity(paulis.len() + 1);
-        new_paulis.extend_from_slice(paulis);
-        new_paulis.push(extra);
-        decompose_dense_inner(
-            factor,
-            num_qubits - 1,
-            &new_paulis,
-            values.view(),
-            out_paulis,
-            out_coeffs,
-            square_tolerance,
-        );
+
+    // This set of `extend` calls is effectively an 8-fold unrolling of the "natural" loop through
+    // each bit, where the initial `if` statements are handling the remainder (the up-to 7
+    // least-significant bits).  In practice, it's probably unlikely that people are decomposing
+    // 16q+ operators, since that's a pretty huge matrix already.
+    //
+    // The 8-fold loop unrolling is because going bit-by-bit all the way would be dominated by loop
+    // and bitwise-operation overhead.
+
+    if out.num_qubits & 1 == 1 {
+        out.x.push(x & 1 == 1);
+        out.z.push(z & 1 == 1);
+        x >>= 1;
+        z >>= 1;
+    }
+    if out.num_qubits & 2 == 2 {
+        out.x.extend(&PAULI_LOOKUP_2[x & 0b11]);
+        out.z.extend(&PAULI_LOOKUP_2[z & 0b11]);
+        x >>= 2;
+        z >>= 2;
+    }
+    if out.num_qubits & 4 == 4 {
+        out.x.extend(&PAULI_LOOKUP_4[x & 0b1111]);
+        out.z.extend(&PAULI_LOOKUP_4[z & 0b1111]);
+        x >>= 4;
+        z >>= 4;
+    }
+    for _ in 0..(out.num_qubits / 8) {
+        out.x.extend(&PAULI_LOOKUP_8[x & 0b1111_1111]);
+        out.z.extend(&PAULI_LOOKUP_8[z & 0b1111_1111]);
+        x >>= 8;
+        z >>= 8;
+    }
+
+    let phase = phase % 4;
+    let value = match phase {
+        0 => Complex64::new(out.scale, 0.0) * value,
+        1 => Complex64::new(0.0, out.scale) * value,
+        2 => Complex64::new(-out.scale, 0.0) * value,
+        3 => Complex64::new(0.0, -out.scale) * value,
+        _ => unreachable!("'x % 4' has only four possible values"),
     };
-    let mid = 1usize << (num_qubits - 1);
-    recurse_if_nonzero(
-        Pauli::I,
-        0.5 * factor,
-        &block.slice(s![..mid, ..mid]) + &block.slice(s![mid.., mid..]),
-    );
-    recurse_if_nonzero(
-        Pauli::X,
-        0.5 * factor,
-        &block.slice(s![..mid, mid..]) + &block.slice(s![mid.., ..mid]),
-    );
-    recurse_if_nonzero(
-        Pauli::Y,
-        0.5 * Complex64::i() * factor,
-        &block.slice(s![..mid, mid..]) - &block.slice(s![mid.., ..mid]),
-    );
-    recurse_if_nonzero(
-        Pauli::Z,
-        0.5 * factor,
-        &block.slice(s![..mid, ..mid]) - &block.slice(s![mid.., mid..]),
-    );
+    out.phases.push(phase);
+    out.coeffs.push(value);
+}
+
+/// The "state" of an iteration step of the dense-operator decomposition routine.
+///
+/// Pack the information about which row, column and qubit we're considering into a single `usize`.
+/// Complex64 data is 16 bytes long and the operators are square and must be addressable in memory,
+/// so the row and column are hardware limited to be of width `usize::BITS / 2 - 2` each.  However,
+/// we don't need to store at a granularity of 1, because the last 2x2 block we handle manually, so
+/// we can remove an extra least significant bit from the row and column.  Regardless of the width
+/// of `usize`, we can therefore track the state for up to 30 qubits losslessly, which is greater
+/// than the maximum addressable memory on a 64-bit system.
+///
+/// For a 64-bit usize, the bit pattern is stored like this:
+///
+///    0b__000101__11111111111111111111111110000__11111111111111111111111110000
+///        <-6-->  <------------29------------->  <------------29------------->
+///          |                  |                              |
+///          |         uint of the input row         uint of the input column
+///          |         (once a 0 is appended)        (once a 0 is appended)
+///          |
+///        current qubit under consideration
+///
+/// The `qubit` field encodes the depth in the call stack that the user of the `PauliLocation`
+/// should consider.  When the stack is initialised (before any calculation is done), it starts at
+/// the highest qubit index (`num_qubits - 1`) and decreases from there until 0.
+///
+/// The `row` and `col` methods form the top-left corner of a `(2**(qubit + 1), 2**(qubit + 1))`
+/// submatrix (where the top row and leftmost column are 0).  The least significant `qubit + 1`
+/// bits of the of row and column are therefore always zero; the 0-indexed qubit still corresponds
+/// to a 2x2 block.  This is why we needn't store it.
+#[derive(Debug, Clone, Copy)]
+struct PauliLocation(usize);
+
+impl PauliLocation {
+    // These shifts and masks are used to access the three components of the bit-packed state.
+    const QUBIT_SHIFT: u32 = usize::BITS - 6;
+    const QUBIT_MASK: usize = (usize::MAX >> Self::QUBIT_SHIFT) << Self::QUBIT_SHIFT;
+    const ROW_SHIFT: u32 = usize::BITS / 2 - 3;
+    const ROW_MASK: usize =
+        ((usize::MAX >> Self::ROW_SHIFT) << Self::ROW_SHIFT) & !Self::QUBIT_MASK;
+    const COL_SHIFT: u32 = 0; // Just for consistency.
+    const COL_MASK: usize = usize::MAX & !Self::ROW_MASK & !Self::QUBIT_MASK;
+
+    /// Create the base `PauliLocation` for an entire matrix with `num_qubits` qubits.  The initial
+    /// Pauli chain is empty.
+    #[inline(always)]
+    fn begin(num_qubits: usize) -> Self {
+        Self::new(0, 0, num_qubits - 1)
+    }
+
+    /// Manually create a new `PauliLocation` with the given information.  The logic in the rest of
+    /// the class assumes that `row` and `col` will end with at least `qubit + 1` zeros, since
+    /// these are the only valid locations.
+    #[inline(always)]
+    fn new(row: usize, col: usize, qubit: usize) -> Self {
+        debug_assert!(row & 1 == 0);
+        debug_assert!(col & 1 == 0);
+        debug_assert!(row < 2 * Self::ROW_SHIFT as usize);
+        debug_assert!(col < 2 * Self::ROW_SHIFT as usize);
+        debug_assert!(qubit < 64);
+        Self(
+            (qubit << Self::QUBIT_SHIFT)
+                | (row << Self::ROW_SHIFT >> 1)
+                | (col << Self::COL_SHIFT >> 1),
+        )
+    }
+
+    /// The row in the dense matrix that this location corresponds to.
+    #[inline(always)]
+    fn row(&self) -> usize {
+        ((self.0 & Self::ROW_MASK) >> Self::ROW_SHIFT) << 1
+    }
+
+    /// The column in the dense matrix that this location corresponds to.
+    #[inline(always)]
+    fn col(&self) -> usize {
+        ((self.0 & Self::COL_MASK) >> Self::COL_SHIFT) << 1
+    }
+
+    /// Which qubit in the Pauli chain we're currently considering.
+    #[inline(always)]
+    fn qubit(&self) -> usize {
+        (self.0 & Self::QUBIT_MASK) >> Self::QUBIT_SHIFT
+    }
+
+    /// Create a new location corresponding to the Pauli chain so far, plus an identity on the
+    /// currently considered qubit.
+    #[inline(always)]
+    fn push_i(&self) -> Self {
+        Self::new(self.row(), self.col(), self.qubit() - 1)
+    }
+
+    /// Create a new location corresponding to the Pauli chain so far, plus an X on the currently
+    /// considered qubit.
+    #[inline(always)]
+    fn push_x(&self) -> Self {
+        Self::new(
+            self.row(),
+            self.col() | (1 << self.qubit()),
+            self.qubit() - 1,
+        )
+    }
+
+    /// Create a new location corresponding to the Pauli chain so far, plus a Y on the currently
+    /// considered qubit.
+    #[inline(always)]
+    fn push_y(&self) -> Self {
+        Self::new(
+            self.row() | (1 << self.qubit()),
+            self.col(),
+            self.qubit() - 1,
+        )
+    }
+
+    /// Create a new location corresponding to the Pauli chain so far, plus a Z on the currently
+    /// considered qubit.
+    #[inline(always)]
+    fn push_z(&self) -> Self {
+        Self::new(
+            self.row() | (1 << self.qubit()),
+            self.col() | (1 << self.qubit()),
+            self.qubit() - 1,
+        )
+    }
 }
 
 /// Convert the given [ZXPaulis] object to a dense 2D Numpy matrix.
@@ -830,11 +1263,13 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use ndarray::{aview2, Array1};
+
     use super::*;
     use crate::test::*;
 
-    // The purpose of these tests is more about exercising the `unsafe` code; we test for full
-    // correctness from Python space.
+    // The purpose of these tests is more about exercising the `unsafe` code under Miri; we test for
+    // full numerical correctness from Python space.
 
     fn example_paulis() -> MatrixCompressedPaulis {
         MatrixCompressedPaulis {
@@ -850,6 +1285,166 @@ mod tests {
                 c64(-0.375, 0.0625),
                 c64(-0.5, -0.25),
             ],
+        }
+    }
+
+    /// Helper struct for the decomposition testing.  This is a subset of the `DecomposeOut`
+    /// struct, skipping the unnecessary algorithm-state components of it.
+    ///
+    /// If we add a more Rust-friendly interface to `SparsePauliOp` in the future, hopefully this
+    /// can be removed.
+    #[derive(Clone, PartialEq, Debug)]
+    struct DecomposeMinimal {
+        z: Vec<bool>,
+        x: Vec<bool>,
+        phases: Vec<u8>,
+        coeffs: Vec<Complex64>,
+        num_qubits: usize,
+    }
+    impl From<DecomposeOut> for DecomposeMinimal {
+        fn from(value: DecomposeOut) -> Self {
+            Self {
+                z: value.z,
+                x: value.x,
+                phases: value.phases,
+                coeffs: value.coeffs,
+                num_qubits: value.num_qubits,
+            }
+        }
+    }
+    impl From<MatrixCompressedPaulis> for DecomposeMinimal {
+        fn from(value: MatrixCompressedPaulis) -> Self {
+            let phases = value
+                .z_like
+                .iter()
+                .zip(value.x_like.iter())
+                .map(|(z, x)| ((z & x).count_ones() % 4) as u8)
+                .collect::<Vec<_>>();
+            let coeffs = value
+                .coeffs
+                .iter()
+                .zip(phases.iter())
+                .map(|(c, phase)| match phase {
+                    0 => *c,
+                    1 => Complex64::new(-c.im, c.re),
+                    2 => Complex64::new(-c.re, -c.im),
+                    3 => Complex64::new(c.im, -c.re),
+                    _ => panic!("phase should only in [0, 4)"),
+                })
+                .collect();
+            let z = value
+                .z_like
+                .iter()
+                .flat_map(|digit| (0..value.num_qubits).map(move |i| (digit & (1 << i)) != 0))
+                .collect();
+            let x = value
+                .x_like
+                .iter()
+                .flat_map(|digit| (0..value.num_qubits).map(move |i| (digit & (1 << i)) != 0))
+                .collect();
+            Self {
+                z,
+                x,
+                phases,
+                coeffs,
+                num_qubits: value.num_qubits as usize,
+            }
+        }
+    }
+
+    #[test]
+    fn decompose_empty_operator_fails() {
+        assert!(matches!(
+            decompose_dense_inner(aview2::<Complex64, [_; 0]>(&[]), 0.0),
+            Err(DecomposeError::BadShape(_)),
+        ));
+    }
+
+    #[test]
+    fn decompose_0q_operator() {
+        let coeff = Complex64::new(1.5, -0.5);
+        let arr = [[coeff]];
+        let out = decompose_dense_inner(aview2(&arr), 0.0).unwrap();
+        let expected = DecomposeMinimal {
+            z: vec![],
+            x: vec![],
+            phases: vec![],
+            coeffs: vec![coeff],
+            num_qubits: 0,
+        };
+        assert_eq!(DecomposeMinimal::from(out), expected);
+    }
+
+    #[test]
+    fn decompose_1q_operator() {
+        // Be sure that any sums are given in canonical order of the output, or there will be
+        // spurious test failures.
+        let paulis = [
+            (vec![0], vec![0]),             // I
+            (vec![1], vec![0]),             // X
+            (vec![1], vec![1]),             // Y
+            (vec![0], vec![1]),             // Z
+            (vec![0, 1], vec![0, 0]),       // I, X
+            (vec![0, 1], vec![0, 1]),       // I, Y
+            (vec![0, 0], vec![0, 1]),       // I, Z
+            (vec![1, 1], vec![0, 1]),       // X, Y
+            (vec![1, 0], vec![1, 1]),       // X, Z
+            (vec![1, 0], vec![1, 1]),       // Y, Z
+            (vec![1, 1, 0], vec![0, 1, 1]), // X, Y, Z
+        ];
+        let coeffs = [
+            Complex64::new(1.5, -0.5),
+            Complex64::new(-0.25, 2.0),
+            Complex64::new(0.75, 0.75),
+        ];
+        for (x_like, z_like) in paulis {
+            let paulis = MatrixCompressedPaulis {
+                num_qubits: 1,
+                coeffs: coeffs[0..x_like.len()].to_owned(),
+                x_like,
+                z_like,
+            };
+            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+                .into_shape((2, 2))
+                .unwrap();
+            let expected: DecomposeMinimal = paulis.into();
+            let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn decompose_3q_operator() {
+        // Be sure that any sums are given in canonical order of the output, or there will be
+        // spurious test failures.
+        let paulis = [
+            (vec![0], vec![0]),             // III
+            (vec![1], vec![0]),             // IIX
+            (vec![2], vec![2]),             // IYI
+            (vec![0], vec![4]),             // ZII
+            (vec![6], vec![6]),             // YYI
+            (vec![7], vec![7]),             // YYY
+            (vec![1, 6, 7], vec![1, 6, 7]), // IIY, YYI, YYY
+            (vec![1, 2, 0], vec![0, 2, 4]), // IIX, IYI, ZII
+        ];
+        let coeffs = [
+            Complex64::new(1.5, -0.5),
+            Complex64::new(-0.25, 2.0),
+            Complex64::new(0.75, 0.75),
+        ];
+        for (x_like, z_like) in paulis {
+            let paulis = MatrixCompressedPaulis {
+                num_qubits: 3,
+                coeffs: coeffs[0..x_like.len()].to_owned(),
+                x_like,
+                z_like,
+            };
+            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+                .into_shape((8, 8))
+                .unwrap();
+            let expected: DecomposeMinimal = paulis.into();
+            let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            assert_eq!(actual, expected);
         }
     }
 

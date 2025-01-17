@@ -1,0 +1,80 @@
+---
+deprecations:
+  - |
+    The Qiskit Pulse package is being deprecated and will be removed in Qiskit 2.0.0. Pulse-level
+    access is currently only supported on a subset of Eagle devices and not supported on the Heron architecture. Furthermore, newer IBM Quantum architectures will not support pulse-level access.
+    As a consequence, supporting Pulse as a first-class citizen frontend in the Qiskit SDK itself makes little
+    sense going forward. The deprecation includes all pulse code in :mod:`qiskit.pulse` as well as functionality
+    dependant or related to pulse such as pulse visualization, serialization and custom calibration support. For
+    more details see the deprecation sections.
+
+    The Pulse package as a whole, along with directly related components in Qiskit, will be moved to the
+    `Qiskit Dynamics <https://github.com/qiskit-community/qiskit-dynamics>`__ repository to further enable
+    pulse and low-level control simulation.
+deprecations_circuits:
+  - |
+    As part of the Qiskit Pulse package deprecation, the following dependencies are deprecated as well:
+      * :attr:`qiskit.circuit.QuantumCircuit.calibrations`
+      * :meth:`qiskit.circuit.QuantumCircuit.has_calibration_for`
+      * :meth:`qiskit.circuit.QuantumCircuit.add_calibration`
+      * :attr:`qiskit.dagcircuit.DAGCircuit.calibrations`
+      * :meth:`qiskit.dagcircuit.DAGCircuit.has_calibration_for`
+      * :meth:`qiskit.dagcircuit.DAGCircuit.add_calibration`
+      * :attr:`qiskit.dagcircuit.DAGDependency.calibrations`
+deprecations_qpy:
+  - |
+    As part of the Qiskit Pulse package deprecation, serializing a :class:`qiskit.pulse.ScheduleBlock`-based payloads
+    is being deprecated. In particular, passing :class:`qiskit.pulse.ScheduleBlock` objects to the `programs` argument in
+    the :func:`qiskit.qpy.dump` function is being deprecated.
+deprecations_transpiler:
+  - |
+    As part of the Qiskit Pulse package deprecation, pulse-related aspects in the :class:`qiskit.transpiler.Target` class are being deprecated. These include:
+      * :attr:`~qiskit.transpiler.Target.calibration`
+      * :meth:`~qiskit.transpiler.Target.update_from_instruction_schedule_map`
+      * :meth:`~qiskit.transpiler.Target.has_calibration`
+      * :meth:`~qiskit.transpiler.Target.get_calibration`
+      * :meth:`~qiskit.transpiler.Target.instruction_schedule_map`
+
+    In addition the following transpiler passer are also being deprecated:
+      * :class:`~qiskit.transpiler.passes.PulseGates`
+      * :class:`~qiskit.transpiler.passes.ValidatePulseGates`
+      * :class:`~qiskit.transpiler.passes.RXCalibrationBuilder`
+      * :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+      * :class:`~qiskit.transpiler.passes.EchoRZXWeylDecomposition`
+  - |
+    The `inst_map` argument in :func:`~qiskit.transpiler.generate_preset_pass_manager`,
+    :meth:`~transpiler.target.Target.from_configuration`, :class:`~qiskit.transpiler.PassManagerConfig` initializer
+    and :func:`~qiskit.transpiler.preset_passmanagers.common.generate_scheduling` is being deprecated.
+  - |
+    The `calibration` argument in :func:`~qiskit.transpiler.target.InstructionProperties` initializer methods is being
+    deprecated.
+deprecations_visualization:
+  - |
+    As part of the Qiskit Pulse package deprecation, pulse drawing via :meth:`qiskit.visualization.pulse_drawer`
+    is being deprecated.
+deprecations_providers:
+  - |
+    As part of the Qiskit Pulse package deprecation, all pulse-related functionality in :class:`qiskit.providers.BackendV2` class is being deprecated. This includes the following methods:
+      * :meth:`~qiskit.providers.BackendV2.instruction_schedule_map`
+      * :meth:`~qiskit.providers.BackendV2.drive_channel`
+      * :meth:`~qiskit.providers.BackendV2.measure_channel`
+      * :meth:`~qiskit.providers.BackendV2.acquire_channel`
+      * :meth:`~qiskit.providers.BackendV2.control_channel`
+
+    Consequently, the corresponding channel methods in the :class:`qiskit.providers.BackendV2Converter` and
+    :class:`qiskit.providers.fake_provider.GenericBackendV2` classes are being deprecated as well.
+
+    In addition, the `pulse_channels` and `calibrate_instructions` arguments in the :class:`~qiskit.providers.BackendV2`
+    initializer method are being deprecated.
+  - |
+    The `defaults` argument is being deprecated from the :func:`qiskit.providers.backend_compat.convert_to_target` function.
+deprecations_misc:
+  - |
+    As part of the Qiskit Pulse package deprecation, the following functions and class are being deprecated as well:
+      * :meth:`qiskit.compiler.schedule`
+      * :meth:`qiskit.compiler.sequence`
+      * :meth:`qiskit.assembler.assemble_schedules`
+      * :meth:`qiskit.scheduler.methods.as_soon_as_possible`
+      * :meth:`qiskit.scheduler.methods.as_late_as_possible`
+      * :meth:`qiskit.scheduler.schedule_circuit.schedule_circuit`
+      * :class:`qiskit.scheduler.ScheduleConfig`

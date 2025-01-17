@@ -1,0 +1,19 @@
+---
+features_circuits:
+  - |
+    Added :func:`.grover_operator` to construct a Grover operator circuit, used in e.g.
+    Grover's algorithm and amplitude estimation/amplification. This function is similar to
+    :class:`.GroverOperator`, but does not require choosing the implementation of the
+    multi-controlled X gate a-priori and let's the compiler choose the optimal decomposition
+    instead. In addition to this, it does not wrap the circuit into an opaque gate and is 
+    faster as less decompositions are required to transpile.
+
+    Example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import grover_operator
+
+        oracle = QuantumCircuit(2)
+        oracle.z(0)  # good state = first qubit is |1>
+        grover_op = grover_operator(oracle, insert_barriers=True)
+        print(grover_op.draw())

@@ -26,7 +26,7 @@ def deprecate_func(
     since: str,
     additional_msg: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit",
+    package_name: str = "Qiskit",
     removal_timeline: str = "no earlier than 3 months after the release date",
     is_property: bool = False,
     stacklevel: int = 2,
@@ -45,7 +45,7 @@ def deprecate_func(
             For example, "Instead, use the function ``new_func`` from the module
             ``<my_module>.<my_submodule>``, which is similar but uses GPU acceleration."
         pending: Set to ``True`` if the deprecation is still pending.
-        package_name: The PyPI package name, e.g. "qiskit-nature".
+        package_name: The package name shown in the deprecation message (e.g. the PyPI package name).
         removal_timeline: How soon can this deprecation be removed? Expects a value
             like "no sooner than 6 months after the latest release" or "in release 9.99".
         is_property: If the deprecated function is a `@property`, set this to True so that the
@@ -109,7 +109,7 @@ def deprecate_arg(
     additional_msg: str | None = None,
     deprecation_description: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit",
+    package_name: str = "Qiskit",
     new_alias: str | None = None,
     predicate: Callable[[Any], bool] | None = None,
     removal_timeline: str = "no earlier than 3 months after the release date",
@@ -130,7 +130,7 @@ def deprecate_arg(
             (if new_alias is not set). For example, "Instead, use the argument `new_arg`,
             which is similar but does not impact the circuit's setup."
         pending: Set to `True` if the deprecation is still pending.
-        package_name: The PyPI package name, e.g. "qiskit-nature".
+        package_name: The package name shown in the deprecation message (e.g. the PyPI package name).
         new_alias: If the arg has simply been renamed, set this to the new name. The decorator will
             dynamically update the `kwargs` so that when the user sets the old arg, it will be
             passed in as the `new_alias` arg.
@@ -200,114 +200,6 @@ def deprecate_arg(
                 )
 
         add_deprecation_to_docstring(wrapper, msg, since=since, pending=pending)
-        return wrapper
-
-    return decorator
-
-
-def deprecate_arguments(
-    kwarg_map: dict[str, str | None],
-    category: Type[Warning] = DeprecationWarning,
-    *,
-    since: str | None = None,
-):
-    """Deprecated. Instead, use `@deprecate_arg`.
-
-    Args:
-        kwarg_map: A dictionary of the old argument name to the new name.
-        category: Usually either DeprecationWarning or PendingDeprecationWarning.
-        since: The version the deprecation started at. Only Optional for backwards
-            compatibility - this should always be set. If the deprecation is pending, set
-            the version to when that started; but later, when switching from pending to
-            deprecated, update `since` to the new version.
-
-    Returns:
-        Callable: The decorated callable.
-    """
-
-    def decorator(func):
-        func_name = func.__qualname__
-        old_kwarg_to_msg = {}
-        for old_arg, new_arg in kwarg_map.items():
-            msg_suffix = (
-                "will in the future be removed." if new_arg is None else f"replaced with {new_arg}."
-            )
-            old_kwarg_to_msg[old_arg] = (
-                f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
-            )
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            for old, new in kwarg_map.items():
-                _maybe_warn_and_rename_kwarg(
-                    args,
-                    kwargs,
-                    func_name=func_name,
-                    original_func_co_varnames=wrapper.__original_func_co_varnames,
-                    old_arg_name=old,
-                    new_alias=new,
-                    warning_msg=old_kwarg_to_msg[old],
-                    category=category,
-                    predicate=None,
-                )
-            return func(*args, **kwargs)
-
-        # When decorators get called repeatedly, `func` refers to the result of the prior
-        # decorator, not the original underlying function. This trick allows us to record the
-        # original function's variable names regardless of how many decorators are used.
-        #
-        # If it's the very first decorator call, we also check that *args and **kwargs are not used.
-        if hasattr(func, "__original_func_co_varnames"):
-            wrapper.__original_func_co_varnames = func.__original_func_co_varnames
-        else:
-            wrapper.__original_func_co_varnames = func.__code__.co_varnames
-            param_kinds = {param.kind for param in inspect.signature(func).parameters.values()}
-            if inspect.Parameter.VAR_POSITIONAL in param_kinds:
-                raise ValueError(
-                    "@deprecate_arg cannot be used with functions that take variable *args. Use "
-                    "warnings.warn() directly instead."
-                )
-
-        for msg in old_kwarg_to_msg.values():
-            add_deprecation_to_docstring(
-                wrapper, msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
-            )
-        return wrapper
-
-    return decorator
-
-
-def deprecate_function(
-    msg: str,
-    stacklevel: int = 2,
-    category: Type[Warning] = DeprecationWarning,
-    *,
-    since: str | None = None,
-):
-    """Deprecated. Instead, use `@deprecate_func`.
-
-    Args:
-        msg: Warning message to emit.
-        stacklevel: The warning stacklevel to use, defaults to 2.
-        category: Usually either DeprecationWarning or PendingDeprecationWarning.
-        since: The version the deprecation started at. Only Optional for backwards
-            compatibility - this should always be set. If the deprecation is pending, set
-            the version to when that started; but later, when switching from pending to
-            deprecated, update `since` to the new version.
-
-    Returns:
-        Callable: The decorated, deprecated callable.
-    """
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            warnings.warn(msg, category=category, stacklevel=stacklevel)
-            return func(*args, **kwargs)
-
-        add_deprecation_to_docstring(
-            wrapper, msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
-        )
         return wrapper
 
     return decorator

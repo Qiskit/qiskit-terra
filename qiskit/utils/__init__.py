@@ -23,9 +23,7 @@ Deprecations
 
 .. autofunction:: add_deprecation_to_docstring
 .. autofunction:: deprecate_arg
-.. autofunction:: deprecate_arguments
 .. autofunction:: deprecate_func
-.. autofunction:: deprecate_function
 
 SI unit conversion
 ==================
@@ -58,9 +56,7 @@ Optional Dependency Checkers
 from .deprecation import (
     add_deprecation_to_docstring,
     deprecate_arg,
-    deprecate_arguments,
     deprecate_func,
-    deprecate_function,
 )
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
@@ -78,9 +74,7 @@ __all__ = [
     "LazySubprocessTester",
     "add_deprecation_to_docstring",
     "deprecate_arg",
-    "deprecate_arguments",
     "deprecate_func",
-    "deprecate_function",
     "local_hardware_info",
     "is_main_process",
     "apply_prefix",

@@ -194,7 +194,7 @@ def _measure_v2(
     for measure_qubit in meas_group:
         try:
             if measure_qubit in qubits:
-                default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(
+                default_sched = target._get_calibration(measure_name, (measure_qubit,)).filter(
                     channels=[
                         channels.MeasureChannel(measure_qubit),
                         channels.AcquireChannel(measure_qubit),

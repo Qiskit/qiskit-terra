@@ -208,24 +208,27 @@ class TestBackendV2(QiskitTestCase):
     def test_drive_channel(self, qubit):
         """Test getting drive channel with qubit index."""
         backend = GenericBackendV2(num_qubits=5, seed=42)
-        chan = backend.drive_channel(qubit)
-        ref = channels.DriveChannel(qubit)
+        with self.assertWarns(DeprecationWarning):
+            chan = backend.drive_channel(qubit)
+            ref = channels.DriveChannel(qubit)
         self.assertEqual(chan, ref)
 
     @data(0, 1, 2, 3, 4)
     def test_measure_channel(self, qubit):
         """Test getting measure channel with qubit index."""
         backend = GenericBackendV2(num_qubits=5, seed=42)
-        chan = backend.measure_channel(qubit)
-        ref = channels.MeasureChannel(qubit)
+        with self.assertWarns(DeprecationWarning):
+            chan = backend.measure_channel(qubit)
+            ref = channels.MeasureChannel(qubit)
         self.assertEqual(chan, ref)
 
     @data(0, 1, 2, 3, 4)
     def test_acquire_channel(self, qubit):
         """Test getting acquire channel with qubit index."""
         backend = GenericBackendV2(num_qubits=5, seed=42)
-        chan = backend.acquire_channel(qubit)
-        ref = channels.AcquireChannel(qubit)
+        with self.assertWarns(DeprecationWarning):
+            chan = backend.acquire_channel(qubit)
+            ref = channels.AcquireChannel(qubit)
         self.assertEqual(chan, ref)
 
     @data((4, 3), (3, 4), (3, 2), (2, 3), (1, 2), (2, 1), (1, 0), (0, 1))
@@ -242,6 +245,7 @@ class TestBackendV2(QiskitTestCase):
             (0, 1): 0,
         }
         backend = GenericBackendV2(num_qubits=5, coupling_map=BOGOTA_CMAP, seed=42)
-        chan = backend.control_channel(qubits)[0]
-        ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
+        with self.assertWarns(DeprecationWarning):
+            chan = backend.control_channel(qubits)[0]
+            ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
         self.assertEqual(chan, ref)

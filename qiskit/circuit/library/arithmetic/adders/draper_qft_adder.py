@@ -31,7 +31,7 @@ class DraperQFTAdder(Adder):
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
          a_0:   ─────────■──────■────────────────────────■────────────────
                          │      │                        │
@@ -43,6 +43,19 @@ class DraperQFTAdder(Adder):
                 │      │                        │P(π/2)  │P(π/4) │       │
         cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
                 └──────┘                                         └───────┘
+
+    .. seealso::
+
+        The following generic gate objects perform additions, like this circuit class,
+        but allow the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this
+        circuit can be chosen via ``Adder=["qft_d00"]``.
+
+        :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
+            is functionally equivalent to ``kind="fixed"``.
+
+        :class:`.AdderGate`: A generic inplace adder. This
+            is functionally equivalent to ``kind="half"``.
 
     **References:**
 

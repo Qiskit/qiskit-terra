@@ -39,8 +39,10 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse import functional_pulse, PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestWaveform(QiskitTestCase):
     """Waveform tests."""
 
@@ -122,6 +124,7 @@ class TestWaveform(QiskitTestCase):
             self.fail("Waveform incorrectly failed to approximately unit norm samples.")
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSymbolicPulses(QiskitTestCase):
     """Tests for all subclasses of SymbolicPulse."""
 
@@ -789,46 +792,43 @@ class TestSymbolicPulses(QiskitTestCase):
         gaussian_pulse = Gaussian(160, 0.1, 40)
 
         self.assertTrue(isinstance(gaussian_pulse, SymbolicPulse))
-        with self.assertWarns(PendingDeprecationWarning):
-            self.assertTrue(isinstance(gaussian_pulse, Gaussian))
-            self.assertFalse(isinstance(gaussian_pulse, GaussianSquare))
-            self.assertFalse(isinstance(gaussian_pulse, Drag))
-            self.assertFalse(isinstance(gaussian_pulse, Constant))
+        self.assertTrue(isinstance(gaussian_pulse, Gaussian))
+        self.assertFalse(isinstance(gaussian_pulse, GaussianSquare))
+        self.assertFalse(isinstance(gaussian_pulse, Drag))
+        self.assertFalse(isinstance(gaussian_pulse, Constant))
 
     def test_gaussian_square_deprecated_type_check(self):
         """Test isinstance check works with deprecation."""
         gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
 
         self.assertTrue(isinstance(gaussian_square_pulse, SymbolicPulse))
-        with self.assertWarns(PendingDeprecationWarning):
-            self.assertFalse(isinstance(gaussian_square_pulse, Gaussian))
-            self.assertTrue(isinstance(gaussian_square_pulse, GaussianSquare))
-            self.assertFalse(isinstance(gaussian_square_pulse, Drag))
-            self.assertFalse(isinstance(gaussian_square_pulse, Constant))
+        self.assertFalse(isinstance(gaussian_square_pulse, Gaussian))
+        self.assertTrue(isinstance(gaussian_square_pulse, GaussianSquare))
+        self.assertFalse(isinstance(gaussian_square_pulse, Drag))
+        self.assertFalse(isinstance(gaussian_square_pulse, Constant))
 
     def test_drag_deprecated_type_check(self):
         """Test isinstance check works with deprecation."""
         drag_pulse = Drag(160, 0.1, 40, 1.5)
 
         self.assertTrue(isinstance(drag_pulse, SymbolicPulse))
-        with self.assertWarns(PendingDeprecationWarning):
-            self.assertFalse(isinstance(drag_pulse, Gaussian))
-            self.assertFalse(isinstance(drag_pulse, GaussianSquare))
-            self.assertTrue(isinstance(drag_pulse, Drag))
-            self.assertFalse(isinstance(drag_pulse, Constant))
+        self.assertFalse(isinstance(drag_pulse, Gaussian))
+        self.assertFalse(isinstance(drag_pulse, GaussianSquare))
+        self.assertTrue(isinstance(drag_pulse, Drag))
+        self.assertFalse(isinstance(drag_pulse, Constant))
 
     def test_constant_deprecated_type_check(self):
         """Test isinstance check works with deprecation."""
         constant_pulse = Constant(160, 0.1, 40, 1.5)
 
         self.assertTrue(isinstance(constant_pulse, SymbolicPulse))
-        with self.assertWarns(PendingDeprecationWarning):
-            self.assertFalse(isinstance(constant_pulse, Gaussian))
-            self.assertFalse(isinstance(constant_pulse, GaussianSquare))
-            self.assertFalse(isinstance(constant_pulse, Drag))
-            self.assertTrue(isinstance(constant_pulse, Constant))
+        self.assertFalse(isinstance(constant_pulse, Gaussian))
+        self.assertFalse(isinstance(constant_pulse, GaussianSquare))
+        self.assertFalse(isinstance(constant_pulse, Drag))
+        self.assertTrue(isinstance(constant_pulse, Constant))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""
 
@@ -868,6 +868,7 @@ class TestFunctionalPulse(QiskitTestCase):
             self.assertEqual(len(pulse_wf_inst.samples), _duration)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestScalableSymbolicPulse(QiskitTestCase):
     """ScalableSymbolicPulse tests"""
 

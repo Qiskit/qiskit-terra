@@ -56,22 +56,28 @@ class TestCircuitToInstruction(QiskitTestCase):
         cr1 = ClassicalRegister(3, "cr1")
         cr2 = ClassicalRegister(3, "cr2")
         circ = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circ.h(qr1[0]).c_if(cr1[1], True)
-        circ.h(qr2[1]).c_if(cr2[0], False)
-        circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(qr1[0]).c_if(cr1[1], True)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(qr2[1]).c_if(cr2[0], False)
+        with self.assertWarns(DeprecationWarning):
+            circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
         circ.measure(qr2[2], cr2[0])
 
-        inst = circuit_to_instruction(circ)
+        with self.assertWarns(DeprecationWarning):
+            inst = circuit_to_instruction(circ)
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(6, "c")
 
         self.assertEqual(inst.definition[0].qubits, (q[0],))
         self.assertEqual(inst.definition[1].qubits, (q[3],))
         self.assertEqual(inst.definition[2].qubits, (q[1], q[4]))
-
-        self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
-        self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
-        self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
 
     def test_flatten_circuit_registerless(self):
         """Test that the conversion works when the given circuit has bits that are not contained in
@@ -196,8 +202,10 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         Regression test of gh-7394."""
         expected = QuantumCircuit([Qubit(), Clbit()])
-        expected.h(0).c_if(expected.clbits[0], 0)
-        test = circuit_to_instruction(expected)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(0).c_if(expected.clbits[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            test = circuit_to_instruction(expected)
 
         self.assertIsInstance(test, Instruction)
         self.assertIsInstance(test.definition, QuantumCircuit)
@@ -206,7 +214,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         test_instruction = test.definition.data[0]
         expected_instruction = expected.data[0]
         self.assertIs(type(test_instruction.operation), type(expected_instruction.operation))
-        self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
 
     def test_zero_operands(self):
         """Test that an instruction can be created, even if it has zero operands."""

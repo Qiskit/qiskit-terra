@@ -46,7 +46,8 @@ def synth_stabilizer_layers(
 
     For example, a 5-qubit stabilizer state is decomposed into the following layers:
 
-    .. parsed-literal::
+    .. code-block:: text
+
              ┌─────┐┌─────┐┌─────┐┌─────┐┌────────┐
         q_0: ┤0    ├┤0    ├┤0    ├┤0    ├┤0       ├
              │     ││     ││     ││     ││        │

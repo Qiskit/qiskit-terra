@@ -19,6 +19,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class SetFrequency(Instruction):
@@ -35,6 +36,7 @@ class SetFrequency(Instruction):
     The duration of SetFrequency is 0.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         frequency: Union[float, ParameterExpression],
@@ -85,6 +87,7 @@ class SetFrequency(Instruction):
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
 
+    @deprecate_pulse_func
     def __init__(
         self,
         frequency: Union[float, ParameterExpression],

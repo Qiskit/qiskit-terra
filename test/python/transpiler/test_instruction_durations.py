@@ -96,7 +96,8 @@ class TestInstructionDurationsClass(QiskitTestCase):
 
     def test_from_backend_with_backendv2(self):
         """Test if `from_backend()` method allows using BackendV2"""
-        backend = GenericBackendV2(num_qubits=4, calibrate_instructions=True, seed=42)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=4, calibrate_instructions=True, seed=42)
         inst_durations = InstructionDurations.from_backend(backend)
         self.assertEqual(inst_durations, backend.target.durations())
         self.assertIsInstance(inst_durations, InstructionDurations)

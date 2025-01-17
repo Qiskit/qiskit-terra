@@ -220,32 +220,39 @@ def _kraus_to_choi(data):
 
 def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
     """Transform Choi representation to Kraus representation."""
-    from scipy import linalg as la
+    import scipy.linalg
 
     # Check if hermitian matrix
     if is_hermitian_matrix(data, atol=atol):
-        # Get eigen-decomposition of Choi-matrix
-        # This should be a call to la.eigh, but there is an OpenBlas
-        # threading issue that is causing segfaults.
-        # Need schur here since la.eig does not
-        # guarantee orthogonality in degenerate subspaces
-        w, v = la.schur(data, output="complex")
-        w = w.diagonal().real
-        # Check eigenvalues are non-negative
-        if len(w[w < -atol]) == 0:
-            # CP-map Kraus representation
-            kraus = []
-            for val, vec in zip(w, v.T):
-                if abs(val) > atol:
-                    k = np.sqrt(val) * vec.reshape((output_dim, input_dim), order="F")
-                    kraus.append(k)
-            # If we are converting a zero matrix, we need to return a Kraus set
-            # with a single zero-element Kraus matrix
+        # Ideally we'd use `eigh`, but `scipy.linalg.eigh` has stability problems on macOS (at a
+        # minimum from SciPy 1.1 to 1.13 with the bundled OpenBLAS, or ~0.3.6 before they started
+        # bundling one in).  The Schur form of a Hermitian matrix is guaranteed diagonal:
+        #
+        #       H = U T U+   for upper-triangular T.
+        #   => H+ = U T+ U+
+        #   =>  T = T+       because H = H+, and thus T cannot have super-diagonal elements.
+        #
+        # So the eigenvalues are on the diagonal, therefore the basis-transformation matrix must be
+        # a spanning set of the eigenspace.
+        triangular, vecs = scipy.linalg.schur(data)
+        values = triangular.diagonal().real
+        # If we're not a CP map, fall-through back to the generalization handling.  Since we needed
+        # to get the eigenvalues anyway, we can do the CP check manually rather than deferring to a
+        # separate re-calculation.
+        if all(values >= -atol):
+            kraus = [
+                math.sqrt(value) * vec.reshape((output_dim, input_dim), order="F")
+                for value, vec in zip(values, vecs.T)
+                if abs(value) > atol
+            ]
+            # If we are converting a zero matrix, we need to return a Kraus set with a single
+            # zero-element Kraus matrix
             if not kraus:
-                kraus.append(np.zeros((output_dim, input_dim), dtype=complex))
+                kraus = [np.zeros((output_dim, input_dim), dtype=complex)]
             return kraus, None
-    # Non-CP-map generalized Kraus representation
-    mat_u, svals, mat_vh = la.svd(data)
+        # Fall through.
+    # Non-CP-map generalized Kraus representation.
+    mat_u, svals, mat_vh = scipy.linalg.svd(data)
     kraus_l = []
     kraus_r = []
     for val, vec_l, vec_r in zip(svals, mat_u.T, mat_vh.conj()):

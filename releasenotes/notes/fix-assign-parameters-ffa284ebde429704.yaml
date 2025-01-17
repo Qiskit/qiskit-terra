@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix incorrect behavior in :class:`.CircuitData` in which, upon parameter assignment,
+    we attempted to modify the cached operation inside of a ``PackedInstruction``. Now
+    we instead discard said cache prompting the ``PackedInstruction`` to build a new Python
+    operation should it be needed.

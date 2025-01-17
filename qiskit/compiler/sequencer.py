@@ -21,8 +21,10 @@ from qiskit.providers.backend import Backend
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.sequence import sequence as _sequence
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def sequence(
     scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,

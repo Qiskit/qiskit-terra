@@ -31,7 +31,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit._accelerate import isometry as isometry_rs
 
-from .diagonal import Diagonal
+from .diagonal import DiagonalGate
 from .uc import UCGate
 from .mcg_up_to_diagonal import MCGupDiag
 
@@ -167,7 +167,7 @@ class Isometry(Instruction):
         if len(diag) > 1 and not isometry_rs.diag_is_identity_up_to_global_phase(
             diag, self._epsilon
         ):
-            diagonal = Diagonal(np.conj(diag))
+            diagonal = DiagonalGate(np.conj(diag))
             circuit.append(diagonal, q_input)
         return circuit
 

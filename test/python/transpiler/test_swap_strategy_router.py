@@ -62,7 +62,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
+
                                                            ┌────────────────┐
             q_0: ───────────────────X──────────────────────┤0               ├
                  ┌────────────────┐ │ ┌────────────────┐   │  exp(-i ZZ)(3) │
@@ -98,7 +99,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                   ┌────────────────┐
             q_0: ─┤0               ├─X─────────────────────────────────────────
@@ -136,7 +137,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                  ┌─────────────────┐
             q_0: ┤0                ├─X────────────────────
@@ -175,7 +176,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                      ┌────────────────┐                                            ░    ┌─┐
                q_0: ─┤0               ├─X──────────────────────────────────────────░────┤M├──────
@@ -343,7 +344,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         Here, we test that the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌──────────────────────────┐
             q_0: ┤0                         ├──■──
@@ -356,7 +357,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         becomes
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────────────┐                      ┌───┐
             q_0: ┤0                ├─X────────────────────┤ X ├
@@ -399,7 +400,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The coupling map in this test corresponds to
 
-        .. parsed-literal::
+        .. code-block:: text
 
             0 -- 1 -- 2
                  |

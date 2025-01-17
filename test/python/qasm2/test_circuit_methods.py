@@ -180,14 +180,16 @@ class LoadFromQasmTest(QiskitTestCase):
             )
             + "\n"
         )
-        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr = QuantumRegister(1, "q")
         cr0 = ClassicalRegister(4, "c0")
         cr1 = ClassicalRegister(4, "c1")
         ref = QuantumCircuit(qr, cr0, cr1)
         ref.x(qr[0])
-        ref.x(qr[0]).c_if(cr1, 4)
+        with self.assertWarns(DeprecationWarning):
+            ref.x(qr[0]).c_if(cr1, 4)
 
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 1)

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.UnitarySynthesis` transpiler pass, where blocks of
+    :class:`.UnitaryGate`\s on 3 qubits or more were not correctly synthesized.
+    This led, e.g., to the circuit being overwritten with the last processed block or
+    to internal panics when encountering measurements after such a block.
+    Fixed `#13586 <https://github.com/Qiskit/qiskit/issues/13586>`__.

@@ -283,7 +283,8 @@ class TestStatevectorSampler(QiskitTestCase):
         qc4 = QuantumCircuit(2, 2)
         qc4.h(0)
         qc4.measure(1, 1)
-        qc4.x(0).c_if(1, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc4.x(0).c_if(1, 1)
         qc4.measure(0, 0)
 
         sampler = StatevectorSampler()
@@ -592,8 +593,10 @@ class TestStatevectorSampler(QiskitTestCase):
         c2 = ClassicalRegister(1, "c2")
 
         qc = QuantumCircuit(q, c1, c2)
-        qc.z(2).c_if(c1, 1)
-        qc.x(2).c_if(c2, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(2).c_if(c1, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         # Note: qc2 has aliased cregs, c0 -> c[2] and c1 -> c[4].

@@ -649,7 +649,7 @@ class PulseQobj:
         for use with IBMQ you can leverage a json encoder that converts these
         as expected. For example:
 
-        .. code-block::
+        .. code-block:: python
 
             import json
             import numpy

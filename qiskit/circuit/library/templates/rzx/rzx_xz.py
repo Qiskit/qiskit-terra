@@ -10,20 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-RZX based template for CX - RXGate - CX
-.. parsed-literal::
-     ┌───┐         ┌───┐┌─────────┐┌─────────┐┌─────────┐┌──────────┐»
-q_0: ┤ X ├─────────┤ X ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤0         ├»
-     └─┬─┘┌───────┐└─┬─┘└─────────┘└─────────┘└─────────┘│  RZX(-ϴ) │»
-q_1: ──■──┤ RX(ϴ) ├──■───────────────────────────────────┤1         ├»
-          └───────┘                                      └──────────┘»
-«     ┌─────────┐┌─────────┐┌─────────┐
-«q_0: ┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
-«     └─────────┘└─────────┘└─────────┘
-«q_1: ─────────────────────────────────
-«
-"""
+# pylint: disable=missing-module-docstring
 
 from __future__ import annotations
 
@@ -34,7 +21,21 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def rzx_xz(theta: ParameterValueType | None = None):
-    """Template for CX - RXGate - CX."""
+    """RZX-based template for CX - RXGate - CX.
+
+    .. code-block:: text
+
+             ┌───┐         ┌───┐┌─────────┐┌─────────┐┌─────────┐┌──────────┐»
+        q_0: ┤ X ├─────────┤ X ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤0         ├»
+             └─┬─┘┌───────┐└─┬─┘└─────────┘└─────────┘└─────────┘│  RZX(-ϴ) │»
+        q_1: ──■──┤ RX(ϴ) ├──■───────────────────────────────────┤1         ├»
+                  └───────┘                                      └──────────┘»
+        «     ┌─────────┐┌─────────┐┌─────────┐
+        «q_0: ┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
+        «     └─────────┘└─────────┘└─────────┘
+        «q_1: ─────────────────────────────────
+        «
+    """
     if theta is None:
         theta = Parameter("ϴ")
 

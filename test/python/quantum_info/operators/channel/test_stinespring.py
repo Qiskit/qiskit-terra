@@ -19,7 +19,7 @@ from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info import Stinespring
+from qiskit.quantum_info import Stinespring, Operator
 from .channel_test_case import ChannelTestCase
 
 
@@ -61,7 +61,10 @@ class TestStinespring(ChannelTestCase):
         circuit, target = self.simple_circuit_no_measure()
         op = Stinespring(circuit)
         target = Stinespring(target)
-        self.assertEqual(op, target)
+        # If the Stinespring is CPTP (and it should be), it's defined in terms of a single
+        # rectangular operator, which has global-phase gauge freedom.
+        self.assertTrue(op.is_cptp())
+        self.assertTrue(Operator(op.data).equiv(Operator(target.data)))
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""

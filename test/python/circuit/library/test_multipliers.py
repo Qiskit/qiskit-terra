@@ -13,9 +13,11 @@
 """Test multiplier circuits."""
 
 import unittest
+import re
 import numpy as np
 from ddt import ddt, data, unpack
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
@@ -24,7 +26,10 @@ from qiskit.circuit.library import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     VBERippleCarryAdder,
+    MultiplierGate,
 )
+from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
+from qiskit.synthesis.arithmetic import multiplier_qft_r17, multiplier_cumulative_h18
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -53,7 +58,8 @@ class TestMultiplier(QiskitTestCase):
 
         # obtain the statevector and the probabilities, we don't trace out the ancilla qubits
         # as we verify that all ancilla qubits have been uncomputed to state 0 again
-        statevector = Statevector(circuit)
+        tqc = transpile(circuit, basis_gates=["h", "p", "cp", "rz", "cx", "ccx", "swap"])
+        statevector = Statevector(tqc)
         probabilities = statevector.probabilities()
         pad = "0" * circuit.num_ancillas  # state of the ancillas
 
@@ -79,10 +85,18 @@ class TestMultiplier(QiskitTestCase):
         (3, RGQFTMultiplier, 5),
         (3, RGQFTMultiplier, 4),
         (3, RGQFTMultiplier, 3),
+        (3, multiplier_qft_r17),
+        (3, multiplier_qft_r17, 5),
+        (3, multiplier_qft_r17, 4),
+        (3, multiplier_qft_r17, 3),
         (3, HRSCumulativeMultiplier),
         (3, HRSCumulativeMultiplier, 5),
         (3, HRSCumulativeMultiplier, 4),
         (3, HRSCumulativeMultiplier, 3),
+        (3, multiplier_cumulative_h18),
+        (3, multiplier_cumulative_h18, 5),
+        (3, multiplier_cumulative_h18, 4),
+        (3, multiplier_cumulative_h18, 3),
         (3, HRSCumulativeMultiplier, None, CDKMRippleCarryAdder),
         (3, HRSCumulativeMultiplier, None, DraperQFTAdder),
         (3, HRSCumulativeMultiplier, None, VBERippleCarryAdder),
@@ -97,6 +111,7 @@ class TestMultiplier(QiskitTestCase):
             multiplier = multiplier(num_state_qubits, num_result_qubits, adder=adder)
         else:
             multiplier = multiplier(num_state_qubits, num_result_qubits)
+
         self.assertMultiplicationIsCorrect(num_state_qubits, num_result_qubits, multiplier)
 
     @data(
@@ -123,6 +138,29 @@ class TestMultiplier(QiskitTestCase):
         """Test an error is raised when a custom adder is used with modular cumulative multiplier."""
         with self.assertRaises(NotImplementedError):
             _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
+
+    def test_plugins(self):
+        """Test setting the HLS plugins for the modular adder."""
+
+        # all gates with the plugins we check, including an expected operation
+        plugins = [("cumulative_h18", "ccircuit-.*"), ("qft_r17", "qft")]
+
+        num_state_qubits = 2
+
+        for plugin, expected_op in plugins:
+            with self.subTest(plugin=plugin):
+                multiplier = MultiplierGate(num_state_qubits)
+
+                circuit = QuantumCircuit(multiplier.num_qubits)
+                circuit.append(multiplier, range(multiplier.num_qubits))
+
+                hls_config = HLSConfig(Multiplier=[plugin])
+                hls = HighLevelSynthesis(hls_config=hls_config)
+
+                synth = hls(circuit)
+                ops = set(synth.count_ops().keys())
+
+                self.assertTrue(any(re.match(expected_op, op) for op in ops))
 
 
 if __name__ == "__main__":

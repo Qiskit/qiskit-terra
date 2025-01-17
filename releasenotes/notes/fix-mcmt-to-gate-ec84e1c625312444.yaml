@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed a bug where any instruction called ``"mcmt"`` would be passed into the high-level
+    synthesis routine for a :class:`.MCMTGate`, which causes a failure or invalid result.
+    In particular, this could happen accidentally when handling the :class:`.MCMT` _circuit_,
+    named ``"mcmt"``, and implicitly converting it into an instruction e.g. when appending 
+    it to a circuit.
+    Fixed `#13563 <https://github.com/Qiskit/qiskit/issues/13563>`__.
+upgrade_synthesis:
+  - |
+    The plugins for :class:`.LinearFunction` no longer raise an error if another object
+    than :class:`.LinearFunction` is passed into the ``run`` method. Instead, ``None`` is 
+    returned, which is consistent with the other plugins. If you relied on this error being raised,
+    you can manually perform an instance-check.

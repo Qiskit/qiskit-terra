@@ -268,7 +268,8 @@ class TestCheckMapCX(QiskitTestCase):
         # should all be fine.  This kind of thing is a staple of the control-flow builders.
         inner_order = [cr2[0], cr1[0], cr2[1], cr1[1]]
         inner = QuantumCircuit(qr, inner_order, cr1, cr2)
-        inner.cx(0, 1).c_if(cr2, 3)
+        with self.assertWarns(DeprecationWarning):
+            inner.cx(0, 1).c_if(cr2, 3)
 
         outer = QuantumCircuit(qr, cr1, cr2)
         outer.if_test((cr1, 3), inner, outer.qubits, inner_order)

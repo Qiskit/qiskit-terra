@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The OpenQASM 2 importer previously would output incorrect :class:`.Gate` instances for gate
+    calls referring to a ``gate`` definition that followed a prior ``gate`` definition that was
+    being treated as a built-in operation by a :class:`~.qasm2.CustomInstruction`.  See
+    `#13339 <https://github.com/Qiskit/qiskit/issues/13339>`__ for more detail.

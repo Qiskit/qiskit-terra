@@ -34,6 +34,7 @@ class Operation(ABC):
         Add a Clifford and a Toffoli gate to a :class:`QuantumCircuit`.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit

@@ -1,0 +1,14 @@
+---
+features_circuits:
+  - |
+    Improved the functionality of :class:`.CommutationChecker` to include
+    support for the following parameterized gates with free parameters:
+    :class:`.RXXGate`,:class:`.RYYGate`,:class:`.RZZGate`,:class:`.RZXGate`,
+    :class:`.RXGate`,:class:`.RYGate`,:class:`.RZGate`,:class:`.PhaseGate`,
+    :class:`.U1Gate`,:class:`.CRXGate`,:class:`.CRYGate`,:class:`.CRZGate`,
+    :class:`.CPhaseGate`.
+
+    Before these were only supported with bound parameters.
+
+
+

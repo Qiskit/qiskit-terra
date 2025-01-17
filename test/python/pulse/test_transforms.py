@@ -39,11 +39,14 @@ from qiskit.pulse.channels import (
 from qiskit.pulse.instructions import directives
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         with self.assertWarns(DeprecationWarning):
@@ -198,9 +201,11 @@ class TestAlignMeasures(QiskitTestCase):
                 self.assertEqual(time, 0)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         with self.assertWarns(DeprecationWarning):
@@ -252,6 +257,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         self.assertEqual(sched.instructions, ((0, acq_q0), (2400, acq_q0)))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestPad(QiskitTestCase):
     """Test padding of schedule with delays."""
 
@@ -388,6 +394,7 @@ def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
     return ids
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestCompressTransform(QiskitTestCase):
     """Compress function test."""
 
@@ -514,6 +521,7 @@ class TestCompressTransform(QiskitTestCase):
         self.assertEqual(len(compressed_pulse_ids), 2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignSequential(QiskitTestCase):
     """Test sequential alignment transform."""
 
@@ -562,6 +570,7 @@ class TestAlignSequential(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignLeft(QiskitTestCase):
     """Test left alignment transform."""
 
@@ -625,6 +634,7 @@ class TestAlignLeft(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignRight(QiskitTestCase):
     """Test right alignment transform."""
 
@@ -689,6 +699,7 @@ class TestAlignRight(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignEquispaced(QiskitTestCase):
     """Test equispaced alignment transform."""
 
@@ -767,6 +778,7 @@ class TestAlignEquispaced(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAlignFunc(QiskitTestCase):
     """Test callback alignment transform."""
 
@@ -812,6 +824,7 @@ class TestAlignFunc(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFlatten(QiskitTestCase):
     """Test flattening transform."""
 
@@ -861,6 +874,7 @@ class _TestDirective(directives.Directive):
         return self.operands
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRemoveDirectives(QiskitTestCase):
     """Test removing of directives."""
 
@@ -881,6 +895,7 @@ class TestRemoveDirectives(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRemoveTrivialBarriers(QiskitTestCase):
     """Test scheduling transforms."""
 

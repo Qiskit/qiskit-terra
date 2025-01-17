@@ -42,14 +42,14 @@ package="$1"
 version="$2"
 
 our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
-cache_dir="$(pwd -P)/qpy_$version"
-venv_dir="$(pwd -P)/${version}"
+cache_dir="$(pwd -P)/qpy_cache/$version"
+venv_dir="$(pwd -P)/venvs/$package-$version"
 
 if [[ ! -d $cache_dir ]] ; then
     echo "Building venv for $package==$version"
     "$python" -m venv "$venv_dir"
     "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}"
-    mkdir "$cache_dir"
+    mkdir -p "$cache_dir"
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
     "$venv_dir/bin/python" "${our_dir}/test_qpy.py" generate --version="$version"

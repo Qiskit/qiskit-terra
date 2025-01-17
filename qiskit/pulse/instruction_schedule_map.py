@@ -46,6 +46,7 @@ from qiskit.pulse.calibration_entries import (
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class InstructionScheduleMap:
@@ -62,6 +63,7 @@ class InstructionScheduleMap:
     These can usually be seen as gate calibrations.
     """
 
+    @deprecate_pulse_func
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
@@ -167,12 +169,22 @@ class InstructionScheduleMap:
         """
         instruction = _get_instruction_string(instruction)
         if not self.has(instruction, _to_tuple(qubits)):
-            if instruction in self._map:
-                raise PulseError(
-                    f"Operation '{instruction}' exists, but is only defined for qubits "
-                    f"{self.qubits_with_instruction(instruction)}."
+            # TODO: PulseError is deprecated, this code will be removed in 2.0.
+            # In the meantime, we catch the deprecation
+            # warning not to overload users with non-actionable messages
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=".*The entire Qiskit Pulse package*",
+                    module="qiskit",
                 )
-            raise PulseError(f"Operation '{instruction}' is not defined for this system.")
+                if instruction in self._map:
+                    raise PulseError(
+                        f"Operation '{instruction}' exists, but is only defined for qubits "
+                        f"{self.qubits_with_instruction(instruction)}."
+                    )
+                raise PulseError(f"Operation '{instruction}' is not defined for this system.")
 
     def get(
         self,
@@ -354,7 +366,10 @@ class InstructionScheduleMap:
         instruction = _get_instruction_string(instruction)
 
         self.assert_has(instruction, qubits)
-        signature = self._map[instruction][_to_tuple(qubits)].get_signature()
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
+            # Prevent `get_signature` from emitting pulse package deprecation warnings
+            signature = self._map[instruction][_to_tuple(qubits)].get_signature()
         return tuple(signature.parameters.keys())
 
     def __str__(self):

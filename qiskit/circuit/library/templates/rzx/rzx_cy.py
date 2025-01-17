@@ -10,15 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-RZX based template for CX - RYGate - CX
-.. parsed-literal::
-                                                       ┌──────────┐
-q_0: ──■─────────────■─────────────────────────────────┤0         ├───────────
-     ┌─┴─┐┌───────┐┌─┴─┐┌────────┐┌──────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐
-q_1: ┤ X ├┤ RY(ϴ) ├┤ X ├┤ RY(-ϴ) ├┤ RZ(-π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├
-     └───┘└───────┘└───┘└────────┘└──────────┘└───────┘└──────────┘└─────────┘
-"""
+# pylint: disable=missing-module-docstring
 
 from __future__ import annotations
 
@@ -29,7 +21,16 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def rzx_cy(theta: ParameterValueType | None = None):
-    """Template for CX - RYGate - CX."""
+    """RZX-based template for CX - RYGate - CX.
+
+    .. code-block:: text
+
+                                                                 ┌──────────┐
+          q_0: ──■─────────────■─────────────────────────────────┤0         ├───────────
+               ┌─┴─┐┌───────┐┌─┴─┐┌────────┐┌──────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐
+          q_1: ┤ X ├┤ RY(ϴ) ├┤ X ├┤ RY(-ϴ) ├┤ RZ(-π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├
+               └───┘└───────┘└───┘└────────┘└──────────┘└───────┘└──────────┘└─────────┘
+    """
     if theta is None:
         theta = Parameter("ϴ")
 

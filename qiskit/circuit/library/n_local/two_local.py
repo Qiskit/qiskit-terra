@@ -18,6 +18,7 @@ from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction
+from qiskit.utils.deprecation import deprecate_func
 
 from .n_local import NLocal
 from ..standard_gates import get_standard_gate_name_mapping
@@ -76,7 +77,7 @@ class TwoLocal(NLocal):
     Examples:
 
         >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        >>> print(two)  # decompose the layers into standard gates
+        >>> print(two.decompose())  # decompose the layers into standard gates
              ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├─░───■────────░─┤ Ry(θ[3]) ├─░───■────────░─┤ Ry(θ[6]) ├
              ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
@@ -85,10 +86,10 @@ class TwoLocal(NLocal):
         q_2: ┤ Ry(θ[2]) ├─░──────┤ X ├─░─┤ Ry(θ[5]) ├─░──────┤ X ├─░─┤ Ry(θ[8]) ├
              └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
 
-        >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
+        >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True, flatten=True)
         >>> qc = QuantumCircuit(3)
         >>> qc &= two
-        >>> print(qc.decompose().draw())
+        >>> print(qc.draw())
              ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
              ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
@@ -98,7 +99,7 @@ class TwoLocal(NLocal):
              └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
 
         >>> entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
-        >>> two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
+        >>> two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1, flatten=True)
         >>> print(two)  # note: no barriers inserted this time!
                 ┌───┐                             ┌──────────┐┌───┐
         q_0: |0>┤ X ├─────■───────────────────────┤ Rx(θ[2]) ├┤ X ├
@@ -109,9 +110,9 @@ class TwoLocal(NLocal):
                 └───┘            └──────────┘                 └───┘
 
         >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
-        >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
+        >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1, flatten=True)
         >>> circuit = two.compose(two)
-        >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
+        >>> print(circuit.draw())  # note, that the parameters are the same!
         q_0: ─────■───────────■───────────■───────────■──────
                   │           │           │           │
         q_1: ─────┼───────────┼───────────┼───────────┼──────
@@ -123,7 +124,8 @@ class TwoLocal(NLocal):
 
         >>> layer_1 = [(0, 1), (0, 2)]
         >>> layer_2 = [(1, 2)]
-        >>> two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True)
+        >>> two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True,
+        ... flatten=True)
         >>> print(two)
              ┌───┐ ░            ░ ┌───┐ ░       ░ ┌───┐
         q_0: ┤ X ├─░───■────■───░─┤ X ├─░───────░─┤ X ├
@@ -135,6 +137,11 @@ class TwoLocal(NLocal):
 
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.n_local instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

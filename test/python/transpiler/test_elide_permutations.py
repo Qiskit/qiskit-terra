@@ -180,7 +180,8 @@ class TestElidePermutations(QiskitTestCase):
         """Test swap elision doesn't touch conditioned swap."""
         qc = QuantumCircuit(3, 3)
         qc.h(0)
-        qc.swap(0, 1).c_if(qc.clbits[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.swap(0, 1).c_if(qc.clbits[0], 0)
         qc.cx(0, 1)
         res = self.swap_pass(qc)
         self.assertEqual(res, qc)

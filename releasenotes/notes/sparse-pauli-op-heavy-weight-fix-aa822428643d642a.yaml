@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Fixed a bug where a initializing :class:`.SparsePauliOp` with a large
+    number of Pauli-``Y`` terms (typically :math:`\geq 100`) and no explicit
+    ``coeffs`` would result in a coefficient close to 1 but with a floating point
+    error. The coefficient is now correctly 1 per default.
+    Fixed `#13522 <https://github.com/Qiskit/qiskit/issues/13522>`__.

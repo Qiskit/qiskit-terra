@@ -62,7 +62,8 @@ class TestUnroll3qOrMore(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
@@ -70,7 +71,8 @@ class TestUnroll3qOrMore(QiskitTestCase):
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
-            self.assertEqual(node.op.condition, (cr, 0))
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(node.op.condition, (cr, 0))
 
     def test_decompose_unitary(self):
         """Test unrolling of unitary gate over 4qubits."""

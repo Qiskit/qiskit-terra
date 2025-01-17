@@ -32,8 +32,8 @@ pub struct Bytecode {
 }
 
 /// The operations that are represented by the "bytecode" passed to Python.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
-#[derive(Clone)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum OpCode {
     // There is only a `Gate` here, not a `GateInBasis`, because in Python space we don't have the
     // same strict typing requirements to satisfy.
@@ -113,8 +113,8 @@ pub struct ExprCustom {
 /// each of these, but this way involves fewer imports in Python, and also serves to split up the
 /// option tree at the top level, so we don't have to test every unary operator before testing
 /// other operations.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
-#[derive(Clone)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum UnaryOpCode {
     Negate,
     Cos,
@@ -129,8 +129,8 @@ pub enum UnaryOpCode {
 /// each of these, but this way involves fewer imports in Python, and also serves to split up the
 /// option tree at the top level, so we don't have to test every binary operator before testing
 /// other operations.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
-#[derive(Clone)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum BinaryOpCode {
     Add,
     Subtract,

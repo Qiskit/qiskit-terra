@@ -44,9 +44,12 @@ class TestQASM2Export(QiskitTestCase):
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
         qc.h(qr2[1])
-        qc.x(qr2[1]).c_if(cr, 0)
-        qc.y(qr1[0]).c_if(cr, 1)
-        qc.z(qr1[0]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(qr2[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.y(qr1[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(qr1[0]).c_if(cr, 2)
         qc.barrier(qr1, qr2)
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
@@ -616,7 +619,8 @@ p(pi) q[0];"""
 
     def test_raises_on_single_bit_condition(self):
         qc = QuantumCircuit(1, 1)
-        qc.x(0).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, True)
 
         with self.assertRaisesRegex(
             qasm2.QASM2ExportError, "OpenQASM 2 can only condition on registers"

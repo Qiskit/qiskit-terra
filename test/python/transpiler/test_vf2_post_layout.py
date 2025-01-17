@@ -46,8 +46,9 @@ class TestVF2PostLayout(QiskitTestCase):
 
         def run(dag, wire_map):
             for gate in dag.two_qubit_ops():
-                if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
-                    continue
+                with self.assertWarns(DeprecationWarning):
+                    if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
+                        continue
                 physical_q0 = wire_map[gate.qargs[0]]
                 physical_q1 = wire_map[gate.qargs[1]]
                 self.assertTrue((physical_q0, physical_q1) in edges)
@@ -71,8 +72,9 @@ class TestVF2PostLayout(QiskitTestCase):
 
         def run(dag, wire_map):
             for gate in dag.two_qubit_ops():
-                if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
-                    continue
+                with self.assertWarns(DeprecationWarning):
+                    if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
+                        continue
                 physical_q0 = wire_map[gate.qargs[0]]
                 physical_q1 = wire_map[gate.qargs[1]]
                 qargs = (physical_q0, physical_q1)
@@ -552,8 +554,9 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
 
         layout = property_set["post_layout"]
         for gate in dag.two_qubit_ops():
-            if dag.has_calibration_for(gate):
-                continue
+            with self.assertWarns(DeprecationWarning):
+                if dag.has_calibration_for(gate):
+                    continue
             physical_q0 = layout[gate.qargs[0]]
             physical_q1 = layout[gate.qargs[1]]
             self.assertTrue(coupling_map.graph.has_edge(physical_q0, physical_q1))
@@ -567,8 +570,9 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
 
         layout = property_set["post_layout"]
         for gate in dag.two_qubit_ops():
-            if dag.has_calibration_for(gate):
-                continue
+            with self.assertWarns(DeprecationWarning):
+                if dag.has_calibration_for(gate):
+                    continue
             physical_q0 = layout[gate.qargs[0]]
             physical_q1 = layout[gate.qargs[1]]
             qargs = (physical_q0, physical_q1)

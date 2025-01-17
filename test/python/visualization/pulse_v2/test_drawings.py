@@ -15,11 +15,14 @@
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import drawings, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDrawingObjects(QiskitTestCase):
     """Tests for DrawingObjects."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         """Setup."""
         super().setUp()

@@ -135,7 +135,7 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
-        self._calibrations = self._circuit.calibrations
+        self._calibrations = self._circuit._calibrations_prop
         self._expr_len = expr_len
         self._cregbundle = cregbundle
 

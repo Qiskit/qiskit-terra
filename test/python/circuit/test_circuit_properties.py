@@ -226,8 +226,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q[2], q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
-        qc.h(q[2]).c_if(c, 2)
-        qc.h(q[3]).c_if(c, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[2]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c, 4)
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_conditionals2(self):
@@ -258,8 +260,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q[2], q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[0], c[0])
-        qc.h(q[2]).c_if(c, 2)
-        qc.h(q[3]).c_if(c, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[2]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c, 4)
         self.assertEqual(qc.depth(), 6)
 
     def test_circuit_depth_conditionals3(self):
@@ -287,7 +291,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.cx(q[0], q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c, 2)
 
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
@@ -320,8 +325,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[2], c[2])
-        qc.h(q[1]).c_if(c[0], True)
-        qc.h(q[3]).c_if(c[2], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[1]).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c[2], False)
         self.assertEqual(qc.depth(), 3)
 
     def test_circuit_depth_bit_conditionals2(self):
@@ -362,12 +369,18 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[2], c[2])
-        qc.h(q[1]).c_if(c[1], True)
-        qc.h(q[3]).c_if(c[3], True)
-        qc.cx(0, 1).c_if(c[0], False)
-        qc.cx(2, 3).c_if(c[2], False)
-        qc.ch(0, 2).c_if(c[1], True)
-        qc.ch(1, 3).c_if(c[3], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[1]).c_if(c[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c[3], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(c[0], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(2, 3).c_if(c[2], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.ch(0, 2).c_if(c[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.ch(1, 3).c_if(c[3], True)
         self.assertEqual(qc.depth(), 4)
 
     def test_circuit_depth_bit_conditionals3(self):
@@ -395,9 +408,12 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.h(1).c_if(c[0], True)
-        qc.h(q[2]).c_if(c, 2)
-        qc.h(3).c_if(c[3], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(1).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[2]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(3).c_if(c[3], True)
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
@@ -608,11 +624,15 @@ class TestCircuitProperties(QiskitTestCase):
         circ.rz(0.1, 1)
         circ.cz(1, 3)
         circ.measure(1, 0)
-        circ.x(0).c_if(0, 1)
-        self.assertEqual(
-            circ.depth(lambda x: x.operation.num_qubits >= 2 or x.operation.condition is not None),
-            4,
-        )
+        with self.assertWarns(DeprecationWarning):
+            circ.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                circ.depth(
+                    lambda x: x.operation.num_qubits >= 2 or x.operation.condition is not None
+                ),
+                4,
+            )
 
     def test_circuit_depth_first_qubit(self):
         """Test finding depth of gates touching q0 only."""
@@ -765,7 +785,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cry(0.1, q[2], q[4])
         qc.z(q[3:])
         qc.cswap(q[1], q[2], q[3])
-        qc.iswap(q[0], q[4]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.iswap(q[0], q[4]).c_if(c, 2)
         result = qc.num_nonlocal_gates()
         expected = 3
         self.assertEqual(expected, result)
@@ -813,7 +834,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[1], q2[1])
         qc.cx(q2[1], q1[2])
         qc.cx(q1[2], q2[0])
-        self.assertEqual(qc.num_connected_components(), 1)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_multi_reg2(self):
         """Test tensor factors works over multi registers #2."""
@@ -834,7 +857,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[0], q2[1])
         qc.cx(q2[0], q1[2])
         qc.cx(q1[1], q2[0])
-        self.assertEqual(qc.num_connected_components(), 2)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_disconnected(self):
         """Test tensor factors works with 2q subspaces."""
@@ -867,7 +892,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q1[2], q2[2])
         qc.cx(q1[3], q2[1])
         qc.cx(q1[4], q2[0])
-        self.assertEqual(qc.num_connected_components(), 5)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 5)
 
     def test_circuit_connected_components_with_clbits(self):
         """Test tensor components with classical register."""
@@ -895,7 +922,9 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
-        self.assertEqual(qc.num_connected_components(), 4)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 4)
 
     def test_circuit_connected_components_with_cond(self):
         """Test tensor components with one conditional gate."""
@@ -921,11 +950,14 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.cx(q[0], q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c, 2)
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
-        self.assertEqual(qc.num_connected_components(), 1)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_with_cond2(self):
         """Test tensor components with two conditional gates."""
@@ -949,9 +981,13 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         qc.h(q[2])
         qc.h(q[3])
-        qc.h(0).c_if(c, 0)
-        qc.cx(1, 2).c_if(c, 4)
-        self.assertEqual(qc.num_connected_components(), 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(c, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 2).c_if(c, 4)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_with_cond3(self):
         """Test tensor components with three conditional gates and measurements."""
@@ -977,11 +1013,16 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.h(q[0]).c_if(c, 0)
-        qc.cx(q[1], q[2]).c_if(c, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[0]).c_if(c, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[1], q[2]).c_if(c, 1)
         qc.measure(q[2], c[2])
-        qc.x(q[3]).c_if(c, 2)
-        self.assertEqual(qc.num_connected_components(), 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[3]).c_if(c, 2)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_with_bit_cond(self):
         """Test tensor components with one single bit conditional gate."""
@@ -1007,11 +1048,14 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.cx(q[0], q[3]).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c[0], True)
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
-        self.assertEqual(qc.num_connected_components(), 3)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 3)
 
     def test_circuit_connected_components_with_bit_cond2(self):
         """Test tensor components with two bit conditional gates."""
@@ -1035,10 +1079,15 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         qc.h(q[2])
         qc.h(q[3])
-        qc.h(0).c_if(c[1], True)
-        qc.cx(1, 0).c_if(c[4], False)
-        qc.cz(2, 3).c_if(c[0], True)
-        self.assertEqual(qc.num_connected_components(), 5)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(c[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 0).c_if(c[4], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.cz(2, 3).c_if(c[0], True)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 5)
 
     def test_circuit_connected_components_with_bit_cond3(self):
         """Test tensor components with register and bit conditional gates."""
@@ -1063,10 +1112,15 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         qc.h(q[2])
         qc.h(q[3])
-        qc.h(q[0]).c_if(c[0], True)
-        qc.cx(q[1], q[2]).c_if(c, 1)
-        qc.x(q[3]).c_if(c[2], True)
-        self.assertEqual(qc.num_connected_components(), 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[0]).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[1], q[2]).c_if(c, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[3]).c_if(c[2], True)
+        # Internally calls op.condition_bits
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_unitary_factors1(self):
         """Test unitary factors empty circuit."""
@@ -1109,7 +1163,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.cx(q[1], q[2])
         qc.cx(q[1], q[2])
-        qc.cx(q[0], q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c, 2)
         qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])
@@ -1179,88 +1234,98 @@ class TestCircuitProperties(QiskitTestCase):
         """Check if the calibrations for basis gates provided are added correctly."""
         circ = QuantumCircuit(2)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-        with pulse.build() as q1_y90:
-            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+            with pulse.build() as q1_y90:
+                pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
 
-        # Add calibration
-        circ.add_calibration(RXGate(3.14), [0], q0_x180)
-        circ.add_calibration(RYGate(1.57), [1], q1_y90)
+            # Add calibration
+            circ.add_calibration(RXGate(3.14), [0], q0_x180)
+            circ.add_calibration(RYGate(1.57), [1], q1_y90)
 
-        self.assertEqual(set(circ.calibrations.keys()), {"rx", "ry"})
-        self.assertEqual(set(circ.calibrations["rx"].keys()), {((0,), (3.14,))})
-        self.assertEqual(set(circ.calibrations["ry"].keys()), {((1,), (1.57,))})
-        self.assertEqual(
-            circ.calibrations["rx"][((0,), (3.14,))].instructions, q0_x180.instructions
-        )
-        self.assertEqual(circ.calibrations["ry"][((1,), (1.57,))].instructions, q1_y90.instructions)
+            self.assertEqual(set(circ.calibrations.keys()), {"rx", "ry"})
+            self.assertEqual(set(circ.calibrations["rx"].keys()), {((0,), (3.14,))})
+            self.assertEqual(set(circ.calibrations["ry"].keys()), {((1,), (1.57,))})
+            self.assertEqual(
+                circ.calibrations["rx"][((0,), (3.14,))].instructions, q0_x180.instructions
+            )
+            self.assertEqual(
+                circ.calibrations["ry"][((1,), (1.57,))].instructions, q1_y90.instructions
+            )
 
     def test_calibrations_custom_gates(self):
         """Check if the calibrations for custom gates with params provided are added correctly."""
         circ = QuantumCircuit(3)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibrations with a custom gate 'rxt'
-        circ.add_calibration("rxt", [0], q0_x180, params=[1.57, 3.14, 4.71])
+            # Add calibrations with a custom gate 'rxt'
+            circ.add_calibration("rxt", [0], q0_x180, params=[1.57, 3.14, 4.71])
 
-        self.assertEqual(set(circ.calibrations.keys()), {"rxt"})
-        self.assertEqual(set(circ.calibrations["rxt"].keys()), {((0,), (1.57, 3.14, 4.71))})
-        self.assertEqual(
-            circ.calibrations["rxt"][((0,), (1.57, 3.14, 4.71))].instructions, q0_x180.instructions
-        )
+            self.assertEqual(set(circ.calibrations.keys()), {"rxt"})
+            self.assertEqual(set(circ.calibrations["rxt"].keys()), {((0,), (1.57, 3.14, 4.71))})
+            self.assertEqual(
+                circ.calibrations["rxt"][((0,), (1.57, 3.14, 4.71))].instructions,
+                q0_x180.instructions,
+            )
 
     def test_calibrations_no_params(self):
         """Check calibrations if the no params is provided with just gate name."""
         circ = QuantumCircuit(3)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        circ.add_calibration("h", [0], q0_x180)
+            circ.add_calibration("h", [0], q0_x180)
 
-        self.assertEqual(set(circ.calibrations.keys()), {"h"})
-        self.assertEqual(set(circ.calibrations["h"].keys()), {((0,), ())})
-        self.assertEqual(circ.calibrations["h"][((0,), ())].instructions, q0_x180.instructions)
+            self.assertEqual(set(circ.calibrations.keys()), {"h"})
+            self.assertEqual(set(circ.calibrations["h"].keys()), {((0,), ())})
+            self.assertEqual(circ.calibrations["h"][((0,), ())].instructions, q0_x180.instructions)
 
     def test_has_calibration_for(self):
         """Test that `has_calibration_for` returns a correct answer."""
         qc = QuantumCircuit(3)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-        qc.add_calibration("h", [0], q0_x180)
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+            qc.add_calibration("h", [0], q0_x180)
 
         qc.h(0)
         qc.h(1)
 
-        self.assertTrue(qc.has_calibration_for(qc.data[0]))
-        self.assertFalse(qc.has_calibration_for(qc.data[1]))
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(qc.has_calibration_for(qc.data[0]))
+            self.assertFalse(qc.has_calibration_for(qc.data[1]))
 
     def test_has_calibration_for_legacy(self):
         """Test that `has_calibration_for` returns a correct answer when presented with a legacy 3
         tuple."""
         qc = QuantumCircuit(3)
 
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-        qc.add_calibration("h", [0], q0_x180)
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build() as q0_x180:
+                pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+            qc.add_calibration("h", [0], q0_x180)
 
         qc.h(0)
         qc.h(1)
 
-        self.assertTrue(
-            qc.has_calibration_for(
-                (qc.data[0].operation, list(qc.data[0].qubits), list(qc.data[0].clbits))
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(
+                qc.has_calibration_for(
+                    (qc.data[0].operation, list(qc.data[0].qubits), list(qc.data[0].clbits))
+                )
             )
-        )
-        self.assertFalse(
-            qc.has_calibration_for(
-                (qc.data[1].operation, list(qc.data[1].qubits), list(qc.data[1].clbits))
+            self.assertFalse(
+                qc.has_calibration_for(
+                    (qc.data[1].operation, list(qc.data[1].qubits), list(qc.data[1].clbits))
+                )
             )
-        )
 
     def test_metadata_copy_does_not_share_state(self):
         """Verify mutating the metadata of a circuit copy does not impact original."""

@@ -61,6 +61,7 @@ impl PartialEq for BitAsKey {
                     .bind(py)
                     .repr()
                     .unwrap()
+                    .as_any()
                     .eq(other.bit.bind(py).repr().unwrap())
                     .unwrap()
             })

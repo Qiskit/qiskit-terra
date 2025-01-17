@@ -1,0 +1,45 @@
+---
+features_visualization:
+  - |
+    The :func:`.timeline_drawer` visualization function has a new argument
+    ``target``, used to specify a :class:`.Target` object for the
+    visualization. By default the function used the
+    :attr:`.Instruction.duration` to get the duration of a given instruction,
+    but specifying the target will leverage the timing details inside the
+    target instead.
+deprecations_circuits:
+  - |
+    The :attr:`.QuantumCircuit.unit` and :attr:`.QuantumCircuit.duration`
+    attributes have been deprecated and will be removed in Qiskit 2.0.0. These
+    attributes were used to track the estimated duration and unit of that
+    duration to execute on the circuit. However, the values of these attributes
+    were always limited, as they would only be properly populated if the
+    transpiler were run with the correct settings. The duration was also only a
+    guess based on the longest path on the sum of the duration of
+    :class:`.DAGCircuit` and wouldn't ever correctly account for control flow
+    or conditionals in the circuit.
+  - |
+    The :attr:`.DAGCircuit.unit` and :attr:`.DAGCircuit.duration`
+    attributes have been deprecated and will be removed in Qiskit 2.0.0. These
+    attributes were used to track the estimated duration and unit of that
+    duration to execute on the circuit. However, the values of these attributes
+    were always limited, as they would only be properly populated if the
+    transpiler were run with the correct settings. The duration was also only a
+    guess based on the longest path on the sum of the duration of
+    :class:`.DAGCircuit` and wouldn't ever correctly account for control flow
+    or conditionals in the circuit.
+  - |
+    The :attr:`.Instruction.duration` and :attr:`.Instruction.unit` attributes
+    have been deprecated and will be removed in Qiskit 2.0.0. This includes
+    setting the ``unit`` or ``duration`` arguments for any :class:`qiskit.circuit.Instruction`
+    or subclass. These attributes were used to attach a custom execution
+    duration and unit for that duration to an individual instruction. However,
+    the source of truth of the duration of a gate is the :class:`.BackendV2`
+    :class:`.Target` which contains the duration for each instruction supported
+    on the backend. The duration of an instruction is not something that's
+    typically user adjustable and is an immutable property of the backend. If
+    you were previously using this capability to experiment with different
+    durations for gates you can mutate the
+    :attr:`.InstructionProperties.duration` field in a given :class:`.Target` to
+    set a custom duration for an instruction on a backend (the unit is always in
+    seconds in the :class:`.Target`).

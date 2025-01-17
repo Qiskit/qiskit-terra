@@ -10,4 +10,4 @@ Qiskit |version| release notes
     `:earliest-version:` should be set to the rc1 release for the current minor release series. For example, the stable/1.1 branch should set it to 1.1.0rc1. If on `main`, set to the prior minor version's rc1, like `1.0.0rc1`.
 
 .. release-notes::
-   :earliest-version: 1.0.0rc1
+   :earliest-version: 1.1.0rc1

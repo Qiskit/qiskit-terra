@@ -114,7 +114,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(2, 1)
         qc.measure(0, 0)
-        qc.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
         pm = PassManager([schedule_pass(durations), PadDelay()])
@@ -123,7 +124,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected = QuantumCircuit(2, 1)
         expected.measure(0, 0)
         expected.delay(1000, 1)  # x.c_if starts after measure
-        expected.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(1).c_if(0, True)
         expected.delay(200, 0)
 
         self.assertEqual(expected, scheduled)
@@ -200,8 +202,10 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(3, 1)
         qc.measure(0, 0)
-        qc.x(1).c_if(0, True)
-        qc.x(2).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(2).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
         pm = PassManager([schedule_pass(durations), PadDelay()])
@@ -211,8 +215,10 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.measure(0, 0)
         expected.delay(1000, 1)
         expected.delay(1000, 2)
-        expected.x(1).c_if(0, True)
-        expected.x(2).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(2).c_if(0, True)
         expected.delay(200, 0)
 
         self.assertEqual(expected, scheduled)
@@ -283,7 +289,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(3, 1)
         qc.measure(0, 0)
-        qc.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 1)
         qc.measure(2, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
@@ -294,7 +301,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.delay(1000, 1)
         expected.delay(1000, 2)
         expected.measure(0, 0)
-        expected.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(1).c_if(0, 1)
         expected.measure(2, 0)
         expected.delay(1000, 0)
         expected.delay(800, 1)
@@ -474,7 +482,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(3, 1)
         qc.measure(0, 0)
-        qc.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 1)
         qc.measure(2, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
@@ -499,7 +508,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected_asap = QuantumCircuit(3, 1)
         expected_asap.measure(0, 0)
         expected_asap.delay(1000, 1)
-        expected_asap.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected_asap.x(1).c_if(0, 1)
         expected_asap.measure(2, 0)
         expected_asap.delay(200, 0)
         expected_asap.delay(200, 2)
@@ -508,7 +518,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected_alap = QuantumCircuit(3, 1)
         expected_alap.measure(0, 0)
         expected_alap.delay(1000, 1)
-        expected_alap.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected_alap.x(1).c_if(0, 1)
         expected_alap.delay(200, 2)
         expected_alap.measure(2, 0)
         expected_alap.delay(200, 0)
@@ -534,11 +545,14 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(1, 1)
         qc.measure(0, 0)
-        qc.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, 1)
         qc.measure(0, 0)
-        qc.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, 1)
         qc.measure(0, 0)
-        qc.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, 1)
 
         durations = InstructionDurations([("x", None, 100), ("measure", None, 1000)])
 
@@ -562,15 +576,18 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.measure(0, 0)
         if cond_lat > 0:
             expected.delay(cond_lat, 0)
-        expected.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(0).c_if(0, 1)
         expected.measure(0, 0)
         if cond_lat > 0:
             expected.delay(cond_lat, 0)
-        expected.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(0).c_if(0, 1)
         expected.measure(0, 0)
         if cond_lat > 0:
             expected.delay(cond_lat, 0)
-        expected.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(0).c_if(0, 1)
 
         self.assertEqual(expected, actual_asap)
         self.assertEqual(expected, actual_alap)
@@ -659,15 +676,19 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(3, 1)
         qc.delay(100, 0)
-        qc.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, 1)
         qc.barrier()
         qc.measure(2, 0)
-        qc.x(1).c_if(0, 0)
-        qc.x(0).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, 0)
         qc.delay(300, 0)
         qc.cx(1, 2)
         qc.x(0)
-        qc.cx(0, 1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(0, 0)
         qc.measure(2, 0)
 
         durations = InstructionDurations(
@@ -694,19 +715,23 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected_asap.delay(200, 0)  # due to conditional latency of 200dt
         expected_asap.delay(300, 1)
         expected_asap.delay(300, 2)
-        expected_asap.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected_asap.x(0).c_if(0, 1)
         expected_asap.barrier()
         expected_asap.delay(1400, 0)
         expected_asap.delay(1200, 1)
         expected_asap.measure(2, 0)
-        expected_asap.x(1).c_if(0, 0)
-        expected_asap.x(0).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected_asap.x(1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected_asap.x(0).c_if(0, 0)
         expected_asap.delay(300, 0)
         expected_asap.x(0)
         expected_asap.delay(300, 2)
         expected_asap.cx(1, 2)
         expected_asap.delay(400, 1)
-        expected_asap.cx(0, 1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected_asap.cx(0, 1).c_if(0, 0)
         expected_asap.delay(700, 0)  # creg is released at t0 of cx(0,1).c_if(0,0)
         expected_asap.delay(
             700, 1
@@ -720,20 +745,24 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected_alap.delay(200, 0)  # due to conditional latency of 200dt
         expected_alap.delay(300, 1)
         expected_alap.delay(300, 2)
-        expected_alap.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected_alap.x(0).c_if(0, 1)
         expected_alap.barrier()
         expected_alap.delay(1400, 0)
         expected_alap.delay(1200, 1)
         expected_alap.measure(2, 0)
-        expected_alap.x(1).c_if(0, 0)
-        expected_alap.x(0).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected_alap.x(1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected_alap.x(0).c_if(0, 0)
         expected_alap.delay(300, 0)
         expected_alap.x(0)
         expected_alap.delay(300, 1)
         expected_alap.delay(600, 2)
         expected_alap.cx(1, 2)
         expected_alap.delay(100, 1)
-        expected_alap.cx(0, 1).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            expected_alap.cx(0, 1).c_if(0, 0)
         expected_alap.measure(2, 0)
         expected_alap.delay(700, 0)
         expected_alap.delay(700, 1)
@@ -771,8 +800,10 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(2, 1)
         qc.delay(100, 0)
-        qc.x(0).c_if(0, True)
-        qc.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(0).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 160)])
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
@@ -781,8 +812,10 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected = QuantumCircuit(2, 1)
         expected.delay(100, 0)
         expected.delay(100, 1)  # due to extra dependency on clbits
-        expected.x(0).c_if(0, True)
-        expected.x(1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(0).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            expected.x(1).c_if(0, True)
 
         self.assertEqual(expected, scheduled)
 
@@ -794,8 +827,9 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(1)
         qc.cx(0, 1)
 
-        xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
-        qc.add_calibration("x", (0,), xsched)
+        with self.assertWarns(DeprecationWarning):
+            xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
+            qc.add_calibration("x", (0,), xsched)
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 600)])
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
@@ -808,7 +842,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.x(1)
         expected.delay(160, 0)
         expected.cx(0, 1)
-        expected.add_calibration("x", (0,), xsched)
+        with self.assertWarns(DeprecationWarning):
+            expected.add_calibration("x", (0,), xsched)
 
         self.assertEqual(expected, scheduled)
 

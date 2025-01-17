@@ -20,7 +20,9 @@ The `ChannelEvents` class is expected to be called by other programs (not by end
 
 The `ChannelEvents` class instance is created with the class method ``load_program``:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     event = ChannelEvents.load_program(sched, DriveChannel(0))
 
@@ -33,7 +35,9 @@ Instructions that have finite duration are grouped as waveforms.
 
 The grouped instructions are returned as an iterator by the corresponding method call:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     for t0, frame, instruction in event.get_waveforms():
         ...
@@ -59,7 +63,9 @@ the set type instruction will be converted into the relevant shift amount for vi
 Note that these instructions are not interchangeable and the order should be kept.
 For example:
 
-.. code-block:: python
+.. plot::
+   :include-source:
+   :nofigs:
 
     sched1 = Schedule()
     sched1 = sched1.insert(0, ShiftPhase(-1.57, DriveChannel(0))

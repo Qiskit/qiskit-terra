@@ -450,7 +450,7 @@ class TemplateSubstitution:
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────┐                  ┌────────┐
             q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
@@ -460,7 +460,7 @@ class TemplateSubstitution:
 
         should only maximally match once in the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────┐
             q_0: ┤ P(-2) ├──■────────────■────────────────────────────

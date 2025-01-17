@@ -242,7 +242,7 @@ pub struct ExprParser<'a> {
     pub strict: bool,
 }
 
-impl<'a> ExprParser<'a> {
+impl ExprParser<'_> {
     /// Get the next token available in the stack of token streams, popping and removing any
     /// complete streams, except the base case.  Will only return `None` once all streams are
     /// exhausted.

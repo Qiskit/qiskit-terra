@@ -20,6 +20,7 @@ from collections.abc import MutableSequence
 from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import deprecate_func
 from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
@@ -105,6 +106,7 @@ class InstructionSet:
                 )
         return self
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.

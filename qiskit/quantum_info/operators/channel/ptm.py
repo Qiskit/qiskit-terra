@@ -18,6 +18,8 @@ Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 from __future__ import annotations
 import copy as _copy
 import math
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from qiskit import _numpy_compat
@@ -29,6 +31,9 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+if TYPE_CHECKING:
+    from qiskit import circuit
 
 
 class PTM(QuantumChannel):
@@ -67,21 +72,16 @@ class PTM(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: int | tuple | None = None,
         output_dims: int | tuple | None = None,
     ):
         """Initialize a PTM quantum channel operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data is not an N-qubit channel or

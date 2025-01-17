@@ -550,7 +550,8 @@ class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.rz(0.1, qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.rz(0.1, qr[1]).c_if(cr, 1)
         circuit.barrier()
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])

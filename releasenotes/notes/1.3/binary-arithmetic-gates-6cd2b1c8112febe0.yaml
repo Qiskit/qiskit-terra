@@ -1,0 +1,25 @@
+---
+features_circuits:
+  - |
+    Added binary arithmetic gates for inplace addition two :math:`n`-qubit registers, that is
+    :math:`|a\rangle |b\rangle \mapsto |a\rangle |a+b\rangle`.
+    The :class:`.ModularAdderGate` implements addition modulo :math:`2^n`, the 
+    :class:`.AdderGate` implements standard addition including a carry-out, and the 
+    :class:`.FullAdderGate` includes a carry-in qubit. See the respective documentations for 
+    details and examples.
+
+    In contrast to the existing library circuits, such as :class:`.CDKMRippleCarryAdder`,
+    handling the abstract gate allows the compiler (or user) to select the optimal gate
+    synthesis, depending on the circuit's context.
+  - |
+    Added the :class:`.MultiplierGate` for multiplication of two :math:`n`-qubit registers, that is
+    :math:`|a\rangle |b\rangle \mapsto |a\rangle |b\rangle |a \cdot b\rangle`.
+    See the class documentations for details and examples.
+features_synthesis:
+  - |
+    Added :func:`.adder_qft_d00`, :func:`.adder_ripple_c04`, and :func:`.adder_ripple_v95`
+    to synthesize the adder gates, :class:`.ModularAdderGate`, :class:`.AdderGate`, and
+    :class:`.FullAdderGate`.
+  - |
+    Added :func:`.multiplier_cumulative_h18` and :func:`.multiplier_qft_r17`
+    to synthesize the :class:`.MultiplierGate`.

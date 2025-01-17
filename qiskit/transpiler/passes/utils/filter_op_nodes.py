@@ -35,9 +35,10 @@ class FilterOpNodes(TransformationPass):
 
     Example:
 
-        Filter out operations that are labelled ``"foo"``
+        Filter out operations that are labeled ``"foo"``
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit

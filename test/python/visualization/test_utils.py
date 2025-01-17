@@ -328,9 +328,13 @@ class TestVisualizationUtils(QiskitTestCase):
         qc.h(0)
         qc.measure(0, 0)
         qc_2 = QuantumCircuit(1, 1, name="add_circ")
-        qc_2.h(0).c_if(qc_2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc_2.h(0).c_if(qc_2.cregs[0], 1)
         qc_2.measure(0, 0)
-        qc.append(qc_2, [1], [0])
+        # This append calls ends up calling .to_instruction() which calls
+        # .c_if() internally
+        with self.assertWarns(DeprecationWarning):
+            qc.append(qc_2, [1], [0])
 
         (_, _, layered_ops) = _utils._get_layered_instructions(qc)
 

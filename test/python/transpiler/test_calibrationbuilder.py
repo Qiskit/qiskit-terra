@@ -45,8 +45,10 @@ from qiskit.transpiler.passes.calibration.builders import (
     RXCalibrationBuilder,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestCalibrationBuilder(QiskitTestCase):
     """Test the Calibration Builder."""
 
@@ -103,6 +105,7 @@ class TestCalibrationBuilder(QiskitTestCase):
 
 
 @ddt
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRZXCalibrationBuilder(TestCalibrationBuilder):
     """Test RZXCalibrationBuilder."""
 
@@ -185,8 +188,9 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         rz_qc_q1 = QuantumCircuit(2)
         rz_qc_q1.rz(pi / 2, 1)
 
-        rz_sched_q0 = schedule(rz_qc_q0, backend)
-        rz_sched_q1 = schedule(rz_qc_q1, backend)
+        with self.assertWarns(DeprecationWarning):
+            rz_sched_q0 = schedule(rz_qc_q0, backend)
+            rz_sched_q1 = schedule(rz_qc_q1, backend)
 
         with builder.build(
             backend,
@@ -270,7 +274,7 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             # TODO this tests does not work with BackendV2/GenericBackendV2
             #   https://github.com/Qiskit/qiskit/issues/12834
             backend = Fake27QPulseV1()
-        inst_map = backend.defaults().instruction_schedule_map
+            inst_map = backend.defaults().instruction_schedule_map
         cr_schedule = inst_map.get("cx", (0, 1))
         with builder.build() as test_sched:
             RZXCalibrationBuilder.rescale_cr_inst(self.u0p_play(cr_schedule), theta)
@@ -284,7 +288,7 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         """Test that rotary pulse durations are computed correctly."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        inst_map = backend.defaults().instruction_schedule_map
+            inst_map = backend.defaults().instruction_schedule_map
         cr_schedule = inst_map.get("cx", (0, 1))
         with builder.build() as test_sched:
             RZXCalibrationBuilder.rescale_cr_inst(self.d1p_play(cr_schedule), theta)
@@ -302,15 +306,16 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             backend = Fake7QPulseV1()
-        # The error is raised when calibrations in multi-qubit
-        # gates are not detected.
-        # We force this by removing the 'cx' entries from the
-        # instruction schedule map.
-        inst_map = backend.defaults().instruction_schedule_map
+            # The error is raised when calibrations in multi-qubit
+            # gates are not detected.
+            # We force this by removing the 'cx' entries from the
+            # instruction schedule map.
+            inst_map = backend.defaults().instruction_schedule_map
         for qubits in inst_map.qubits_with_instruction("cx"):
             inst_map.remove("cx", qubits)
         inst_map = backend.defaults().instruction_schedule_map
-        _pass = RZXCalibrationBuilder(inst_map)
+        with self.assertWarns(DeprecationWarning):
+            _pass = RZXCalibrationBuilder(inst_map)
 
         qubit_map = {qubit: i for i, qubit in enumerate(dag.qubits)}
         with self.assertRaises(QiskitError):
@@ -328,8 +333,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
 
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        inst_map = backend.defaults().instruction_schedule_map
-        _pass = RZXCalibrationBuilder(inst_map)
+            inst_map = backend.defaults().instruction_schedule_map
+            _pass = RZXCalibrationBuilder(inst_map)
         test_qc = PassManager(_pass).run(qc)
 
         cr_schedule = inst_map.get("cx", (0, 1))
@@ -342,7 +347,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             self.d1m_play(cr_schedule),
         )
 
-        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     def test_ecr_cx_reverse(self):
         """Test that correct pulse sequence is generated for non-native CR pair."""
@@ -354,8 +360,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
 
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        inst_map = backend.defaults().instruction_schedule_map
-        _pass = RZXCalibrationBuilder(inst_map)
+            inst_map = backend.defaults().instruction_schedule_map
+            _pass = RZXCalibrationBuilder(inst_map)
         test_qc = PassManager(_pass).run(qc)
 
         cr_schedule = inst_map.get("cx", (0, 1))
@@ -368,7 +374,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             self.d1m_play(cr_schedule),
         )
 
-        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     def test_pass_alive_with_dcx_ish(self):
         """Test if the pass is not terminated by error with direct CX input."""
@@ -381,20 +388,23 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         compensation_tone = Waveform(0.1 * np.ones(800, dtype=complex))
         cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)), inplace=True)
 
-        inst_map = InstructionScheduleMap()
+        with self.assertWarns(DeprecationWarning):
+            inst_map = InstructionScheduleMap()
         inst_map.add("cx", (1, 0), schedule=cx_sched)
 
         theta = pi / 3
         rzx_qc = circuit.QuantumCircuit(2)
         rzx_qc.rzx(theta, 1, 0)
 
-        pass_ = RZXCalibrationBuilder(instruction_schedule_map=inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = RZXCalibrationBuilder(instruction_schedule_map=inst_map)
         with self.assertWarns(UserWarning):
             # User warning that says q0 q1 is invalid
             cal_qc = PassManager(pass_).run(rzx_qc)
         self.assertEqual(cal_qc, rzx_qc)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
     """Test RZXCalibrationBuilderNoEcho."""
 
@@ -442,9 +452,9 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        inst_map = backend.defaults().instruction_schedule_map
+            inst_map = backend.defaults().instruction_schedule_map
 
-        _pass = RZXCalibrationBuilderNoEcho(inst_map)
+            _pass = RZXCalibrationBuilderNoEcho(inst_map)
         test_qc = PassManager(_pass).run(qc)
 
         cr_schedule = inst_map.get("cx", (0, 1))
@@ -454,7 +464,8 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
             self.d1p_play(cr_schedule),
         )
 
-        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     # # TODO - write test for forward ECR native pulse
     # def test_ecr_forward(self):
@@ -470,14 +481,16 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         compensation_tone = Waveform(0.1 * np.ones(800, dtype=complex))
         cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)), inplace=True)
 
-        inst_map = InstructionScheduleMap()
+        with self.assertWarns(DeprecationWarning):
+            inst_map = InstructionScheduleMap()
         inst_map.add("cx", (1, 0), schedule=cx_sched)
 
         theta = pi / 3
         rzx_qc = circuit.QuantumCircuit(2)
         rzx_qc.rzx(theta, 1, 0)
 
-        pass_ = RZXCalibrationBuilderNoEcho(instruction_schedule_map=inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = RZXCalibrationBuilderNoEcho(instruction_schedule_map=inst_map)
         with self.assertWarns(UserWarning):
             # User warning that says q0 q1 is invalid
             cal_qc = PassManager(pass_).run(rzx_qc)
@@ -485,6 +498,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
 
 @ddt
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRXCalibrationBuilder(QiskitTestCase):
     """Test RXCalibrationBuilder."""
 
@@ -495,7 +509,8 @@ class TestRXCalibrationBuilder(QiskitTestCase):
     def test_not_supported_if_no_sx_schedule(self):
         """Test that supported() returns False when the target does not have SX calibration."""
         empty_target = Target()
-        tp = RXCalibrationBuilder(empty_target)
+        with self.assertWarns(DeprecationWarning):
+            tp = RXCalibrationBuilder(empty_target)
         qubits = (0,)
         node_op = DAGOpNode(RXGate(0.5), qubits, [])
         self.assertFalse(tp.supported(node_op, qubits))
@@ -505,8 +520,11 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         target = Target()
         with builder.build() as square_sx_cal:
             builder.play(Square(amp=0.1, duration=160, phase=0), DriveChannel(0))
-        target.add_instruction(SXGate(), {(0,): InstructionProperties(calibration=square_sx_cal)})
-        tp = RXCalibrationBuilder(target)
+        with self.assertWarns(DeprecationWarning):
+            target.add_instruction(
+                SXGate(), {(0,): InstructionProperties(calibration=square_sx_cal)}
+            )
+            tp = RXCalibrationBuilder(target)
         qubits = (0,)
         node_op = DAGOpNode(RXGate(0.5), qubits, [])
         self.assertFalse(tp.supported(node_op, qubits))
@@ -517,7 +535,8 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         The QiskitError occurs while trying to typecast the Parameter into a float.
         """
         backend = GenericBackendV2(num_qubits=5, seed=42)
-        tp = RXCalibrationBuilder(backend.target)
+        with self.assertWarns(DeprecationWarning):
+            tp = RXCalibrationBuilder(backend.target)
         qubits = (0,)
         rx = RXGate(Parameter("theta"))
         with self.assertRaises(QiskitError):
@@ -538,12 +557,13 @@ class TestRXCalibrationBuilder(QiskitTestCase):
                 ),
                 DriveChannel(0),
             )
-        dummy_target.add_instruction(
-            SXGate(), {(0,): InstructionProperties(calibration=dummy_sx_cal)}
-        )
 
-        tp = RXCalibrationBuilder(dummy_target)
-        test = tp.get_calibration(RXGate(theta), qubits=(0,))
+        with self.assertWarns(DeprecationWarning):
+            dummy_target.add_instruction(
+                SXGate(), {(0,): InstructionProperties(calibration=dummy_sx_cal)}
+            )
+            tp = RXCalibrationBuilder(dummy_target)
+            test = tp.get_calibration(RXGate(theta), qubits=(0,))
 
         with builder.build(backend=backend) as correct_rx_schedule:
             builder.play(
@@ -577,12 +597,15 @@ class TestRXCalibrationBuilder(QiskitTestCase):
             ),
             inplace=True,
         )
-        ism = InstructionScheduleMap()
+        with self.assertWarns(DeprecationWarning):
+            ism = InstructionScheduleMap()
         ism.add("sx", (0,), sched)
-        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=ism, seed=42)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=5, calibrate_instructions=ism, seed=42)
 
         # NormalizeRXAngle pass should also be included because it's a required pass.
-        pm = PassManager(RXCalibrationBuilder(backend.target))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(RXCalibrationBuilder(backend.target))
 
         qc = QuantumCircuit(1)
         qc.rx(np.pi / 3, 0)
@@ -592,4 +615,5 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         # Only RX(pi/3) should get a rx calibration.
         # The others should be converted to SX and X
         tc = pm.run(qc)
-        self.assertEqual(len(tc.calibrations["rx"]), 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(tc.calibrations["rx"]), 1)

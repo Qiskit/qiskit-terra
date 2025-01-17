@@ -1,0 +1,59 @@
+---
+features_quantum_info:
+  - |
+    Added :meth:`.SparsePauliOperator.to_sparse_list` to convert an operator into
+    a sparse list format. This works inversely to :meth:`.SparsePauliOperator.from_sparse_list`.
+    For example::
+
+      from qiskit.quantum_info import SparsePauliOp
+
+      op = SparsePauliOp(["XIII", "IZZI"], coeffs=[1, 2])
+      sparse = op.to_sparse_list()  # [("X", [3], 1), ("ZZ", [1, 2], 2)]
+
+      other = SparsePauliOp.from_sparse_list(sparse, op.num_qubits)
+      print(other == op)  # True
+
+features_synthesis:
+  - |
+    Added :meth:`.ProductFormula.expand` which allows to view the expansion of a product formula
+    in a sparse Pauli format.
+  - |
+    Added the plugin structure for the :class:`.PauliEvolutionGate`. The default plugin,
+    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before, but faster as it
+    internally uses Rust. The larger the circuit (e.g. by the Hamiltonian size, the number 
+    of timesteps, or the Suzuki-Trotter order), the higher the speedup. For example,
+    a 100-qubit Heisenberg Hamiltonian with 10 timesteps and a 4th-order Trotter formula is 
+    now constructed ~9.4x faster.
+    The new plugin, :class:`.PauliEvolutionSynthesisRustiq`, uses
+    the synthesis algorithm that is described in the paper "Faster and shorter synthesis of
+    Hamiltonian simulation circuits" by de Brugière and Martiel (https://arxiv.org/abs/2404.03280)
+    and is implemented in https://github.com/smartiel/rustiq-core.
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.quantum_info import SparsePauliOp
+      from qiskit.circuit.library import PauliEvolutionGate
+      from qiskit.compiler import transpile
+      from qiskit.transpiler.passes import HLSConfig
+
+      op = SparsePauliOp(["XXX", "YYY", "IZZ"])
+      qc = QuantumCircuit(4)
+      qc.append(PauliEvolutionGate(op), [0, 1, 3])
+      config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": False})])
+      tqc = transpile(qc, basis_gates=["cx", "u"], hls_config=config)
+      tqc.draw(output='mpl')
+
+    This code snippet uses the ``"rustiq"`` plugin to synthesize :class:`.PauliEvolutionGate`
+    objects in the quantum circuit `qc`. The plugin is called with the additional option
+    ``"upto_phase" = False`` allowing to obtain smaller circuits at the expense of possibly
+    not preserving the global phase. For the full list of supported options, see
+    documentation for :class:`.PauliEvolutionSynthesisRustiq`.
+
+upgrade:
+  - | 
+    The following classes now use the :math:`\sqrt{X}` operation to diagonalize the Pauli-Y
+    operator: :class:`.PauliEvolutionGate`, :class:`.EvolvedOperatorAnsatz`, 
+    :class:`.PauliFeatureMap`. Previously, these classes used either :math:`H S` or
+    :math:`R_X(-\pi/2)` as basis transformation. Using the :math:`\sqrt{X}` operation, 
+    represented by the :class:`.SXGate` is more efficient as it uses only a single gate
+    implemented as singleton.

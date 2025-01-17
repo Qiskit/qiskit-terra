@@ -16,6 +16,7 @@ Circuit synthesis for a QFT circuit.
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.permutation.permutation_reverse_lnn import _append_reverse_permutation_lnn_kms
+from .qft_decompose_full import _warn_if_precision_loss
 
 
 def synth_qft_line(
@@ -51,7 +52,7 @@ def synth_qft_line(
            Quantum Info. Comput. 4, 4 (July 2004), 237–251.
            `arXiv:quant-ph/0402196 [quant-ph] <https://arxiv.org/abs/quant-ph/0402196>`_
     """
-
+    _warn_if_precision_loss(num_qubits - approximation_degree - 1)
     qc = QuantumCircuit(num_qubits)
 
     for i in range(num_qubits):

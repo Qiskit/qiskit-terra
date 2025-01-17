@@ -13,12 +13,131 @@
 """The ExcitationPreserving 2-local circuit."""
 
 from __future__ import annotations
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library.standard_gates import RZGate
+from qiskit.utils.deprecation import deprecate_func
+from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
+
+
+def excitation_preserving(
+    num_qubits: int,
+    mode: str = "iswap",
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ) = "full",
+    reps: int = 3,
+    skip_unentangled_qubits: bool = False,
+    skip_final_rotation_layer: bool = False,
+    parameter_prefix: str = "θ",
+    insert_barriers: bool = False,
+    name: str = "ExcitationPreserving",
+):
+    r"""The heuristic excitation-preserving wave function ansatz.
+
+    The ``excitation_preserving`` circuit preserves the ratio of :math:`|00\rangle`,
+    :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. To this end, this circuit
+    uses two-qubit interactions of the form
+
+    .. math::
+
+        \newcommand{\rotationangle}{\theta/2}
+
+        \begin{pmatrix}
+        1 & 0 & 0 & 0 \\
+        0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+        0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
+        0 & 0 & 0 & e^{-i\phi}
+        \end{pmatrix}
+
+    for the mode ``"fsim"`` or with :math:`e^{-i\phi} = 1` for the mode ``"iswap"``.
+
+    Note that other wave functions, such as UCC-ansatzes, are also excitation preserving.
+    However these can become complex quickly, while this heuristically motivated circuit follows
+    a simpler pattern.
+
+    This trial wave function consists of layers of :math:`Z` rotations with 2-qubit entanglements.
+    The entangling is creating using :math:`XX+YY` rotations and optionally a controlled-phase
+    gate for the mode ``"fsim"``.
+
+    Examples:
+
+        With linear entanglement, this circuit is given by:
+
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
+            :include-source:
+            :context: close-figs
+
+            from qiskit.circuit.library import excitation_preserving
+
+            ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
+            ansatz.draw("mpl")
+
+        The entanglement structure can be explicitly specified with the ``entanglement`` 
+        argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
+        in each block:
+
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
+            :include-source:
+            :context:
+
+            ansatz = excitation_preserving(3, reps=1, mode="fsim", entanglement=[[0, 2]])
+            ansatz.draw("mpl")
+
+    Args:
+        num_qubits: The number of qubits.
+        mode: Choose the entangler mode, can be `"iswap"` or `"fsim"`.
+        reps: Specifies how often the structure of a rotation layer followed by an entanglement
+            layer is repeated.
+        entanglement: The indices specifying on which qubits the input blocks act.
+            See :func:`.n_local` for detailed information.
+        skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
+        skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
+            are entangled. If ``False``, the rotation gates act on all qubits.
+        parameter_prefix: The name of the free parameters.
+        insert_barriers: If True, barriers are inserted in between each layer. If False,
+            no barriers are inserted.
+        name: The name of the circuit.
+
+    Returns:
+        An excitation-preserving circuit.
+    """
+    supported_modes = ["iswap", "fsim"]
+    if mode not in supported_modes:
+        raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
+
+    theta = Parameter("θ")
+    if num_qubits > 1:
+        swap = QuantumCircuit(2, name="Interaction")
+        swap.rxx(theta, 0, 1)
+        swap.ryy(theta, 0, 1)
+        if mode == "fsim":
+            phi = Parameter("φ")
+            swap.cp(phi, 0, 1)
+        entanglement_blocks = [swap.to_gate()]
+    else:
+        entanglement_blocks = []
+
+    return n_local(
+        num_qubits,
+        ["rz"],
+        entanglement_blocks,
+        entanglement,
+        reps,
+        insert_barriers,
+        parameter_prefix,
+        True,
+        skip_final_rotation_layer,
+        skip_unentangled_qubits,
+        name,
+    )
 
 
 class ExcitationPreserving(TwoLocal):
@@ -57,7 +176,7 @@ class ExcitationPreserving(TwoLocal):
     Examples:
 
         >>> ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True, entanglement='linear')
-        >>> print(ansatz)  # show the circuit
+        >>> print(ansatz.decompose())  # show the circuit
              ┌──────────┐ ░ ┌────────────┐┌────────────┐                             ░ ┌──────────┐
         q_0: ┤ RZ(θ[0]) ├─░─┤0           ├┤0           ├─────────────────────────────░─┤ RZ(θ[5]) ├
              ├──────────┤ ░ │  RXX(θ[3]) ││  RYY(θ[3]) │┌────────────┐┌────────────┐ ░ ├──────────┤
@@ -66,10 +185,10 @@ class ExcitationPreserving(TwoLocal):
         q_2: ┤ RZ(θ[2]) ├─░─────────────────────────────┤1           ├┤1           ├─░─┤ RZ(θ[7]) ├
              └──────────┘ ░                             └────────────┘└────────────┘ ░ └──────────┘
 
-        >>> ansatz = ExcitationPreserving(2, reps=1)
+        >>> ansatz = ExcitationPreserving(2, reps=1, flatten=True)
         >>> qc = QuantumCircuit(2)  # create a circuit and append the RY variational form
         >>> qc.cry(0.2, 0, 1)  # do some previous operation
-        >>> qc.compose(ansatz, inplace=True)  # add the swaprz
+        >>> qc.compose(ansatz, inplace=True)  # add the excitation-preserving
         >>> qc.draw()
                         ┌──────────┐┌────────────┐┌────────────┐┌──────────┐
         q_0: ─────■─────┤ RZ(θ[0]) ├┤0           ├┤0           ├┤ RZ(θ[3]) ├
@@ -78,8 +197,8 @@ class ExcitationPreserving(TwoLocal):
              └─────────┘└──────────┘└────────────┘└────────────┘└──────────┘
 
         >>> ansatz = ExcitationPreserving(3, reps=1, mode='fsim', entanglement=[[0,2]],
-        ... insert_barriers=True)
-        >>> print(ansatz)
+        ... insert_barriers=True, flatten=True)
+        >>> print(ansatz.decompose())
              ┌──────────┐ ░ ┌────────────┐┌────────────┐        ░ ┌──────────┐
         q_0: ┤ RZ(θ[0]) ├─░─┤0           ├┤0           ├─■──────░─┤ RZ(θ[5]) ├
              ├──────────┤ ░ │            ││            │ │      ░ ├──────────┤
@@ -87,8 +206,19 @@ class ExcitationPreserving(TwoLocal):
              ├──────────┤ ░ │            ││            │ │θ[4]  ░ ├──────────┤
         q_2: ┤ RZ(θ[2]) ├─░─┤1           ├┤1           ├─■──────░─┤ RZ(θ[7]) ├
              └──────────┘ ░ └────────────┘└────────────┘        ░ └──────────┘
+
+    .. seealso::
+
+        The :func:`.excitation_preserving` function constructs a functionally equivalent circuit, 
+        but faster.
+
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.excitation_preserving instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

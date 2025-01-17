@@ -162,15 +162,19 @@ class TestOptimize1qGates(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(U1Gate(0.1), [qr]).c_if(cr, 1)
-        circuit.append(U1Gate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0.2), [qr]).c_if(cr, 3)
         circuit.append(U1Gate(0.3), [qr])
         circuit.append(U1Gate(0.4), [qr])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.append(U1Gate(0.1), [qr]).c_if(cr, 1)
-        expected.append(U1Gate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(U1Gate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(U1Gate(0.2), [qr]).c_if(cr, 3)
         expected.append(U1Gate(0.7), [qr])
 
         pass_ = Optimize1qGates()
@@ -190,15 +194,19 @@ class TestOptimize1qGates(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
-        circuit.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
         circuit.append(PhaseGate(0.3), [qr])
         circuit.append(PhaseGate(0.4), [qr])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
-        expected.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
         expected.append(PhaseGate(0.7), [qr])
 
         pass_ = Optimize1qGates(["p", "u2", "u", "cx", "id"])

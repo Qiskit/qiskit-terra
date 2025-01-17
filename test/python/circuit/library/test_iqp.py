@@ -13,29 +13,40 @@
 """Test library of IQP circuits."""
 
 import unittest
+from ddt import ddt, data
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import IQP
+from qiskit.circuit.library import IQP, iqp, random_iqp
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
 
-    def test_iqp(self):
-        """Test iqp circuit."""
-        circuit = IQP(interactions=np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]]))
+    @data(True, False)
+    def test_iqp(self, use_function):
+        """Test iqp circuit.
 
-        #      ┌───┐                             ┌─────────┐┌───┐
-        # q_0: ┤ H ├─■───────────────────■───────┤ P(3π/4) ├┤ H ├
-        #      ├───┤ │P(5π/2)            │       └┬────────┤├───┤
-        # q_1: ┤ H ├─■─────────■─────────┼────────┤ P(π/2) ├┤ H ├
-        #      ├───┤           │P(3π/2)  │P(π/2)  ├────────┤├───┤
-        # q_2: ┤ H ├───────────■─────────■────────┤ P(π/4) ├┤ H ├
-        #      └───┘                              └────────┘└───┘
+             ┌───┐                             ┌─────────┐┌───┐
+        q_0: ┤ H ├─■───────────────────■───────┤ P(3π/4) ├┤ H ├
+             ├───┤ │P(5π/2)            │       └┬────────┤├───┤
+        q_1: ┤ H ├─■─────────■─────────┼────────┤ P(π/2) ├┤ H ├
+             ├───┤           │P(3π/2)  │P(π/2)  ├────────┤├───┤
+        q_2: ┤ H ├───────────■─────────■────────┤ P(π/4) ├┤ H ├
+             └───┘                              └────────┘└───┘
+        """
+
+        interactions = np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]])
+
+        if use_function:
+            circuit = iqp(interactions)
+        else:
+            circuit = IQP(interactions)
+
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
         expected.cp(5 * np.pi / 2, 0, 1)
@@ -49,9 +60,34 @@ class TestIQPLibrary(QiskitTestCase):
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
 
-    def test_iqp_bad(self):
-        """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
-        self.assertRaises(CircuitError, IQP, [[6, 5], [2, 4]])
+    @data(True, False)
+    def test_iqp_bad(self, use_function):
+        """Test an error is raised if the interactions matrix is not symmetric."""
+        self.assertRaises(CircuitError, iqp if use_function else IQP, [[6, 5], [2, 4]])
+
+    def test_random_iqp(self):
+        """Test generating a random IQP circuit."""
+
+        circuit = random_iqp(num_qubits=4, seed=426)
+        self.assertEqual(circuit.num_qubits, 4)
+
+        ops = circuit.count_ops()
+        allowed = {"p", "h", "cp"}
+
+        # we pick a seed where neither the diagonal, nor the off-diagonal is completely 0,
+        # therefore each gate is expected to be present
+        self.assertEqual(set(ops.keys()), allowed)
+
+    def test_random_iqp_seed(self):
+        """Test setting the seed."""
+
+        seed = 236321
+        circuit1 = random_iqp(num_qubits=3, seed=seed)
+        circuit2 = random_iqp(num_qubits=3, seed=seed)
+        self.assertEqual(circuit1, circuit2)
+
+        circuit3 = random_iqp(num_qubits=3, seed=seed + 1)
+        self.assertNotEqual(circuit1, circuit3)
 
 
 if __name__ == "__main__":

@@ -564,7 +564,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.h(0)
         circuit.measure(0, 0)
         circuit.cx(1, 2)
-        circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
         circuit.measure([1, 2], [0, 1])
 
         new_pm = PassManager(CommutativeCancellation())
@@ -677,8 +678,10 @@ class TestCommutativeCancellation(QiskitTestCase):
         """Test that transpile runs without internal errors when dealing with commutable operations
         with classical controls. Regression test for gh-8553."""
         original = QuantumCircuit(2, 1)
-        original.x(0).c_if(original.cregs[0], 0)
-        original.x(1).c_if(original.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            original.x(0).c_if(original.cregs[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            original.x(1).c_if(original.cregs[0], 0)
         # This transpilation shouldn't change anything, but it should succeed.  At one point it was
         # triggering an internal logic error and crashing.
         transpiled = PassManager([CommutativeCancellation()]).run(original)

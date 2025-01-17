@@ -236,7 +236,7 @@ fn swap_trial(
 ///         will be ``(None, None, max int)``.
 #[pyfunction]
 #[pyo3(
-    text_signature = "(num_trials, num_qubits, int_layout, int_qubit_subset, int_gates, cdist, cdist2, edges, /, seed=None)"
+    signature = (num_trials, num_qubits, int_layout, int_qubit_subset, int_gates, cdist, cdist2, edges, seed=None)
 )]
 pub fn swap_trials(
     num_trials: u64,

@@ -24,6 +24,7 @@ from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class Backend:
@@ -485,10 +486,16 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def instruction_schedule_map(self):
         """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions defined in this backend's target."""
-        return self.target.instruction_schedule_map()
+        return self._instruction_schedule_map
+
+    @property
+    def _instruction_schedule_map(self):
+        """An alternative private path to be used internally to avoid pulse deprecation warnings."""
+        return self.target._get_instruction_schedule_map()
 
     def qubit_properties(
         self, qubit: Union[int, List[int]]
@@ -524,6 +531,7 @@ class BackendV2(Backend, ABC):
             return self.target.qubit_properties[qubit]
         return [self.target.qubit_properties[q] for q in qubit]
 
+    @deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
 
@@ -539,6 +547,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         """Return the measure stimulus channel for the given qubit.
 
@@ -554,6 +563,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         """Return the acquisition channel for the given qubit.
 
@@ -569,6 +579,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         """Return the secondary drive channel for the given qubit
 

@@ -24,7 +24,7 @@ class ZFeatureMap(PauliFeatureMap):
 
     On 3 qubits and with 2 repetitions the circuit is represented by:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌───┐┌─────────────┐┌───┐┌─────────────┐
         ┤ H ├┤ P(2.0*x[0]) ├┤ H ├┤ P(2.0*x[0]) ├

@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
 # These are configured in the `tool.setuptools.dynamic` table.
@@ -89,6 +90,9 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "mcx.gray_code" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisGrayCode"
 "mcx.noaux_v24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24"
 "mcx.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisDefault"
+"mcmt.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisDefault"
+"mcmt.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisNoAux"
+"mcmt.vchain" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisVChain"
 "permutation.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation"
 "permutation.basic" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
@@ -97,6 +101,22 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "qft.line" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisLine"
 "qft.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull"
 "permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.hls_plugins:TokenSwapperSynthesisPermutation"
+"ModularAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisDefault"
+"ModularAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisC04"
+"ModularAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisV95"
+"ModularAdder.qft_d00" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisD00"
+"HalfAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisDefault"
+"HalfAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisC04"
+"HalfAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisV95"
+"HalfAdder.qft_d00" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisD00"
+"FullAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisDefault"
+"FullAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04"
+"FullAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisV95"
+"Multiplier.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
+"Multiplier.qft_r17" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
+"Multiplier.cumulative_h18" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18"
+"PauliEvolution.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisDefault"
+"PauliEvolution.rustiq" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisRustiq"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
@@ -164,7 +184,6 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.macos]
-environment = "MACOSX_DEPLOYMENT_TARGET=10.12"
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.windows]

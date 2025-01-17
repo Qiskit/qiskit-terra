@@ -44,13 +44,15 @@ from .utils import _circuit_key, _observable_key, init_observable
 def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
     backend: BackendV1 | BackendV2,
+    clear_metadata: bool = True,
     **run_options,
 ) -> tuple[list[Result], list[dict]]:
     """Remove metadata of circuits and run the circuits on a backend.
     Args:
         circuits: The circuits
         backend: The backend
-        monitor: Enable job minotor if True
+        clear_metadata: Clear circuit metadata before passing to backend.run if
+            True.
         **run_options: run_options
     Returns:
         The result and the metadata of the circuits
@@ -60,7 +62,8 @@ def _run_circuits(
     metadata = []
     for circ in circuits:
         metadata.append(circ.metadata)
-        circ.metadata = {}
+        if clear_metadata:
+            circ.metadata = {}
     if isinstance(backend, BackendV1):
         max_circuits = getattr(backend.configuration(), "max_experiments", None)
     elif isinstance(backend, BackendV2):

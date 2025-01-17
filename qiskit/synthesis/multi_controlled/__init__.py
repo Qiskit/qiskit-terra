@@ -12,6 +12,7 @@
 
 """Module containing multi-controlled circuits synthesis"""
 
+from .mcmt_vchain import synth_mcmt_vchain
 from .mcx_synthesis import (
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
@@ -21,3 +22,4 @@ from .mcx_synthesis import (
     synth_c3x,
     synth_c4x,
 )
+from .multi_control_rotation_gates import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal

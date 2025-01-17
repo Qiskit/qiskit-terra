@@ -14,6 +14,7 @@ Circuit synthesis for a QFT circuit.
 """
 
 from __future__ import annotations
+import warnings
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
@@ -54,7 +55,7 @@ def synth_qft_full(
         A circuit implementing the QFT operation.
 
     """
-
+    _warn_if_precision_loss(num_qubits - approximation_degree - 1)
     circuit = QuantumCircuit(num_qubits, name=name)
 
     for j in reversed(range(num_qubits)):
@@ -77,3 +78,20 @@ def synth_qft_full(
         circuit = circuit.inverse()
 
     return circuit
+
+
+def _warn_if_precision_loss(max_num_entanglements):
+    """Issue a warning if constructing the circuit will lose precision.
+
+    If we need an angle smaller than ``pi * 2**-1022``, we start to lose precision by going into
+    the subnormal numbers.  We won't lose _all_ precision until an exponent of about 1075, but
+    beyond 1022 we're using fractional bits to represent leading zeros.
+    """
+    if max_num_entanglements > -np.finfo(float).minexp:  # > 1022 for doubles.
+        warnings.warn(
+            "precision loss in QFT."
+            f" The rotation needed to represent {max_num_entanglements} entanglements"
+            " is smaller than the smallest normal floating-point number.",
+            category=RuntimeWarning,
+            stacklevel=4,
+        )

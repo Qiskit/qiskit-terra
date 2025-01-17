@@ -18,6 +18,7 @@ from abc import ABC
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
 from qiskit.pulse.exceptions import PulseError
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Directive(instruction.Instruction, ABC):
@@ -35,6 +36,7 @@ class Directive(instruction.Instruction, ABC):
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
 
+    @deprecate_pulse_func
     def __init__(self, *channels: chans.Channel, name: str | None = None):
         """Create a relative barrier directive.
 
@@ -70,7 +72,9 @@ class TimeBlockade(Directive):
 
         This schedule plays constant pulse at t0 = 120.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 
@@ -79,7 +83,10 @@ class TimeBlockade(Directive):
 
         This schedule block is expected to be identical to above at a time of execution.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context: reset
 
             from qiskit.pulse import ScheduleBlock, Play, Constant, DriveChannel
             from qiskit.pulse.instructions import TimeBlockade
@@ -90,7 +97,10 @@ class TimeBlockade(Directive):
 
         Such conversion may be done by
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             from qiskit.pulse.transforms import block_to_schedule, remove_directives
 
@@ -107,6 +117,7 @@ class TimeBlockade(Directive):
         user can insert another instruction without timing overlap.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         duration: int,

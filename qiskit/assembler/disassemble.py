@@ -69,7 +69,9 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
 
     Examples:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.compiler.assembler import assemble

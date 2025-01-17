@@ -44,7 +44,7 @@ class SXGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌────┐
         q_0: ┤ √X ├
@@ -220,7 +220,7 @@ class CSXGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴──┐
@@ -249,7 +249,8 @@ class CSXGate(SingletonControlledGate):
         which in our case would be `q_1`. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────┐
             q_0: ┤ √X ├
                  └─┬──┘

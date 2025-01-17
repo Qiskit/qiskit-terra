@@ -83,7 +83,7 @@ struct RoutingState<'a, 'b> {
     seed: u64,
 }
 
-impl<'a, 'b> RoutingState<'a, 'b> {
+impl RoutingState<'_, '_> {
     /// Apply a swap to the program-state structures (front layer, extended set and current
     /// layout).
     #[inline]
@@ -442,6 +442,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
 ///     logical position of the qubit that began in position `i`.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(signature=(dag, neighbor_table, distance_matrix, heuristic, initial_layout, num_trials, seed=None, run_in_parallel=None))]
 pub fn sabre_routing(
     py: Python,
     dag: &SabreDAG,

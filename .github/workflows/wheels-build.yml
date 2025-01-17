@@ -1,0 +1,212 @@
+name: Build release artifacts
+on:
+  workflow_call:
+    inputs:
+      default-action:
+        description: >-
+          The default action for each artifact.
+          Choose from 'build' (default) or 'skip'.
+        type: string
+        default: "build"
+        required: false
+
+      sdist:
+        description: >-
+          The action to take for the sdist.
+          Choose from 'default', 'build' or 'skip'.
+        type: string
+        default: "default"
+        required: false
+
+      wheels-tier-1:
+        description: >-
+          The action to take for Tier 1 wheels.
+          Choose from 'default', 'build' or 'skip'.
+          This builds multiple artifacts, which all match 'wheels-tier-1-*'.
+        type: string
+        default: "default"
+        required: false
+
+      wheels-linux-s390x:
+        description: >-
+          The action to take for Linux s390x wheels.
+          Choose from 'default', 'build' or 'skip'.
+        type: string
+        default: "default"
+        required: false
+
+      wheels-linux-ppc64le:
+        description: >-
+          The action to take for Linux ppc64le wheels.
+          Choose from 'default', 'build' or 'skip'.
+        type: string
+        default: "default"
+        required: false
+
+      wheels-linux-aarch64:
+        description: >-
+          The action to take for Linux AArch64 wheels.
+          Choose from 'default', 'build' or 'skip'.
+        type: string
+        default: "default"
+        required: false
+
+      artifact-prefix:
+        description: "A prefix to give all artifacts uploaded with 'actions/upload-artifact'."
+        type: string
+        default: ""
+        required: false
+
+      python-version:
+        description: "The Python version to use to host the build runner."
+        type: string
+        default: "3.13"
+        required: false
+
+      pgo:
+        description: "Whether to enable profile-guided optimizations for supported platforms."
+        type: boolean
+        default: true
+        required: false
+
+
+jobs:
+  wheels-tier-1:
+    name: "Wheels / Tier 1"
+    if: (inputs.wheels-tier-1 == 'default' && inputs.default-action || inputs.wheels-tier-1) == 'build'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          # Used for the x86_64 builds.
+          - macos-13
+          # Used for the ARM builds.
+          - macos-14
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          architecture: ${{ matrix.os == 'macos-14' && 'arm64' || 'x64' }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - name: Configure PGO
+        shell: bash
+        if: inputs.pgo
+        # The `$GITHUB_ENV` magic file uses some sort of custom parsing, so the variables shouldn't
+        # be quoted like they would be if bash were interpreting them.  You still need to use quotes
+        # to avoid word splitting where appropriate in compound environment variables.
+        #
+        # Beware that the heredoc is configured to expand bash variables, but cibuildwheel has
+        # special handling for certain variables (`$PATH`, in particular), so you may need to escape
+        # some dollar signs to pass those through to cibuildwheel as variables, or use single quotes
+        # to prevent shell expansion.
+        run: |
+          set -e
+          mkdir -p "$PGO_WORK_DIR"
+
+          cat >>"$GITHUB_ENV" <<EOF
+          CIBW_BEFORE_BUILD=bash ./tools/build_pgo.sh $PGO_WORK_DIR $PGO_OUT_PATH
+          CIBW_ENVIRONMENT=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
+          CIBW_ENVIRONMENT_MACOS=MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
+          CIBW_ENVIRONMENT_LINUX=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' PATH="\$PATH:\$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
+          EOF
+        env:
+          PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
+          PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
+      - uses: pypa/cibuildwheel@v2.22.0
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
+
+  wheels-linux-s390x:
+    name: "Wheels / Linux s390x"
+    if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+      - uses: pypa/cibuildwheel@v2.22.0
+        env:
+          CIBW_ARCHS_LINUX: s390x
+          CIBW_TEST_SKIP: "cp*"
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ inputs.artifact-prefix }}wheels-linux-s390x
+
+  wheels-linux-ppc64le:
+    name: "Wheels / Linux ppc64le"
+    if: (inputs.wheels-linux-ppc64le == 'default' && inputs.default-action || inputs.wheels-linux-ppc64le) == 'build'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+      - uses: pypa/cibuildwheel@v2.22.0
+        env:
+          CIBW_ARCHS_LINUX: ppc64le
+          CIBW_TEST_SKIP: "cp*"
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ inputs.artifact-prefix }}wheels-linux-ppc64le
+
+  wheels-linux-aarch64:
+    name: "Wheels / Linux AArch64"
+    if: (inputs.wheels-linux-aarch64 == 'default' && inputs.default-action || inputs.wheels-linux-aarch64) == 'build'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+      - uses: pypa/cibuildwheel@v2.22.0
+        env:
+          CIBW_ARCHS_LINUX: aarch64
+          CIBW_TEST_COMMAND: cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate -n test.python.compiler.test_transpiler
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ inputs.artifact-prefix }}wheels-linux-aarch64
+
+  sdist:
+    name: "sdist"
+    if: (inputs.sdist == 'default' && inputs.default-action || inputs.sdist) == 'build'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Build sdist
+        run: |
+          set -e
+          python -m pip install -U build
+          python -m build --sdist .
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./dist/*.tar.gz
+          name: ${{ inputs.artifact-prefix }}sdist

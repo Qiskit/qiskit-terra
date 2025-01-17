@@ -19,6 +19,7 @@ from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Acquire(Instruction):
@@ -38,6 +39,7 @@ class Acquire(Instruction):
      * the discriminator to classify kerneled IQ points.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         duration: int | ParameterExpression,

@@ -70,7 +70,7 @@ def available_versions():
             if not any(
                 tag in supported_tags
                 for release in payload
-                if release["packagetype"] == "bdist_wheel"
+                if release["packagetype"] == "bdist_wheel" and not release["yanked"]
                 for tag in tags_from_wheel_name(release["filename"])
             ):
                 print(

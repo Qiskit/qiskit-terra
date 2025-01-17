@@ -26,9 +26,10 @@ fixes:
       result = transpile(circuit, basis_gates=None, optimization_level=3)
       result.draw()
 
-    .. parsed-literal::
-          ┌───┐┌─────────────┐┌───┐┌─────────────────┐
-     q_0: ┤ H ├┤ U2(0.1,0.3) ├┤ H ├┤ U3(0.1,0.2,0.3) ├
-          └───┘└─────────────┘└───┘└─────────────────┘
+    .. code-block:: text
+
+            ┌───┐┌─────────────┐┌───┐┌─────────────────┐
+       q_0: ┤ H ├┤ U2(0.1,0.3) ├┤ H ├┤ U3(0.1,0.2,0.3) ├
+            └───┘└─────────────┘└───┘└─────────────────┘
 
     Fixes `#3017 <https://github.com/Qiskit/qiskit-terra/issues/3017>`_

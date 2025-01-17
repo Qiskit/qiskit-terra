@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed a bug where calling :meth:`.QuantumCircuit.decompose` on an instruction
+    that had no definition inside a ``c_if`` block would raise an error.
+    Fixed `#13493 <https://github.com/Qiskit/qiskit/issues/13493>`__.
+  - |
+    Operations inside a control flow (e.g. :meth:`.QuantumCircuit.for_loop`) were not
+    correctly decomposed when calling :meth:`.QuantumCircuit.decompose`. This
+    behavior is now fixed and instructions are unrolled.
+    Fixed `#13544 <https://github.com/Qiskit/qiskit/issues/13544>`__.

@@ -30,7 +30,10 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     ``ScheduleBlock`` can be represented as a DAG as needed.
     For example, equality of two programs are efficiently checked on DAG representation.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit import pulse
 
@@ -54,7 +57,10 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
 
     Another example is instruction optimization.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         from qiskit import pulse
 

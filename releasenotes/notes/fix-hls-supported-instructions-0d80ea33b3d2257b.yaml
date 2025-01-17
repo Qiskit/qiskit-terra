@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Previously the :class:`.HighLevelSynthesis` transpiler pass synthesized an
+    instruction for which a synthesis plugin is available, regardless of
+    whether the instruction is already supported by the target or a part of
+    the explicitly passed ``basis_gates``. This behavior is now fixed, so that
+    such already supported instructions are no longer synthesized.

@@ -1,0 +1,12 @@
+---
+upgrade_transpiler:
+  - |
+    The default value for the :func:`.generate_routing_passmanager` argument
+    ``seed_transpiler`` has changed from ``None`` to ``-1``. This was done
+    because this flag was only used to configure the :class:`.VF2PostLayout`
+    transpiler pass in the output, and for that pass in particular the
+    randomization typically only hurts performance and is not desirable.
+    If you were relying on the previous default value you can restore this
+    behavior by explicitly setting the argument ``seed_transpiler=None``. If
+    you were explicitly setting a seed value for this parameter there is no
+    change in behavior.

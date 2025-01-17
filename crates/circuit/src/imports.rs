@@ -116,6 +116,14 @@ pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
 );
+pub static QS_DECOMPOSITION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
+pub static XX_DECOMPOSER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
+pub static XX_EMBODIMENTS: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXEmbodiments");
+pub static NUMPY_COPY_ONLY_IF_NEEDED: ImportOnceCell =
+    ImportOnceCell::new("qiskit._numpy_compat", "COPY_ONLY_IF_NEEDED");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

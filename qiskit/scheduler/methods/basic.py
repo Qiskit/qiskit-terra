@@ -23,8 +23,10 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.lowering import lower_gates
 from qiskit.providers import BackendV1, BackendV2
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def as_soon_as_possible(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
@@ -78,6 +80,7 @@ def as_soon_as_possible(
     return schedule
 
 
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def as_late_as_possible(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,

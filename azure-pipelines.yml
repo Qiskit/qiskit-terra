@@ -37,7 +37,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.9", "3.10", "3.11", "3.12"]
+    default: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -47,7 +47,7 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.12"
+    default: "3.13"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -144,7 +144,7 @@ stages:
     - stage: "Lint_Docs_Prelim_Tests"
       displayName: "Preliminary tests"
       jobs:
-        - template: ".azure/lint_docs_qpy-linux.yml"
+        - template: ".azure/lint_docs-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
 
@@ -208,7 +208,7 @@ stages:
     - stage: "Merge_Queue"
       displayName: "Merge queue"
       jobs:
-        - template: ".azure/lint_docs_qpy-linux.yml"
+        - template: ".azure/lint_docs-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
 

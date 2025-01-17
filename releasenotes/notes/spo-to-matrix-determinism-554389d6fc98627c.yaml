@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a per-process based non-determinism in `SparsePauliOp.to_matrix`.  The exact order of the
+    floating-point operations in the summation would previously vary per process, but will now be
+    identical between different invocations of the same script.  See `#13413 <https://github.com/Qiskit/qiskit/issues/13413>`__.

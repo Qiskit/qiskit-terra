@@ -43,7 +43,7 @@ class U3Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤ U3(ϴ,φ,λ) ├
@@ -178,6 +178,9 @@ class U3Gate(Gate):
             dtype=dtype or complex,
         )
 
+    def __eq__(self, other):
+        return isinstance(other, U3Gate) and self._compare_parameters(other)
+
 
 class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
@@ -205,7 +208,7 @@ class CU3Gate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴─────┐
@@ -236,7 +239,8 @@ class CU3Gate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────────┐
             q_0: ┤ U3(ϴ,φ,λ) ├
                  └─────┬─────┘
@@ -367,6 +371,13 @@ class CU3Gate(ControlledGate):
                 ],
                 dtype=dtype or complex,
             )
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU3Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
 
 
 def _generate_gray_code(num_bits):

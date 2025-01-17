@@ -125,17 +125,15 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> Ar
 
     // Compute the full stabilizer tableau
 
-    // The code below is identical to the Python implementation, but is based on the original
-    // code in the paper.
-
+    // The code below is based on the original code in the referenced paper.
     let mut table = Array2::from_elem((2 * num_qubits, 2 * num_qubits), false);
 
     // Apply qubit permutation
     for i in 0..num_qubits {
-        replace_row_inner(table.view_mut(), i, table2.slice(s![i, ..]));
+        replace_row_inner(table.view_mut(), i, table2.slice(s![perm[i], ..]));
         replace_row_inner(
             table.view_mut(),
-            perm[i] + num_qubits,
+            i + num_qubits,
             table2.slice(s![perm[i] + num_qubits, ..]),
         );
     }

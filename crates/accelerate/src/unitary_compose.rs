@@ -57,7 +57,7 @@ pub fn compose(
     let mat = per_qubit_shaped(overall_unitary);
     let indices = qubits
         .iter()
-        .map(|q| num_indices - 1 - q.0 as usize)
+        .map(|q| num_indices - 1 - q.index())
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
@@ -219,7 +219,7 @@ fn _ind(i: usize, reversed: bool) -> usize {
 
 /// For equally sized matrices, ``left`` and ``right``, check whether all entries are close
 /// by the criterion
-///     
+///
 ///     |left_ij - right_ij| <= atol + rtol * right_ij
 ///
 /// This is analogous to NumPy's ``allclose`` function.

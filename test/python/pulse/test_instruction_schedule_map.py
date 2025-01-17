@@ -35,8 +35,10 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake7QPulseV1
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestInstructionScheduleMap(QiskitTestCase):
     """Test the InstructionScheduleMap."""
 
@@ -537,7 +539,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test eq method when two instmaps are identical."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake7QPulseV1()
-        instmap1 = backend.defaults().instruction_schedule_map
+            instmap1 = backend.defaults().instruction_schedule_map
         instmap2 = copy.deepcopy(instmap1)
 
         self.assertEqual(instmap1, instmap2)
@@ -546,7 +548,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test eq method when two instmaps are not identical."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake7QPulseV1()
-        instmap1 = backend.defaults().instruction_schedule_map
+            instmap1 = backend.defaults().instruction_schedule_map
         instmap2 = copy.deepcopy(instmap1)
 
         # override one of instruction
@@ -558,7 +560,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test if instmap can be pickled."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake7QPulseV1()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
 
         ser_obj = pickle.dumps(instmap)
         deser_instmap = pickle.loads(ser_obj)
@@ -574,7 +576,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """
         with self.assertWarns(DeprecationWarning):
             backend = Fake7QPulseV1()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
 
         param1 = Parameter("P1")
         param2 = Parameter("P2")
@@ -596,7 +598,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test if schedules provided by backend provider is distinguishable."""
         with self.assertWarns(DeprecationWarning):
             backend = FakeOpenPulse2Q()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
         publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
 
         self.assertEqual(publisher, CalibrationPublisher.BACKEND_PROVIDER)
@@ -605,7 +607,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test if schedules provided by user is distinguishable."""
         with self.assertWarns(DeprecationWarning):
             backend = FakeOpenPulse2Q()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
 
         test_u1 = Schedule()
         test_u1 += ShiftPhase(Parameter("P0"), DriveChannel(0))
@@ -619,7 +621,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test method to check custom gate."""
         with self.assertWarns(DeprecationWarning):
             backend = FakeOpenPulse2Q()
-        instmap = backend.defaults().instruction_schedule_map
+            instmap = backend.defaults().instruction_schedule_map
 
         self.assertFalse(instmap.has_custom_gate())
 

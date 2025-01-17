@@ -14,7 +14,7 @@ use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{
-    types::{PyAnyMethods, PyInt, PyList, PyListMethods, PyString, PyTuple},
+    types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
 };
 
@@ -194,12 +194,7 @@ fn _check_entanglement_list<'a>(
     block_size: u32,
 ) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<u32>>> + 'a>> {
     let entanglement_iter = list.iter().map(move |el| {
-        let connections = el
-            .downcast::<PyTuple>()?
-            // .expect("Entanglement must be list of tuples") // clearer error message than `?`
-            .iter()
-            .map(|index| index.downcast::<PyInt>()?.extract())
-            .collect::<Result<Vec<u32>, _>>()?;
+        let connections: Vec<u32> = el.extract()?;
 
         if connections.len() != block_size as usize {
             return Err(QiskitError::new_err(format!(

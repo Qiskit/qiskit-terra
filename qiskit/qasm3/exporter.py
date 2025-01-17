@@ -30,7 +30,6 @@ from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
     Clbit,
-    ControlledGate,
     Gate,
     Measure,
     Parameter,
@@ -209,46 +208,60 @@ class Exporter:
 # comparisons will work.
 _FIXED_PARAMETERS = (Parameter("p0"), Parameter("p1"), Parameter("p2"), Parameter("p3"))
 
+_CANONICAL_STANDARD_GATES = {
+    standard: standard.gate_class(*_FIXED_PARAMETERS[: standard.num_params])
+    for standard in StandardGate.all_gates()
+    if not standard.is_controlled_gate
+}
+_CANONICAL_CONTROLLED_STANDARD_GATES = {
+    standard: [
+        standard.gate_class(*_FIXED_PARAMETERS[: standard.num_params], ctrl_state=ctrl_state)
+        for ctrl_state in range(1 << standard.num_ctrl_qubits)
+    ]
+    for standard in StandardGate.all_gates()
+    if standard.is_controlled_gate
+}
+
 # Mapping of symbols defined by `stdgates.inc` to their gate definition source.
 _KNOWN_INCLUDES = {
     "stdgates.inc": {
-        "p": library.PhaseGate(*_FIXED_PARAMETERS[:1]),
-        "x": library.XGate(),
-        "y": library.YGate(),
-        "z": library.ZGate(),
-        "h": library.HGate(),
-        "s": library.SGate(),
-        "sdg": library.SdgGate(),
-        "t": library.TGate(),
-        "tdg": library.TdgGate(),
-        "sx": library.SXGate(),
-        "rx": library.RXGate(*_FIXED_PARAMETERS[:1]),
-        "ry": library.RYGate(*_FIXED_PARAMETERS[:1]),
-        "rz": library.RZGate(*_FIXED_PARAMETERS[:1]),
-        "cx": library.CXGate(),
-        "cy": library.CYGate(),
-        "cz": library.CZGate(),
-        "cp": library.CPhaseGate(*_FIXED_PARAMETERS[:1]),
-        "crx": library.CRXGate(*_FIXED_PARAMETERS[:1]),
-        "cry": library.CRYGate(*_FIXED_PARAMETERS[:1]),
-        "crz": library.CRZGate(*_FIXED_PARAMETERS[:1]),
-        "ch": library.CHGate(),
-        "swap": library.SwapGate(),
-        "ccx": library.CCXGate(),
-        "cswap": library.CSwapGate(),
-        "cu": library.CUGate(*_FIXED_PARAMETERS[:4]),
-        "CX": library.CXGate(),
-        "phase": library.PhaseGate(*_FIXED_PARAMETERS[:1]),
-        "cphase": library.CPhaseGate(*_FIXED_PARAMETERS[:1]),
-        "id": library.IGate(),
-        "u1": library.U1Gate(*_FIXED_PARAMETERS[:1]),
-        "u2": library.U2Gate(*_FIXED_PARAMETERS[:2]),
-        "u3": library.U3Gate(*_FIXED_PARAMETERS[:3]),
+        "p": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
+        "x": _CANONICAL_STANDARD_GATES[StandardGate.XGate],
+        "y": _CANONICAL_STANDARD_GATES[StandardGate.YGate],
+        "z": _CANONICAL_STANDARD_GATES[StandardGate.ZGate],
+        "h": _CANONICAL_STANDARD_GATES[StandardGate.HGate],
+        "s": _CANONICAL_STANDARD_GATES[StandardGate.SGate],
+        "sdg": _CANONICAL_STANDARD_GATES[StandardGate.SdgGate],
+        "t": _CANONICAL_STANDARD_GATES[StandardGate.TGate],
+        "tdg": _CANONICAL_STANDARD_GATES[StandardGate.TdgGate],
+        "sx": _CANONICAL_STANDARD_GATES[StandardGate.SXGate],
+        "rx": _CANONICAL_STANDARD_GATES[StandardGate.RXGate],
+        "ry": _CANONICAL_STANDARD_GATES[StandardGate.RYGate],
+        "rz": _CANONICAL_STANDARD_GATES[StandardGate.RZGate],
+        "cx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
+        "cy": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CYGate][1],
+        "cz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CZGate][1],
+        "cp": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
+        "crx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRXGate][1],
+        "cry": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRYGate][1],
+        "crz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRZGate][1],
+        "ch": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CHGate][1],
+        "swap": _CANONICAL_STANDARD_GATES[StandardGate.SwapGate],
+        "ccx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CCXGate][3],
+        "cswap": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CSwapGate][1],
+        "cu": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CUGate][1],
+        "CX": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
+        "phase": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
+        "cphase": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
+        "id": _CANONICAL_STANDARD_GATES[StandardGate.IGate],
+        "u1": _CANONICAL_STANDARD_GATES[StandardGate.U1Gate],
+        "u2": _CANONICAL_STANDARD_GATES[StandardGate.U2Gate],
+        "u3": _CANONICAL_STANDARD_GATES[StandardGate.U3Gate],
     },
 }
 
 _BUILTIN_GATES = {
-    "U": library.UGate(*_FIXED_PARAMETERS[:3]),
+    "U": _CANONICAL_STANDARD_GATES[StandardGate.UGate],
 }
 
 
@@ -479,9 +492,14 @@ class SymbolTable:
     def get_gate(self, gate: Gate) -> ast.Identifier | None:
         """Lookup the identifier for a given `Gate`, if it exists."""
         canonical = _gate_canonical_form(gate)
-        # `our_defn.canonical is None` means a basis gate that we should assume is always valid.
         if (our_defn := self.gates.get(gate.name)) is not None and (
-            our_defn.canonical is None or our_defn.canonical == canonical
+            # We arrange things such that the known definitions for the vast majority of gates we
+            # will encounter are the exact same canonical instance, so an `is` check saves time.
+            our_defn.canonical is canonical
+            # `our_defn.canonical is None` means a basis gate that we should assume is always valid.
+            or our_defn.canonical is None
+            # The last catch, if the canonical form is some custom gate that compares equal to this.
+            or our_defn.canonical == canonical
         ):
             return ast.Identifier(gate.name)
         if canonical._standard_gate is not None:
@@ -506,11 +524,14 @@ def _gate_canonical_form(gate: Gate) -> Gate:
     # If a gate is part of the Qiskit standard-library gates, we know we can safely produce a
     # reparameterised gate by passing the parameters positionally to the standard-gate constructor
     # (and control state, if appropriate).
-    if gate._standard_gate and not isinstance(gate, ControlledGate):
-        return gate.base_class(*_FIXED_PARAMETERS[: len(gate.params)])
-    elif gate._standard_gate:
-        return gate.base_class(*_FIXED_PARAMETERS[: len(gate.params)], ctrl_state=gate.ctrl_state)
-    return gate
+    standard = gate._standard_gate
+    if standard is None:
+        return gate
+    return (
+        _CANONICAL_CONTROLLED_STANDARD_GATES[standard][gate.ctrl_state]
+        if standard.is_controlled_gate
+        else _CANONICAL_STANDARD_GATES[standard]
+    )
 
 
 @dataclasses.dataclass
@@ -597,12 +618,10 @@ class QASM3Builder:
         self.scope = old_scope
         self.symbols = old_symbols
 
-    def _lookup_variable(self, variable) -> ast.Identifier:
-        """Lookup a Qiskit object within the current context, and return the name that should be
+    def _lookup_bit(self, bit) -> ast.Identifier:
+        """Lookup a Qiskit bit within the current context, and return the name that should be
         used to represent it in OpenQASM 3 programmes."""
-        if isinstance(variable, Bit):
-            variable = self.scope.bit_map[variable]
-        return self.symbols.get_variable(variable)
+        return self.symbols.get_variable(self.scope.bit_map[bit])
 
     def build_program(self):
         """Builds a Program"""
@@ -909,7 +928,7 @@ class QASM3Builder:
         out = []
         for register in registers:
             name = self.symbols.register_variable(register.name, register, allow_rename=True)
-            elements = [self._lookup_variable(bit) for bit in register]
+            elements = [self._lookup_bit(bit) for bit in register]
             for i, bit in enumerate(register):
                 # This might shadow previous definitions, but that's not a problem.
                 self.symbols.set_object_ident(
@@ -956,18 +975,17 @@ class QASM3Builder:
             if isinstance(instruction.operation, Gate):
                 nodes = [self.build_gate_call(instruction)]
             elif isinstance(instruction.operation, Barrier):
-                operands = [self._lookup_variable(operand) for operand in instruction.qubits]
+                operands = [self._lookup_bit(operand) for operand in instruction.qubits]
                 nodes = [ast.QuantumBarrier(operands)]
             elif isinstance(instruction.operation, Measure):
                 measurement = ast.QuantumMeasurement(
-                    [self._lookup_variable(operand) for operand in instruction.qubits]
+                    [self._lookup_bit(operand) for operand in instruction.qubits]
                 )
-                qubit = self._lookup_variable(instruction.clbits[0])
+                qubit = self._lookup_bit(instruction.clbits[0])
                 nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
             elif isinstance(instruction.operation, Reset):
                 nodes = [
-                    ast.QuantumReset(self._lookup_variable(operand))
-                    for operand in instruction.qubits
+                    ast.QuantumReset(self._lookup_bit(operand)) for operand in instruction.qubits
                 ]
             elif isinstance(instruction.operation, Delay):
                 nodes = [self.build_delay(instruction)]
@@ -988,13 +1006,13 @@ class QASM3Builder:
                     f" but received '{instruction.operation}'"
                 )
 
-            if instruction.operation.condition is None:
+            if instruction.operation._condition is None:
                 statements.extend(nodes)
             else:
                 body = ast.ProgramBlock(nodes)
                 statements.append(
                     ast.BranchingStatement(
-                        self.build_expression(_lift_condition(instruction.operation.condition)),
+                        self.build_expression(_lift_condition(instruction.operation._condition)),
                         body,
                     )
                 )
@@ -1101,9 +1119,14 @@ class QASM3Builder:
             body_ast = ast.ProgramBlock(self.build_current_scope())
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
 
+    def _lookup_variable_for_expression(self, var):
+        if isinstance(var, Bit):
+            return self._lookup_bit(var)
+        return self.symbols.get_variable(var)
+
     def build_expression(self, node: expr.Expr) -> ast.Expression:
         """Build an expression."""
-        return node.accept(_ExprBuilder(self._lookup_variable))
+        return node.accept(_ExprBuilder(self._lookup_variable_for_expression))
 
     def build_delay(self, instruction: CircuitInstruction) -> ast.QuantumDelay:
         """Build a built-in delay statement."""
@@ -1123,9 +1146,7 @@ class QASM3Builder:
                 "dt": ast.DurationUnit.SAMPLE,
             }
             duration = ast.DurationLiteral(duration_value, unit_map[unit])
-        return ast.QuantumDelay(
-            duration, [self._lookup_variable(qubit) for qubit in instruction.qubits]
-        )
+        return ast.QuantumDelay(duration, [self._lookup_bit(qubit) for qubit in instruction.qubits])
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
@@ -1145,9 +1166,11 @@ class QASM3Builder:
         # missing, pending a new system in Terra to replace it (2022-03-07).
         if not isinstance(expression, ParameterExpression):
             return expression
+        if isinstance(expression, Parameter):
+            return self.symbols.get_variable(expression).string
         return expression.subs(
             {
-                param: Parameter(self._lookup_variable(param).string)
+                param: Parameter(self.symbols.get_variable(param).string, uuid=param.uuid)
                 for param in expression.parameters
             }
         )
@@ -1157,21 +1180,20 @@ class QASM3Builder:
 
         This will also push the gate into the symbol table (if required), including recursively
         defining the gate blocks."""
-        ident = self.symbols.get_gate(instruction.operation)
+        operation = instruction.operation
+        if hasattr(operation, "_qasm_decomposition"):
+            operation = operation._qasm_decomposition()
+        ident = self.symbols.get_gate(operation)
         if ident is None:
-            ident = self.define_gate(instruction.operation)
-        qubits = [self._lookup_variable(qubit) for qubit in instruction.qubits]
-        if self.disable_constants:
-            parameters = [
-                ast.StringifyAndPray(self._rebind_scoped_parameters(param))
-                for param in instruction.operation.params
-            ]
-        else:
-            parameters = [
-                ast.StringifyAndPray(pi_check(self._rebind_scoped_parameters(param), output="qasm"))
-                for param in instruction.operation.params
-            ]
-
+            ident = self.define_gate(operation)
+        qubits = [self._lookup_bit(qubit) for qubit in instruction.qubits]
+        parameters = [
+            ast.StringifyAndPray(self._rebind_scoped_parameters(param))
+            for param in operation.params
+        ]
+        if not self.disable_constants:
+            for parameter in parameters:
+                parameter.obj = pi_check(parameter.obj, output="qasm")
         return ast.QuantumGateCall(ident, qubits, parameters=parameters)
 
 

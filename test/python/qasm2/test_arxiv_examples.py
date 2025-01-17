@@ -72,7 +72,8 @@ if(c0==1) z q[2];
 if(c1==1) x q[2];
 post q[2];
 measure q[2] -> c2[0];"""
-        parsed = parser(example)
+        with self.assertWarns(DeprecationWarning):
+            parsed = parser(example)
 
         post = gate_builder("post", [], QuantumCircuit([Qubit()]))
 
@@ -90,8 +91,10 @@ measure q[2] -> c2[0];"""
         qc.h(q[0])
         qc.measure(q[0], c0[0])
         qc.measure(q[1], c1[0])
-        qc.z(q[2]).c_if(c0, 1)
-        qc.x(q[2]).c_if(c1, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(q[2]).c_if(c0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[2]).c_if(c1, 1)
         qc.append(post(), [q[2]], [])
         qc.measure(q[2], c2[0])
 
@@ -168,7 +171,8 @@ if(c==6) u1(pi/2+pi/4) q[3];
 if(c==7) u1(pi/2+pi/4+pi/8) q[3];
 h q[3];
 measure q[3] -> c[3];"""
-        parsed = parser(example)
+        with self.assertWarns(DeprecationWarning):
+            parsed = parser(example)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
@@ -177,21 +181,32 @@ measure q[3] -> c[3];"""
         qc.barrier(q)
         qc.h(q[0])
         qc.measure(q[0], c[0])
-        qc.append(U1Gate(math.pi / 2).c_if(c, 1), [q[1]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 2).c_if(c, 1), [q[1]])
         qc.h(q[1])
         qc.measure(q[1], c[1])
-        qc.append(U1Gate(math.pi / 4).c_if(c, 1), [q[2]])
-        qc.append(U1Gate(math.pi / 2).c_if(c, 2), [q[2]])
-        qc.append(U1Gate(math.pi / 4 + math.pi / 2).c_if(c, 3), [q[2]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 4).c_if(c, 1), [q[2]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 2).c_if(c, 2), [q[2]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 4 + math.pi / 2).c_if(c, 3), [q[2]])
         qc.h(q[2])
         qc.measure(q[2], c[2])
-        qc.append(U1Gate(math.pi / 8).c_if(c, 1), [q[3]])
-        qc.append(U1Gate(math.pi / 4).c_if(c, 2), [q[3]])
-        qc.append(U1Gate(math.pi / 8 + math.pi / 4).c_if(c, 3), [q[3]])
-        qc.append(U1Gate(math.pi / 2).c_if(c, 4), [q[3]])
-        qc.append(U1Gate(math.pi / 8 + math.pi / 2).c_if(c, 5), [q[3]])
-        qc.append(U1Gate(math.pi / 4 + math.pi / 2).c_if(c, 6), [q[3]])
-        qc.append(U1Gate(math.pi / 8 + math.pi / 4 + math.pi / 2).c_if(c, 7), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 8).c_if(c, 1), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 4).c_if(c, 2), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 8 + math.pi / 4).c_if(c, 3), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 2).c_if(c, 4), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 8 + math.pi / 2).c_if(c, 5), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 4 + math.pi / 2).c_if(c, 6), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 8 + math.pi / 4 + math.pi / 2).c_if(c, 7), [q[3]])
         qc.h(q[3])
         qc.measure(q[3], c[3])
 
@@ -224,7 +239,8 @@ if(c1==1) u1(pi/4) q[3];
 if(c2==1) u1(pi/2) q[3];
 h q[3];
 measure q[3] -> c3[0];"""
-        parsed = parser(example)
+        with self.assertWarns(DeprecationWarning):
+            parsed = parser(example)
 
         q = QuantumRegister(4, "q")
         c0 = ClassicalRegister(1, "c0")
@@ -236,16 +252,22 @@ measure q[3] -> c3[0];"""
         qc.barrier(q)
         qc.h(q[0])
         qc.measure(q[0], c0[0])
-        qc.append(U1Gate(math.pi / 2).c_if(c0, 1), [q[1]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 2).c_if(c0, 1), [q[1]])
         qc.h(q[1])
         qc.measure(q[1], c1[0])
-        qc.append(U1Gate(math.pi / 4).c_if(c0, 1), [q[2]])
-        qc.append(U1Gate(math.pi / 2).c_if(c1, 1), [q[2]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 4).c_if(c0, 1), [q[2]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 2).c_if(c1, 1), [q[2]])
         qc.h(q[2])
         qc.measure(q[2], c2[0])
-        qc.append(U1Gate(math.pi / 8).c_if(c0, 1), [q[3]])
-        qc.append(U1Gate(math.pi / 4).c_if(c1, 1), [q[3]])
-        qc.append(U1Gate(math.pi / 2).c_if(c2, 1), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 8).c_if(c0, 1), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 4).c_if(c1, 1), [q[3]])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(U1Gate(math.pi / 2).c_if(c2, 1), [q[3]])
         qc.h(q[3])
         qc.measure(q[3], c3[0])
 
@@ -423,7 +445,8 @@ if(syn==1) x q[0];
 if(syn==2) x q[2];
 if(syn==3) x q[1];
 measure q -> c;"""
-        parsed = parser(example)
+        with self.assertWarns(DeprecationWarning):
+            parsed = parser(example)
 
         syndrome_definition = QuantumCircuit([Qubit() for _ in [None] * 5])
         syndrome_definition.cx(0, 3)
@@ -442,9 +465,12 @@ measure q -> c;"""
         qc.barrier(q)
         qc.append(syndrome(), [q[0], q[1], q[2], a[0], a[1]])
         qc.measure(a, syn)
-        qc.x(q[0]).c_if(syn, 1)
-        qc.x(q[2]).c_if(syn, 2)
-        qc.x(q[1]).c_if(syn, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[0]).c_if(syn, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[2]).c_if(syn, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[1]).c_if(syn, 3)
         qc.measure(q, c)
 
         self.assertEqual(parsed, qc)

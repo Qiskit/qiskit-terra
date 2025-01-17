@@ -28,6 +28,7 @@ from qiskit.pulse.channels import (
     PulseError,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
 class TestChannel(QiskitTestCase):
@@ -48,6 +49,7 @@ class TestPulseChannel(QiskitTestCase):
             PulseChannel(0)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestAcquireChannel(QiskitTestCase):
     """AcquireChannel tests."""
 
@@ -69,6 +71,7 @@ class TestAcquireChannel(QiskitTestCase):
         self.assertEqual(hash_1, hash_2)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestClassicalIOChannel(QiskitTestCase):
     """Test base classical IO channel."""
 
@@ -78,6 +81,7 @@ class TestClassicalIOChannel(QiskitTestCase):
             ClassicalIOChannel(0)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestMemorySlot(QiskitTestCase):
     """MemorySlot tests."""
 
@@ -97,6 +101,7 @@ class TestMemorySlot(QiskitTestCase):
             MemorySlot(-1)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestRegisterSlot(QiskitTestCase):
     """RegisterSlot tests."""
 
@@ -116,6 +121,7 @@ class TestRegisterSlot(QiskitTestCase):
             RegisterSlot(-1)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSnapshotChannel(QiskitTestCase):
     """SnapshotChannel tests."""
 
@@ -128,6 +134,7 @@ class TestSnapshotChannel(QiskitTestCase):
         self.assertTrue(isinstance(snapshot_channel, ClassicalIOChannel))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDriveChannel(QiskitTestCase):
     """DriveChannel tests."""
 
@@ -146,6 +153,7 @@ class TestDriveChannel(QiskitTestCase):
             DriveChannel(-1)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestControlChannel(QiskitTestCase):
     """ControlChannel tests."""
 
@@ -164,6 +172,7 @@ class TestControlChannel(QiskitTestCase):
             ControlChannel(-1)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestMeasureChannel(QiskitTestCase):
     """MeasureChannel tests."""
 

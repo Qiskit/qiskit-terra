@@ -89,6 +89,7 @@ class StarPreRouting(TransformationPass):
     For example:
 
       .. plot::
+         :alt: Circuit diagram output by the previous code.
          :include-source:
 
          from qiskit.circuit import QuantumCircuit
@@ -223,7 +224,7 @@ class StarPreRouting(TransformationPass):
             return (
                 len(node.qargs) <= 2
                 and len(node.cargs) == 0
-                and getattr(node.op, "condition", None) is None
+                and getattr(node, "condition", None) is None
                 and not isinstance(node.op, Barrier)
             )
 
@@ -372,7 +373,7 @@ def _extract_nodes(nodes, dag):
         qubit_indices = [dag.find_bit(qubit).index for qubit in node.qargs]
         classical_bit_indices = set()
 
-        if node.op.condition is not None:
+        if node.condition is not None:
             classical_bit_indices.update(condition_resources(node.op.condition).clbits)
 
         if isinstance(node.op, SwitchCaseOp):

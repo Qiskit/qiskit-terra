@@ -27,7 +27,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
     For a register of state qubits :math:`|x\rangle`, a target qubit :math:`|0\rangle` and the
     basis ``'Y'`` this circuit acts as:
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ─────────────────────────■───────── ... ──────────────────────
                                           │

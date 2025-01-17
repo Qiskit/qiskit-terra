@@ -170,13 +170,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return False
 
         # do we even have calibrations?
-        has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
+        has_cals_p = dag._calibrations_prop is not None and len(dag._calibrations_prop) > 0
         # does this run have uncalibrated gates?
-        uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
+        uncalibrated_p = not has_cals_p or any(not dag._has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
         if basis is not None:
             uncalibrated_and_not_basis_p = any(
-                g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
+                g.name not in basis and (not has_cals_p or not dag._has_calibration_for(g))
                 for g in old_run
             )
         else:

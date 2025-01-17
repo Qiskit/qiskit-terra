@@ -21,7 +21,7 @@ use std::ops::Index;
 use ahash::RandomState;
 
 use hashbrown::HashSet;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use nullable_index_map::NullableIndexMap;
 use pyo3::{
@@ -43,7 +43,7 @@ use instruction_properties::InstructionProperties;
 
 use self::exceptions::TranspilerError;
 
-mod exceptions {
+pub(crate) mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.exceptions, QiskitError}
     import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
@@ -57,7 +57,7 @@ type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionPropertie
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
-#[derive(Debug, Clone, FromPyObject)]
+#[derive(FromPyObject, Debug, Clone)]
 pub(crate) enum TargetOperation {
     Normal(NormalOperation),
     Variadic(PyObject),
@@ -82,19 +82,23 @@ impl ToPyObject for TargetOperation {
 }
 
 impl TargetOperation {
-    fn num_qubits(&self) -> u32 {
+    /// Gets the number of qubits of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
+    pub fn num_qubits(&self) -> u32 {
         match &self {
-            Self::Normal(normal) => normal.operation.view().num_qubits(),
+            Self::Normal(normal) => normal.operation.num_qubits(),
             Self::Variadic(_) => {
-                unreachable!("'num_qubits' property is reserved for normal operations only.")
+                panic!("'num_qubits' property doesn't exist for Variadic operations")
             }
         }
     }
 
-    fn params(&self) -> &[Param] {
+    /// Gets the parameters of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
+    pub fn params(&self) -> &[Param] {
         match &self {
             TargetOperation::Normal(normal) => normal.params.as_slice(),
-            TargetOperation::Variadic(_) => &[],
+            TargetOperation::Variadic(_) => {
+                panic!("'parameters' property doesn't exist for Variadic operations")
+            }
         }
     }
 }
@@ -109,12 +113,12 @@ pub(crate) struct NormalOperation {
 }
 
 impl<'py> FromPyObject<'py> for NormalOperation {
-    fn extract(ob: &'py PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let operation: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: ob.into(),
+            op_object: ob.clone().unbind(),
         })
     }
 }
@@ -173,7 +177,6 @@ pub(crate) struct Target {
     #[pyo3(get)]
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
-    variable_class_operations: IndexSet<String, RandomState>,
     qarg_gate_map: NullableIndexMap<Qargs, Option<HashSet<String>>>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
@@ -224,18 +227,18 @@ impl Target {
     #[new]
     #[pyo3(signature = (
         description = None,
-        num_qubits = None,
+        num_qubits = 0,
         dt = None,
-        granularity = None,
-        min_length = None,
-        pulse_alignment = None,
-        acquire_alignment = None,
+        granularity = 1,
+        min_length = 1,
+        pulse_alignment = 1,
+        acquire_alignment = 1,
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
     fn new(
         description: Option<String>,
-        num_qubits: Option<usize>,
+        mut num_qubits: Option<usize>,
         dt: Option<f64>,
         granularity: Option<u32>,
         min_length: Option<usize>,
@@ -244,10 +247,9 @@ impl Target {
         qubit_properties: Option<Vec<PyObject>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
-        let mut num_qubits = num_qubits;
         if let Some(qubit_properties) = qubit_properties.as_ref() {
-            if let Some(num_qubits) = num_qubits {
-                if num_qubits != qubit_properties.len() {
+            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
+                if num_qubits.unwrap() != qubit_properties.len() {
                     return Err(PyValueError::new_err(
                         "The value of num_qubits specified does not match the \
                             length of the input qubit_properties list",
@@ -269,7 +271,6 @@ impl Target {
             concurrent_measurements,
             gate_map: GateMap::default(),
             _gate_name_map: IndexMap::default(),
-            variable_class_operations: IndexSet::default(),
             global_operations: IndexMap::default(),
             qarg_gate_map: NullableIndexMap::default(),
             non_global_basis: None,
@@ -302,16 +303,15 @@ impl Target {
             )));
         }
         let mut qargs_val: PropsMap;
-        match instruction {
+        match &instruction {
             TargetOperation::Variadic(_) => {
                 qargs_val = PropsMap::with_capacity(1);
                 qargs_val.extend([(None, None)]);
-                self.variable_class_operations.insert(name.to_string());
             }
-            TargetOperation::Normal(_) => {
+            TargetOperation::Normal(normal) => {
                 if let Some(mut properties) = properties {
                     qargs_val = PropsMap::with_capacity(properties.len());
-                    let inst_num_qubits = instruction.num_qubits();
+                    let inst_num_qubits = normal.operation.view().num_qubits();
                     if properties.contains_key(None) {
                         self.global_operations
                             .entry(inst_num_qubits)
@@ -371,7 +371,7 @@ impl Target {
     ///     properties (InstructionProperties): The properties to set for this instruction
     /// Raises:
     ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
-    #[pyo3(text_signature = "(instruction, qargs, properties, /,)")]
+    #[pyo3(signature = (instruction, qargs=None, properties=None))]
     fn update_instruction_properties(
         &mut self,
         instruction: String,
@@ -619,7 +619,7 @@ impl Target {
         } else if let Some(operation_name) = operation_name {
             if let Some(parameters) = parameters {
                 if let Some(obj) = self._gate_name_map.get(&operation_name) {
-                    if self.variable_class_operations.contains(&operation_name) {
+                    if matches!(obj, TargetOperation::Variadic(_)) {
                         if let Some(_qargs) = qargs {
                             let qarg_set: HashSet<PhysicalQubit> = _qargs.iter().cloned().collect();
                             return Ok(_qargs
@@ -934,10 +934,10 @@ impl Target {
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn operations(&self) -> impl Iterator<Item = &NormalOperation> {
-        return self._gate_name_map.values().filter_map(|oper| match oper {
+        self._gate_name_map.values().filter_map(|oper| match oper {
             TargetOperation::Normal(oper) => Some(oper),
             _ => None,
-        });
+        })
     }
 
     /// Get the error rate of a given instruction in the target
@@ -1025,7 +1025,7 @@ impl Target {
         } else if self.non_global_basis.is_some() {
             return self.non_global_basis.as_deref();
         }
-        return Some(self.generate_non_global_op_names(strict_direction));
+        Some(self.generate_non_global_op_names(strict_direction))
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
@@ -1053,8 +1053,8 @@ impl Target {
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(qargs).as_ref() {
             res.extend(qarg_gate_map_arg.iter().map(|key| key.as_str()));
         }
-        for name in self._gate_name_map.keys() {
-            if self.variable_class_operations.contains(name) {
+        for (name, obj) in self._gate_name_map.iter() {
+            if matches!(obj, TargetOperation::Variadic(_)) {
                 res.insert(name);
             }
         }
@@ -1151,6 +1151,12 @@ impl Target {
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
     pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
+        // Handle case where num_qubits is None by checking globally supported operations
+        let qargs: Option<&Qargs> = if self.num_qubits.is_none() {
+            None
+        } else {
+            qargs
+        };
         if self.gate_map.contains_key(operation_name) {
             if let Some(_qargs) = qargs {
                 let qarg_set: HashSet<&PhysicalQubit> = _qargs.iter().collect();
@@ -1160,33 +1166,39 @@ impl Target {
                     }
                     if gate_prop_name.contains_key(None) {
                         let obj = &self._gate_name_map[operation_name];
-                        if self.variable_class_operations.contains(operation_name) {
+                        match obj {
+                            TargetOperation::Variadic(_) => {
+                                return qargs.is_none()
+                                    || _qargs.iter().all(|qarg| {
+                                        qarg.index() <= self.num_qubits.unwrap_or_default()
+                                    }) && qarg_set.len() == _qargs.len();
+                            }
+                            TargetOperation::Normal(obj) => {
+                                let qubit_comparison = obj.operation.num_qubits();
+                                return qubit_comparison == _qargs.len() as u32
+                                    && _qargs.iter().all(|qarg| {
+                                        qarg.index() < self.num_qubits.unwrap_or_default()
+                                    });
+                            }
+                        }
+                    }
+                } else {
+                    // Duplicate case is if it contains none
+                    let obj = &self._gate_name_map[operation_name];
+                    match obj {
+                        TargetOperation::Variadic(_) => {
                             return qargs.is_none()
                                 || _qargs.iter().all(|qarg| {
                                     qarg.index() <= self.num_qubits.unwrap_or_default()
                                 }) && qarg_set.len() == _qargs.len();
-                        } else {
-                            let qubit_comparison = obj.num_qubits();
+                        }
+                        TargetOperation::Normal(obj) => {
+                            let qubit_comparison = obj.operation.num_qubits();
                             return qubit_comparison == _qargs.len() as u32
                                 && _qargs.iter().all(|qarg| {
                                     qarg.index() < self.num_qubits.unwrap_or_default()
                                 });
                         }
-                    }
-                } else {
-                    // Duplicate case is if it contains none
-                    if self.variable_class_operations.contains(operation_name) {
-                        return qargs.is_none()
-                            || _qargs
-                                .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == _qargs.len();
-                    } else {
-                        let qubit_comparison = self._gate_name_map[operation_name].num_qubits();
-                        return qubit_comparison == _qargs.len() as u32
-                            && _qargs
-                                .iter()
-                                .all(|qarg| qarg.index() < self.num_qubits.unwrap_or_default());
                     }
                 }
             } else {

@@ -29,10 +29,10 @@ class TestPulseDefaults(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             # BackendV2 does not have defaults
             self.defs = FakeOpenPulse2Q().defaults()
-        backend = GenericBackendV2(
-            2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
-        )
-        self.inst_map = backend.instruction_schedule_map
+            backend = GenericBackendV2(
+                2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+            )
+            self.inst_map = backend.instruction_schedule_map
 
     def test_buffer(self):
         """Test getting the buffer value."""

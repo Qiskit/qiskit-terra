@@ -15,16 +15,21 @@
 from __future__ import annotations
 
 import inspect
+import typing
 from collections.abc import Callable
-
+from itertools import chain
 import numpy as np
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
+from .product_formula import ProductFormula, reorder_paulis
 
-from .product_formula import ProductFormula
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuit import ParameterValueType
+    from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 
 
 class SuzukiTrotter(ProductFormula):
@@ -44,7 +49,7 @@ class SuzukiTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^3).
+        e^{-it(XI + ZZ)} = e^{-it/2 XI}e^{-it ZZ}e^{-it/2 XI} + \mathcal{O}(t^3).
 
     References:
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
@@ -82,6 +87,7 @@ class SuzukiTrotter(ProductFormula):
             | None
         ) = None,
         wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
@@ -101,55 +107,126 @@ class SuzukiTrotter(ProductFormula):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         Raises:
             ValueError: If order is not even
         """
 
-        if order % 2 == 1:
+        if order > 1 and order % 2 == 1:
             raise ValueError(
                 "Suzuki product formulae are symmetric and therefore only defined "
-                "for even orders."
+                f"for when the order is 1 or even, not {order}."
             )
-        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
+        super().__init__(
+            order,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order=preserve_order,
+        )
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
-        operators = evolution.operator
+    def expand(
+        self, evolution: PauliEvolutionGate
+    ) -> list[tuple[str, list[int], ParameterValueType]]:
+        """Expand the Hamiltonian into a Suzuki-Trotter sequence of sparse gates.
+
+        For example, the Hamiltonian ``H = IX + ZZ`` for an evolution time ``t`` and
+        1 repetition for an order 2 formula would get decomposed into a list of 3-tuples
+        containing ``(pauli, indices, rz_rotation_angle)``, that is:
+
+        .. code-block:: text
+
+            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], t)
+
+        Note that the rotation angle contains a factor of 2, such that that evolution
+        of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
+        by ``(P, indices, 2 * t)``.
+
+        For ``N`` repetitions, this sequence would be repeated ``N`` times and the coefficients
+        divided by ``N``.
+
+        Args:
+            evolution: The evolution gate to expand.
+
+        Returns:
+            The Pauli network implementing the Trotter expansion.
+        """
+        operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
         time = evolution.time
 
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
-        else:
-            pauli_list = [(op, 1) for op in operators]
+        def to_sparse_list(operator):
+            paulis = [
+                (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
+                for pauli, indices, coeff in operator.to_sparse_list()
+            ]
+            if not self.preserve_order:
+                return reorder_paulis(paulis)
 
-        ops_to_evolve = self._recurse(self.order, time / self.reps, pauli_list)
+            return paulis
 
         # construct the evolution circuit
-        single_rep = QuantumCircuit(operators[0].num_qubits)
+        if isinstance(operators, list):  # already sorted into commuting bits
+            non_commuting = [to_sparse_list(operator) for operator in operators]
+        else:
+            # Assume no commutativity here. If we were to group commuting Paulis,
+            # here would be the location to do so.
+            non_commuting = [[op] for op in to_sparse_list(operators)]
 
-        for i, (op, coeff) in enumerate(ops_to_evolve):
-            self.atomic_evolution(single_rep, op, coeff)
-            if self.insert_barriers and i != len(ops_to_evolve) - 1:
-                single_rep.barrier()
+        # we're already done here since Lie Trotter does not do any operator repetition
+        product_formula = self._recurse(self.order, non_commuting)
+        flattened = self.reps * list(chain.from_iterable(product_formula))
 
-        return single_rep.repeat(self.reps, insert_barriers=self.insert_barriers).decompose()
+        return flattened
 
     @staticmethod
-    def _recurse(order, time, pauli_list):
+    def _recurse(order, grouped_paulis):
         if order == 1:
-            return pauli_list
+            return grouped_paulis
 
         elif order == 2:
-            halves = [(op, coeff * time / 2) for op, coeff in pauli_list[:-1]]
-            full = [(pauli_list[-1][0], time * pauli_list[-1][1])]
+            halves = [
+                [(label, qubits, coeff / 2) for label, qubits, coeff in paulis]
+                for paulis in grouped_paulis[:-1]
+            ]
+            full = [grouped_paulis[-1]]
             return halves + full + list(reversed(halves))
 
         else:
             reduction = 1 / (4 - 4 ** (1 / (order - 1)))
             outer = 2 * SuzukiTrotter._recurse(
-                order - 2, time=reduction * time, pauli_list=pauli_list
+                order - 2,
+                [
+                    [(label, qubits, coeff * reduction) for label, qubits, coeff in paulis]
+                    for paulis in grouped_paulis
+                ],
             )
             inner = SuzukiTrotter._recurse(
-                order - 2, time=(1 - 4 * reduction) * time, pauli_list=pauli_list
+                order - 2,
+                [
+                    [
+                        (label, qubits, coeff * (1 - 4 * reduction))
+                        for label, qubits, coeff in paulis
+                    ]
+                    for paulis in grouped_paulis
+                ],
             )
             return outer + inner + outer
+
+
+def real_or_fail(value, tol=100):
+    """Return real if close, otherwise fail. Unbound parameters are left unchanged.
+
+    Based on NumPy's ``real_if_close``, i.e. ``tol`` is in terms of machine precision for float.
+    """
+    if isinstance(value, ParameterExpression):
+        return value
+
+    abstol = tol * np.finfo(float).eps
+    if abs(np.imag(value)) < abstol:
+        return np.real(value)
+
+    raise ValueError(f"Encountered complex value {value}, but expected real.")

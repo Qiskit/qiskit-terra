@@ -35,7 +35,7 @@ class UGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤ U(ϴ,φ,λ) ├
@@ -218,7 +218,7 @@ class CUGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴──────┐
@@ -251,7 +251,8 @@ class CUGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────────────┐
             q_0: ┤ U(ϴ,φ,λ,γ) ├
                  └─────┬──────┘
@@ -393,3 +394,10 @@ class CUGate(ControlledGate):
         out = super().__deepcopy__(memo)
         out._params = _copy.deepcopy(out._params, memo)
         return out
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CUGate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

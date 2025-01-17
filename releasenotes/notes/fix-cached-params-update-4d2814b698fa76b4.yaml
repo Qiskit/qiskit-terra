@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.QuantumCircuit.assign_parameters`, occurring when assigning parameters
+    to standard gates whose definition has already been triggered. In this case, the new values
+    were not properly propagated to the gate instances. While the circuit itself was still
+    compiled as expected, inspecting the individual operations would still show the old parameter.
+
+    For example::
+
+      from qiskit.circuit.library import EfficientSU2
+
+      circuit = EfficientSU2(2, flatten=True)
+      circuit.assign_parameters([1.25] * circuit.num_parameters, inplace=True)
+      print(circuit.data[0].operation.params)  # would print θ[0] instead of 1.25
+
+    Fixed `#13478 <https://github.com/Qiskit/qiskit/issues/13478>`__.

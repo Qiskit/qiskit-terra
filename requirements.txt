@@ -6,4 +6,7 @@ dill>=0.3
 python-dateutil>=2.8.0
 stevedore>=3.0.0
 typing-extensions
-symengine>=0.11
+
+# If updating the version range here, consider updating 'test/qpy_compat/run_tests.sh' to update the
+# list of symengine dependencies used in the cross-version tests.
+symengine>=0.11,<0.14

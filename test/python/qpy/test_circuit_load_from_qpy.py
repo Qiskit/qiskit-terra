@@ -69,24 +69,26 @@ class TestCalibrationPasses(QpyCircuitTestCase):
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):
         """RZX builder calibration pass with echo."""
-        pass_ = passes.RZXCalibrationBuilder(self.inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = passes.RZXCalibrationBuilder(self.inst_map)
         pass_manager = PassManager(pass_)
         test_qc = QuantumCircuit(2)
         test_qc.rzx(angle, 0, 1)
         rzx_qc = pass_manager.run(test_qc)
-
-        self.assert_roundtrip_equal(rzx_qc)
+        with self.assertWarns(DeprecationWarning):
+            self.assert_roundtrip_equal(rzx_qc)
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration_echo(self, angle):
         """RZX builder calibration pass without echo."""
-        pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = passes.RZXCalibrationBuilderNoEcho(self.inst_map)
         pass_manager = PassManager(pass_)
         test_qc = QuantumCircuit(2)
         test_qc.rzx(angle, 0, 1)
         rzx_qc = pass_manager.run(test_qc)
-
-        self.assert_roundtrip_equal(rzx_qc)
+        with self.assertWarns(DeprecationWarning):
+            self.assert_roundtrip_equal(rzx_qc)
 
 
 class TestVersions(QpyCircuitTestCase):
@@ -303,6 +305,71 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
+
+    def test_nested_params_subs(self):
+        """Test substitution works."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b
+        expr = expr.subs({b: a})
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_all_the_expression_ops(self):
+        """Test a circuit with an expression that uses all the ops available."""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        d = Parameter("d")
+
+        expression = (a + b.sin() / 4) * c**2
+        final_expr = (
+            (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
+            + expression.gradient(a)
+            + expression.log()
+            - a.sin()
+            - b.conjugate()
+        )
+        final_expr = final_expr.abs()
+        final_expr = final_expr.subs({c: a})
+
+        qc.rx(final_expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_rpow(self):
+        """Test rpow works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 3.14159**a
+        expr = expr**b
+        expr = 1.2345**expr
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_rsub(self):
+        """Test rsub works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 3.14159 - a
+        expr = expr - b
+        expr = 1.2345 - expr
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_rdiv(self):
+        """Test rdiv works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 3.14159 / a
+        expr = expr / b
+        expr = 1.2345 / expr
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
 
 
 class TestUseSymengineFlag(QpyCircuitTestCase):

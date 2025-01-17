@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    The :class:`.RemoveIdentityEquivalent` transpiler pass is now run as part
+    of the preset pass managers at optimization levels 2 and 3. The pass is
+    run in the ``init`` stage and the ``optimization`` stage, because the
+    optimizations it applies are valid in both stages and the pass is
+    fast to execute.

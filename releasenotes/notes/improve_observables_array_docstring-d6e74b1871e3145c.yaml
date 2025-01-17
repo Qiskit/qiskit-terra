@@ -1,0 +1,6 @@
+---
+features_primitives:
+  - |
+    Expanded the docstring of :meth:`.ObservablesArray.tolist`
+    to make it clear it might return a scalar in the case
+    the observables array is of dimension 0.

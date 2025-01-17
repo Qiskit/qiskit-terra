@@ -29,7 +29,7 @@ from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import Fake5QV1, Fake127QPulseV1, GenericBackendV2
 from qiskit.circuit import Measure
-from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
+from qiskit.circuit.library import GraphStateGate, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
@@ -53,8 +53,9 @@ class LayoutTestCase(QiskitTestCase):
 
         def run(dag, wire_map):
             for gate in dag.two_qubit_ops():
-                if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
-                    continue
+                with self.assertWarns(DeprecationWarning):
+                    if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
+                        continue
                 physical_q0 = wire_map[gate.qargs[0]]
                 physical_q1 = wire_map[gate.qargs[1]]
 
@@ -292,9 +293,9 @@ class TestVF2LayoutLattice(LayoutTestCase):
     cmap25 = CouplingMap.from_hexagonal_lattice(25, 25, bidirectional=False)
 
     def graph_state_from_pygraph(self, graph):
-        """Creates a GraphState circuit from a PyGraph"""
+        """Creates a GraphStateGate circuit from a PyGraph"""
         adjacency_matrix = rustworkx.adjacency_matrix(graph)
-        return GraphState(adjacency_matrix).decompose()
+        return GraphStateGate(adjacency_matrix).definition
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
@@ -508,10 +509,11 @@ class TestVF2LayoutBackend(LayoutTestCase):
         rows = [x[0] for x in MANHATTAN_CMAP]
         cols = [x[1] for x in MANHATTAN_CMAP]
 
-        adj_matrix = numpy.zeros((65, 65))
+        num_qubits = 65
+        adj_matrix = numpy.zeros((num_qubits, num_qubits))
         adj_matrix[rows, cols] = 1
 
-        circuit = GraphState(adj_matrix).decompose()
+        circuit = GraphStateGate(adj_matrix).definition
         circuit.measure_all()
 
         dag = circuit_to_dag(circuit)
@@ -711,7 +713,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_reasonable_limits_for_simple_layouts(self):
         """Test that the default trials is set to a reasonable number."""
-        backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
         qc = QuantumCircuit(5)
         qc.cx(2, 3)
         qc.cx(0, 1)

@@ -30,7 +30,7 @@ class SwapStrategy:
     parallel. This means that a qubit can only be present once in a swap layer. For example, the
     following swap layers represent the optimal swap strategy for a line with five qubits
 
-    .. parsed-literal::
+    .. code-block:: text
 
         (
             ((0, 1), (2, 3)),  # Swap layer no. 1

@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use numpy::IntoPyArray;
 use pyo3::basic::CompareOp;
@@ -236,7 +236,7 @@ pub struct CircuitInstruction {
     pub params: SmallVec<[Param; 3]>,
     pub extra_attrs: ExtraInstructionAttributes,
     #[cfg(feature = "cache_pygates")]
-    pub py_op: OnceCell<Py<PyAny>>,
+    pub py_op: OnceLock<Py<PyAny>>,
 }
 
 impl CircuitInstruction {
@@ -301,7 +301,7 @@ impl CircuitInstruction {
             params,
             extra_attrs: ExtraInstructionAttributes::new(label, None, None, None),
             #[cfg(feature = "cache_pygates")]
-            py_op: OnceCell::new(),
+            py_op: OnceLock::new(),
         })
     }
 
@@ -424,6 +424,7 @@ impl CircuitInstruction {
     ///
     /// Returns:
     ///     CircuitInstruction: A new instance with the given fields replaced.
+    #[pyo3(signature=(operation=None, qubits=None, clbits=None, params=None))]
     pub fn replace(
         &self,
         py: Python,
@@ -637,17 +638,25 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         let extract_extra = || -> PyResult<_> {
             let unit = {
                 // We accept Python-space `None` or `"dt"` as both meaning the default `"dt"`.
-                let raw_unit = ob.getattr(intern!(py, "unit"))?;
+                let raw_unit = ob.getattr(intern!(py, "_unit"))?;
                 (!(raw_unit.is_none()
                     || raw_unit.eq(ExtraInstructionAttributes::default_unit(py))?))
                 .then(|| raw_unit.extract::<String>())
                 .transpose()?
             };
+            // Delay uses the `duration` attr as an alias for param[0] which isn't deprecated
+            // while all other instructions have deprecated `duration` so we want to access
+            // the inner _duration to avoid the deprecation warning's run time overhead.
+            let duration = if ob.getattr(intern!(py, "name"))?.extract::<String>()? != "delay" {
+                ob.getattr(intern!(py, "_duration"))?.extract()?
+            } else {
+                ob.getattr(intern!(py, "duration"))?.extract()?
+            };
             Ok(ExtraInstructionAttributes::new(
                 ob.getattr(intern!(py, "label"))?.extract()?,
-                ob.getattr(intern!(py, "duration"))?.extract()?,
+                duration,
                 unit,
-                ob.getattr(intern!(py, "condition"))?.extract()?,
+                ob.getattr(intern!(py, "_condition"))?.extract()?,
             ))
         };
 

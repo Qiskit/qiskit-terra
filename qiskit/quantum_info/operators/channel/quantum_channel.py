@@ -53,9 +53,9 @@ class QuantumChannel(LinearOp):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (array or list): quantum channel data array.
-            op_shape (OpShape): the operator shape of the channel.
-            num_qubits (int): the number of qubits if the channel is N-qubit.
+            data: quantum channel data array.
+            op_shape: the operator shape of the channel.
+            num_qubits: the number of qubits if the channel is N-qubit.
 
         Raises:
             QiskitError: if arguments are invalid.

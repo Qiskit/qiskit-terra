@@ -64,7 +64,9 @@ class StatevectorSampler(BaseSamplerV2):
     primitive unified bloc (PUB), produces its own array-valued result. The :meth:`~run` method can
     be given many pubs at once.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.circuit import (
             Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
@@ -287,6 +289,6 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
 
 def _has_control_flow(circuit: QuantumCircuit) -> bool:
     return any(
-        isinstance((op := instruction.operation), ControlFlowOp) or op.condition
+        isinstance((op := instruction.operation), ControlFlowOp) or op._condition
         for instruction in circuit
     )

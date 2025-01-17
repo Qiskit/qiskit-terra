@@ -42,7 +42,7 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
 
         if gate.op.control_flow() {
             for block in gate.op.blocks() {
-                let block_qubits = (0..block.num_qubits()).map(|i| Qubit(i.try_into().unwrap()));
+                let block_qubits = (0..block.num_qubits()).map(Qubit::new);
                 let inner_wire_map = qargs
                     .iter()
                     .zip(block_qubits)
@@ -74,13 +74,9 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
     }
 
     // In the outer DAG, virtual and physical bits are the same thing.
-    let wire_map: HashMap<Qubit, PhysicalQubit> =
-        HashMap::from_iter((0..dag.num_qubits()).map(|i| {
-            (
-                Qubit(i.try_into().unwrap()),
-                PhysicalQubit::new(i.try_into().unwrap()),
-            )
-        }));
+    let wire_map: HashMap<Qubit, PhysicalQubit> = HashMap::from_iter(
+        (0..dag.num_qubits()).map(|i| (Qubit::new(i), PhysicalQubit::new(i.try_into().unwrap()))),
+    );
 
     // Process the DAG.
     for gate in dag.op_nodes(true) {

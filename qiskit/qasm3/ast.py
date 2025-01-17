@@ -15,11 +15,13 @@
 """QASM3 AST Nodes"""
 
 import enum
-from typing import Optional, List, Union, Iterable, Tuple
+from typing import Optional, List, Union, Iterable, Tuple, Sequence
 
 
 class ASTNode:
     """Base abstract class for AST nodes"""
+
+    __slots__ = ()
 
 
 class Statement(ASTNode):
@@ -35,12 +37,16 @@ class Statement(ASTNode):
         | quantumStatement
     """
 
+    __slots__ = ()
+
 
 class Pragma(ASTNode):
     """
     pragma
         : '#pragma' LBRACE statement* RBRACE  // match any valid openqasm statement
     """
+
+    __slots__ = ("content",)
 
     def __init__(self, content):
         self.content = content
@@ -52,6 +58,8 @@ class CalibrationGrammarDeclaration(Statement):
         : 'defcalgrammar' calibrationGrammar SEMICOLON
     """
 
+    __slots__ = ("name",)
+
     def __init__(self, name):
         self.name = name
 
@@ -62,9 +70,11 @@ class Program(ASTNode):
         : header (globalStatement | statement)*
     """
 
-    def __init__(self, header, statements=None):
+    __slots__ = ("header", "statements")
+
+    def __init__(self, header, statements=()):
         self.header = header
-        self.statements = statements or []
+        self.statements = statements
 
 
 class Header(ASTNode):
@@ -72,6 +82,8 @@ class Header(ASTNode):
     header
         : version? include*
     """
+
+    __slots__ = ("version", "includes")
 
     def __init__(self, version, includes):
         self.version = version
@@ -84,6 +96,8 @@ class Include(ASTNode):
         : 'include' StringLiteral SEMICOLON
     """
 
+    __slots__ = ("filename",)
+
     def __init__(self, filename):
         self.filename = filename
 
@@ -93,6 +107,8 @@ class Version(ASTNode):
     version
         : 'OPENQASM'(Integer | RealNumber) SEMICOLON
     """
+
+    __slots__ = ("version_number",)
 
     def __init__(self, version_number):
         self.version_number = version_number
@@ -108,9 +124,13 @@ class QuantumInstruction(ASTNode):
         | quantumBarrier
     """
 
+    __slots__ = ()
+
 
 class ClassicalType(ASTNode):
     """Information about a classical type.  This is just an abstract base for inheritance tests."""
+
+    __slots__ = ()
 
 
 class FloatType(ClassicalType, enum.Enum):
@@ -126,9 +146,13 @@ class FloatType(ClassicalType, enum.Enum):
 class BoolType(ClassicalType):
     """Type information for a Boolean."""
 
+    __slots__ = ()
+
 
 class IntType(ClassicalType):
     """Type information for a signed integer."""
+
+    __slots__ = ("size",)
 
     def __init__(self, size: Optional[int] = None):
         self.size = size
@@ -137,6 +161,8 @@ class IntType(ClassicalType):
 class UintType(ClassicalType):
     """Type information for an unsigned integer."""
 
+    __slots__ = ("size",)
+
     def __init__(self, size: Optional[int] = None):
         self.size = size
 
@@ -144,19 +170,25 @@ class UintType(ClassicalType):
 class BitType(ClassicalType):
     """Type information for a single bit."""
 
+    __slots__ = ()
+
 
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
+
+    __slots__ = ("size",)
 
     def __init__(self, size: int):
         self.size = size
 
 
 class Expression(ASTNode):
-    pass
+    __slots__ = ()
 
 
 class StringifyAndPray(Expression):
+    __slots__ = ("obj",)
+
     # This is not a real AST node, yet is somehow very common. It's used when there are
     # `ParameterExpression` instances; instead of actually visiting the Sympy expression tree into
     # an OQ3 AST, we just convert it to a string, cross our fingers, and hope.
@@ -165,6 +197,8 @@ class StringifyAndPray(Expression):
 
 
 class Range(Expression):
+    __slots__ = ("start", "step", "end")
+
     def __init__(
         self,
         start: Optional[Expression] = None,
@@ -177,12 +211,16 @@ class Range(Expression):
 
 
 class Identifier(Expression):
+    __slots__ = ("string",)
+
     def __init__(self, string):
         self.string = string
 
 
 class SubscriptedIdentifier(Identifier):
     """An identifier with subscripted access."""
+
+    __slots__ = ("subscript",)
 
     def __init__(self, string: str, subscript: Union[Range, Expression]):
         super().__init__(string)
@@ -198,16 +236,22 @@ class Constant(Expression, enum.Enum):
 
 
 class IntegerLiteral(Expression):
+    __slots__ = ("value",)
+
     def __init__(self, value):
         self.value = value
 
 
 class BooleanLiteral(Expression):
+    __slots__ = ("value",)
+
     def __init__(self, value):
         self.value = value
 
 
 class BitstringLiteral(Expression):
+    __slots__ = ("value", "width")
+
     def __init__(self, value, width):
         self.value = value
         self.width = width
@@ -224,12 +268,16 @@ class DurationUnit(enum.Enum):
 
 
 class DurationLiteral(Expression):
+    __slots__ = ("value", "unit")
+
     def __init__(self, value: float, unit: DurationUnit):
         self.value = value
         self.unit = unit
 
 
 class Unary(Expression):
+    __slots__ = ("op", "operand")
+
     class Op(enum.Enum):
         LOGIC_NOT = "!"
         BIT_NOT = "~"
@@ -240,6 +288,8 @@ class Unary(Expression):
 
 
 class Binary(Expression):
+    __slots__ = ("op", "left", "right")
+
     class Op(enum.Enum):
         BIT_AND = "&"
         BIT_OR = "|"
@@ -262,12 +312,16 @@ class Binary(Expression):
 
 
 class Cast(Expression):
+    __slots__ = ("type", "operand")
+
     def __init__(self, type: ClassicalType, operand: Expression):
         self.type = type
         self.operand = operand
 
 
 class Index(Expression):
+    __slots__ = ("target", "index")
+
     def __init__(self, target: Expression, index: Expression):
         self.target = target
         self.index = index
@@ -280,6 +334,8 @@ class IndexSet(ASTNode):
         { Expression (, Expression)* }
     """
 
+    __slots__ = ("values",)
+
     def __init__(self, values: List[Expression]):
         self.values = values
 
@@ -289,6 +345,8 @@ class QuantumMeasurement(ASTNode):
     quantumMeasurement
         : 'measure' indexIdentifierList
     """
+
+    __slots__ = ("identifierList",)
 
     def __init__(self, identifierList: List[Identifier]):
         self.identifierList = identifierList
@@ -301,6 +359,8 @@ class QuantumMeasurementAssignment(Statement):
         | indexIdentifier EQUALS quantumMeasurement  # eg: bits = measure qubits;
     """
 
+    __slots__ = ("identifier", "quantumMeasurement")
+
     def __init__(self, identifier: Identifier, quantumMeasurement: QuantumMeasurement):
         self.identifier = identifier
         self.quantumMeasurement = quantumMeasurement
@@ -312,12 +372,16 @@ class Designator(ASTNode):
         : LBRACKET expression RBRACKET
     """
 
+    __slots__ = ("expression",)
+
     def __init__(self, expression: Expression):
         self.expression = expression
 
 
 class ClassicalDeclaration(Statement):
     """Declaration of a classical type, optionally initializing it to a value."""
+
+    __slots__ = ("type", "identifier", "initializer")
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_
@@ -327,6 +391,8 @@ class ClassicalDeclaration(Statement):
 
 class AssignmentStatement(Statement):
     """Assignment of an expression to an l-value."""
+
+    __slots__ = ("lvalue", "rvalue")
 
     def __init__(self, lvalue: SubscriptedIdentifier, rvalue: Expression):
         self.lvalue = lvalue
@@ -340,6 +406,8 @@ class QuantumDeclaration(ASTNode):
          'qubit' designator? Identifier
     """
 
+    __slots__ = ("identifier", "designator")
+
     def __init__(self, identifier: Identifier, designator=None):
         self.identifier = identifier
         self.designator = designator
@@ -350,6 +418,8 @@ class AliasStatement(ASTNode):
     aliasStatement
         : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
+
+    __slots__ = ("identifier", "value")
 
     def __init__(self, identifier: Identifier, value: Expression):
         self.identifier = identifier
@@ -368,6 +438,8 @@ class QuantumGateModifierName(enum.Enum):
 class QuantumGateModifier(ASTNode):
     """A modifier of a gate. For example, in ``ctrl @ x $0``, the ``ctrl @`` is the modifier."""
 
+    __slots__ = ("modifier", "argument")
+
     def __init__(self, modifier: QuantumGateModifierName, argument: Optional[Expression] = None):
         self.modifier = modifier
         self.argument = argument
@@ -379,17 +451,19 @@ class QuantumGateCall(QuantumInstruction):
         : quantumGateModifier* quantumGateName ( LPAREN expressionList? RPAREN )? indexIdentifierList
     """
 
+    __slots__ = ("quantumGateName", "indexIdentifierList", "parameters", "modifiers")
+
     def __init__(
         self,
         quantumGateName: Identifier,
         indexIdentifierList: List[Identifier],
-        parameters: List[Expression] = None,
-        modifiers: Optional[List[QuantumGateModifier]] = None,
+        parameters: Sequence[Expression] = (),
+        modifiers: Sequence[QuantumGateModifier] = (),
     ):
         self.quantumGateName = quantumGateName
         self.indexIdentifierList = indexIdentifierList
-        self.parameters = parameters or []
-        self.modifiers = modifiers or []
+        self.parameters = parameters
+        self.modifiers = modifiers
 
 
 class QuantumBarrier(QuantumInstruction):
@@ -398,6 +472,8 @@ class QuantumBarrier(QuantumInstruction):
         : 'barrier' indexIdentifierList
     """
 
+    __slots__ = ("indexIdentifierList",)
+
     def __init__(self, indexIdentifierList: List[Identifier]):
         self.indexIdentifierList = indexIdentifierList
 
@@ -405,12 +481,16 @@ class QuantumBarrier(QuantumInstruction):
 class QuantumReset(QuantumInstruction):
     """A built-in ``reset q0;`` statement."""
 
+    __slots__ = ("identifier",)
+
     def __init__(self, identifier: Identifier):
         self.identifier = identifier
 
 
 class QuantumDelay(QuantumInstruction):
     """A built-in ``delay[duration] q0;`` statement."""
+
+    __slots__ = ("duration", "qubits")
 
     def __init__(self, duration: Expression, qubits: List[Identifier]):
         self.duration = duration
@@ -424,6 +504,8 @@ class ProgramBlock(ASTNode):
         | LBRACE(statement | controlDirective) * RBRACE
     """
 
+    __slots__ = ("statements",)
+
     def __init__(self, statements: List[Statement]):
         self.statements = statements
 
@@ -433,6 +515,8 @@ class ReturnStatement(ASTNode):  # TODO probably should be a subclass of Control
     returnStatement
         : 'return' ( expression | quantumMeasurement )? SEMICOLON;
     """
+
+    __slots__ = ("expression",)
 
     def __init__(self, expression=None):
         self.expression = expression
@@ -444,7 +528,7 @@ class QuantumBlock(ProgramBlock):
         : LBRACE ( quantumStatement | quantumLoop )* RBRACE
     """
 
-    pass
+    __slots__ = ()
 
 
 class SubroutineBlock(ProgramBlock):
@@ -453,7 +537,7 @@ class SubroutineBlock(ProgramBlock):
         : LBRACE statement* returnStatement? RBRACE
     """
 
-    pass
+    __slots__ = ()
 
 
 class QuantumGateDefinition(Statement):
@@ -461,6 +545,8 @@ class QuantumGateDefinition(Statement):
     quantumGateDefinition
         : 'gate' quantumGateSignature quantumBlock
     """
+
+    __slots__ = ("name", "params", "qubits", "body")
 
     def __init__(
         self,
@@ -482,14 +568,16 @@ class SubroutineDefinition(Statement):
         returnSignature? subroutineBlock
     """
 
+    __slots__ = ("identifier", "arguments", "subroutineBlock")
+
     def __init__(
         self,
         identifier: Identifier,
         subroutineBlock: SubroutineBlock,
-        arguments=None,  # [ClassicalArgument]
+        arguments=(),  # [ClassicalArgument]
     ):
         self.identifier = identifier
-        self.arguments = arguments or []
+        self.arguments = arguments
         self.subroutineBlock = subroutineBlock
 
 
@@ -499,7 +587,7 @@ class CalibrationArgument(ASTNode):
         : classicalArgumentList | expressionList
     """
 
-    pass
+    __slots__ = ()
 
 
 class CalibrationDefinition(Statement):
@@ -511,15 +599,17 @@ class CalibrationDefinition(Statement):
         ;
     """
 
+    __slots__ = ("name", "identifierList", "calibrationArgumentList")
+
     def __init__(
         self,
         name: Identifier,
         identifierList: List[Identifier],
-        calibrationArgumentList: Optional[List[CalibrationArgument]] = None,
+        calibrationArgumentList: Sequence[CalibrationArgument] = (),
     ):
         self.name = name
         self.identifierList = identifierList
-        self.calibrationArgumentList = calibrationArgumentList or []
+        self.calibrationArgumentList = calibrationArgumentList
 
 
 class BranchingStatement(Statement):
@@ -527,6 +617,8 @@ class BranchingStatement(Statement):
     branchingStatement
         : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
     """
+
+    __slots__ = ("condition", "true_body", "false_body")
 
     def __init__(self, condition: Expression, true_body: ProgramBlock, false_body=None):
         self.condition = condition
@@ -546,6 +638,8 @@ class ForLoopStatement(Statement):
             | "{" Expression ("," Expression)* "}"
             | "[" Range "]"
     """
+
+    __slots__ = ("indexset", "parameter", "body")
 
     def __init__(
         self,
@@ -567,6 +661,8 @@ class WhileLoopStatement(Statement):
         WhileLoop: "while" "(" Expression ")" ProgramBlock
     """
 
+    __slots__ = ("condition", "body")
+
     def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
         self.body = body
@@ -575,9 +671,13 @@ class WhileLoopStatement(Statement):
 class BreakStatement(Statement):
     """AST node for ``break`` statements.  Has no associated information."""
 
+    __slots__ = ()
+
 
 class ContinueStatement(Statement):
     """AST node for ``continue`` statements.  Has no associated information."""
+
+    __slots__ = ()
 
 
 class IOModifier(enum.Enum):
@@ -590,6 +690,8 @@ class IOModifier(enum.Enum):
 class IODeclaration(ClassicalDeclaration):
     """A declaration of an IO variable."""
 
+    __slots__ = ("modifier",)
+
     def __init__(self, modifier: IOModifier, type_: ClassicalType, identifier: Identifier):
         super().__init__(type_, identifier)
         self.modifier = modifier
@@ -598,12 +700,16 @@ class IODeclaration(ClassicalDeclaration):
 class DefaultCase(Expression):
     """An object representing the `default` special label in switch statements."""
 
+    __slots__ = ()
+
 
 class SwitchStatementPreview(Statement):
     """AST node for the proposed 'switch-case' extension to OpenQASM 3, before the syntax was
     stabilized.  This corresponds to the :attr:`.ExperimentalFeatures.SWITCH_CASE_V1` logic.
 
     The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
+
+    __slots__ = ("target", "cases")
 
     def __init__(
         self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
@@ -618,6 +724,8 @@ class SwitchStatement(Statement):
     The only real difference from an AST form is that the default is required to be separate; it
     cannot be joined with other cases (even though that's meaningless, the V1 syntax permitted it).
     """
+
+    __slots__ = ("target", "cases", "default")
 
     def __init__(
         self,

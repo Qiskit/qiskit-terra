@@ -26,13 +26,17 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
 
         base = QuantumCircuit(bits)
         base.h(0)
-        base.x(0).c_if(0, 1)
-        base.z(1).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            base.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            base.z(1).c_if(1, 0)
         base.measure(0, 0)
         base.measure(1, 1)
         base.h(0)
-        base.x(0).c_if(0, 1)
-        base.cx(0, 1).c_if(1, 0)
+        with self.assertWarns(DeprecationWarning):
+            base.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            base.cx(0, 1).c_if(1, 0)
 
         expected = QuantumCircuit(bits)
         expected.h(0)
@@ -48,8 +52,8 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
         with expected.if_test((expected.clbits[1], False)):
             expected.cx(0, 1)
         expected = canonicalize_control_flow(expected)
-
-        output = PassManager([ConvertConditionsToIfOps()]).run(base)
+        with self.assertWarns(DeprecationWarning):
+            output = PassManager([ConvertConditionsToIfOps()]).run(base)
         self.assertEqual(output, expected)
 
     def test_simple_registers(self):
@@ -58,13 +62,17 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
 
         base = QuantumCircuit(*registers)
         base.h(0)
-        base.x(0).c_if(base.cregs[0], 1)
-        base.z(1).c_if(base.cregs[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            base.x(0).c_if(base.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            base.z(1).c_if(base.cregs[1], 0)
         base.measure(0, 0)
         base.measure(1, 2)
         base.h(0)
-        base.x(0).c_if(base.cregs[0], 1)
-        base.cx(0, 1).c_if(base.cregs[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            base.x(0).c_if(base.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            base.cx(0, 1).c_if(base.cregs[1], 0)
 
         expected = QuantumCircuit(*registers)
         expected.h(0)
@@ -81,7 +89,8 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
             expected.cx(0, 1)
         expected = canonicalize_control_flow(expected)
 
-        output = PassManager([ConvertConditionsToIfOps()]).run(base)
+        with self.assertWarns(DeprecationWarning):
+            output = PassManager([ConvertConditionsToIfOps()]).run(base)
         self.assertEqual(output, expected)
 
     def test_nested_control_flow(self):
@@ -91,14 +100,18 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
         registers = [QuantumRegister(3), ClassicalRegister(2)]
 
         base = QuantumCircuit(*registers, bits)
-        base.x(0).c_if(bits[0], False)
+        with self.assertWarns(DeprecationWarning):
+            base.x(0).c_if(bits[0], False)
         with base.if_test((base.cregs[0], 0)) as else_:
-            base.z(1).c_if(bits[0], False)
+            with self.assertWarns(DeprecationWarning):
+                base.z(1).c_if(bits[0], False)
         with else_:
-            base.z(1).c_if(base.cregs[0], 1)
+            with self.assertWarns(DeprecationWarning):
+                base.z(1).c_if(base.cregs[0], 1)
         with base.for_loop(range(2)):
             with base.while_loop((base.cregs[0], 1)):
-                base.cx(1, 2).c_if(base.cregs[0], 1)
+                with self.assertWarns(DeprecationWarning):
+                    base.cx(1, 2).c_if(base.cregs[0], 1)
         base = canonicalize_control_flow(base)
 
         expected = QuantumCircuit(*registers, bits)
@@ -115,8 +128,8 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
                 with expected.if_test((expected.cregs[0], 1)):
                     expected.cx(1, 2)
         expected = canonicalize_control_flow(expected)
-
-        output = PassManager([ConvertConditionsToIfOps()]).run(base)
+        with self.assertWarns(DeprecationWarning):
+            output = PassManager([ConvertConditionsToIfOps()]).run(base)
         self.assertEqual(output, expected)
 
     def test_no_op(self):
@@ -135,5 +148,6 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
             with base.while_loop((base.cregs[0], 1)):
                 base.cx(1, 2)
         base = canonicalize_control_flow(base)
-        output = PassManager([ConvertConditionsToIfOps()]).run(base)
+        with self.assertWarns(DeprecationWarning):
+            output = PassManager([ConvertConditionsToIfOps()]).run(base)
         self.assertEqual(output, base)

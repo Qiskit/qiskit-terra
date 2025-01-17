@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fix a bug in the multi-controlled rotation circuit methods :meth:`.QuantumCircuit.mcrx`,
+    :meth:`.QuantumCircuit.mcry`, and :meth:`.QuantumCircuit.mcrz`, when the user provides an unbounded parameter,
+    as well as when calling :meth:`.RXGate.control`, :meth:`.RYGate.control` or :meth:`.RZGate.control` where the
+    rotation angle is a :class:`.ParameterExpression`.
+    Previously, the user got an error that this gate cannot be synthesized with unbound parameter,
+    and now these multi-controlled rotation circuits can be synthesized without raising an error.

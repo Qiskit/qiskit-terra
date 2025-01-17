@@ -15,20 +15,23 @@
 from __future__ import annotations
 
 import collections.abc
+import io
 import struct
 import uuid
 
 import numpy as np
 import symengine
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import (
+    ParameterExpression,
+    op_code_to_method,
+    _OPCode,
+    _SUBS,
+)
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
 
@@ -53,20 +56,132 @@ def _write_parameter_vec(file_obj, obj):
     file_obj.write(name_bytes)
 
 
-def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
-    if use_symengine:
-        expr_bytes = obj._symbol_expr.__reduce__()[1][0]
+def _encode_replay_entry(inst, file_obj, version, r_side=False):
+    inst_type = None
+    inst_data = None
+    if inst is None:
+        inst_type = "n"
+        inst_data = b"\x00"
+    elif isinstance(inst, Parameter):
+        inst_type = "p"
+        inst_data = inst.uuid.bytes
+    elif isinstance(inst, complex):
+        inst_type = "c"
+        inst_data = struct.pack("!dd", inst.real, inst.imag)
+    elif isinstance(inst, float):
+        inst_type = "f"
+        inst_data = struct.pack("!Qd", 0, inst)
+    elif isinstance(inst, int):
+        inst_type = "i"
+        inst_data = struct.pack("!Qq", 0, inst)
+    elif isinstance(inst, ParameterExpression):
+        if not r_side:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V13_PACK,
+                255,
+                "s".encode("utf8"),
+                b"\x00",
+                "n".encode("utf8"),
+                b"\x00",
+            )
+        else:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V13_PACK,
+                255,
+                "n".encode("utf8"),
+                b"\x00",
+                "s".encode("utf8"),
+                b"\x00",
+            )
+        file_obj.write(entry)
+        _write_parameter_expression_v13(file_obj, inst, version)
+        if not r_side:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V13_PACK,
+                255,
+                "e".encode("utf8"),
+                b"\x00",
+                "n".encode("utf8"),
+                b"\x00",
+            )
+        else:
+            entry = struct.pack(
+                formats.PARAM_EXPR_ELEM_V13_PACK,
+                255,
+                "n".encode("utf8"),
+                b"\x00",
+                "e".encode("utf8"),
+                b"\x00",
+            )
+        file_obj.write(entry)
+        inst_type = "n"
+        inst_data = b"\x00"
     else:
-        from sympy import srepr, sympify
+        raise exceptions.QpyError("Invalid parameter expression type")
+    return inst_type, inst_data
 
-        expr_bytes = srepr(sympify(obj._symbol_expr)).encode(common.ENCODE)
 
+def _encode_replay_subs(subs, file_obj, version):
+    with io.BytesIO() as mapping_buf:
+        subs_dict = {k.name: v for k, v in subs.binds.items()}
+        common.write_mapping(
+            mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
+        )
+        data = mapping_buf.getvalue()
+    entry = struct.pack(
+        formats.PARAM_EXPR_ELEM_V13_PACK,
+        subs.op,
+        "u".encode("utf8"),
+        struct.pack("!QQ", len(data), 0),
+        "n".encode("utf8"),
+        b"\x00",
+    )
+    file_obj.write(entry)
+    file_obj.write(data)
+    return subs.binds
+
+
+def _write_parameter_expression_v13(file_obj, obj, version):
+    symbol_map = {}
+    for inst in obj._qpy_replay:
+        if isinstance(inst, _SUBS):
+            symbol_map.update(_encode_replay_subs(inst, file_obj, version))
+            continue
+        lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
+        rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
+        entry = struct.pack(
+            formats.PARAM_EXPR_ELEM_V13_PACK,
+            inst.op,
+            lhs_type.encode("utf8"),
+            lhs,
+            rhs_type.encode("utf8"),
+            rhs,
+        )
+        file_obj.write(entry)
+    return symbol_map
+
+
+def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
+    extra_symbols = None
+    if version < 13:
+        if use_symengine:
+            expr_bytes = obj._symbol_expr.__reduce__()[1][0]
+        else:
+            from sympy import srepr, sympify
+
+            expr_bytes = srepr(sympify(obj._symbol_expr)).encode(common.ENCODE)
+    else:
+        with io.BytesIO() as buf:
+            extra_symbols = _write_parameter_expression_v13(buf, obj, version)
+            expr_bytes = buf.getvalue()
+    symbol_table_len = len(obj._parameter_symbols)
+    if extra_symbols:
+        symbol_table_len += 2 * len(extra_symbols)
     param_expr_header_raw = struct.pack(
-        formats.PARAMETER_EXPR_PACK, len(obj._parameter_symbols), len(expr_bytes)
+        formats.PARAMETER_EXPR_PACK, symbol_table_len, len(expr_bytes)
     )
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
-
     for symbol, value in obj._parameter_symbols.items():
         symbol_key = type_keys.Value.assign(symbol)
 
@@ -92,6 +207,49 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
         file_obj.write(elem_header)
         file_obj.write(symbol_data)
         file_obj.write(value_data)
+    if extra_symbols:
+        for symbol in extra_symbols:
+            symbol_key = type_keys.Value.assign(symbol)
+            # serialize key
+            if symbol_key == type_keys.Value.PARAMETER_VECTOR:
+                symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
+            else:
+                symbol_data = common.data_to_binary(symbol, _write_parameter)
+            # serialize value
+            value_key, value_data = dumps_value(
+                symbol, version=version, use_symengine=use_symengine
+            )
+
+            elem_header = struct.pack(
+                formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
+                symbol_key,
+                value_key,
+                len(value_data),
+            )
+            file_obj.write(elem_header)
+            file_obj.write(symbol_data)
+            file_obj.write(value_data)
+        for symbol in extra_symbols.values():
+            symbol_key = type_keys.Value.assign(symbol)
+            # serialize key
+            if symbol_key == type_keys.Value.PARAMETER_VECTOR:
+                symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
+            else:
+                symbol_data = common.data_to_binary(symbol, _write_parameter)
+            # serialize value
+            value_key, value_data = dumps_value(
+                symbol, version=version, use_symengine=use_symengine
+            )
+
+            elem_header = struct.pack(
+                formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
+                symbol_key,
+                value_key,
+                len(value_data),
+            )
+            file_obj.write(elem_header)
+            file_obj.write(symbol_data)
+            file_obj.write(value_data)
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
@@ -290,7 +448,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     payload = file_obj.read(data.expr_size)
     if use_symengine:
-        expr_ = load_basic(payload)
+        expr_ = common.load_symengine_payload(payload)
     else:
         from sympy.parsing.sympy_parser import parse_expr
 
@@ -335,6 +493,141 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         symbol_map[symbol] = value
 
     return ParameterExpression(symbol_map, expr_)
+
+
+def _read_parameter_expression_v13(file_obj, vectors, version):
+    data = formats.PARAMETER_EXPR(
+        *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
+    )
+
+    payload = file_obj.read(data.expr_size)
+
+    symbol_map = {}
+    for _ in range(data.map_elements):
+        elem_data = formats.PARAM_EXPR_MAP_ELEM_V3(
+            *struct.unpack(
+                formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
+                file_obj.read(formats.PARAM_EXPR_MAP_ELEM_V3_SIZE),
+            )
+        )
+        symbol_key = type_keys.Value(elem_data.symbol_type)
+
+        if symbol_key == type_keys.Value.PARAMETER:
+            symbol = _read_parameter(file_obj)
+        elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
+            symbol = _read_parameter_vec(file_obj, vectors)
+        else:
+            raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
+
+        elem_key = type_keys.Value(elem_data.type)
+        binary_data = file_obj.read(elem_data.size)
+        if elem_key == type_keys.Value.INTEGER:
+            value = struct.unpack("!q", binary_data)
+        elif elem_key == type_keys.Value.FLOAT:
+            value = struct.unpack("!d", binary_data)
+        elif elem_key == type_keys.Value.COMPLEX:
+            value = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
+        elif elem_key in (type_keys.Value.PARAMETER, type_keys.Value.PARAMETER_VECTOR):
+            value = symbol._symbol_expr
+        elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
+            value = common.data_from_binary(
+                binary_data,
+                _read_parameter_expression_v13,
+                vectors=vectors,
+            )
+        else:
+            raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
+        symbol_map[symbol] = value
+    with io.BytesIO(payload) as buf:
+        return _read_parameter_expr_v13(buf, symbol_map, version, vectors)
+
+
+def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
+    param_uuid_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
+    name_map = {str(v): k for k, v in symbol_map.items()}
+    data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+    stack = []
+    while data:
+        expression_data = formats.PARAM_EXPR_ELEM_V13._make(
+            struct.unpack(formats.PARAM_EXPR_ELEM_V13_PACK, data)
+        )
+        # LHS
+        if expression_data.LHS_TYPE == b"p":
+            stack.append(param_uuid_map[uuid.UUID(bytes=expression_data.LHS)])
+        elif expression_data.LHS_TYPE == b"f":
+            stack.append(struct.unpack("!Qd", expression_data.LHS)[1])
+        elif expression_data.LHS_TYPE == b"n":
+            pass
+        elif expression_data.LHS_TYPE == b"c":
+            stack.append(complex(*struct.unpack("!dd", expression_data.LHS)))
+        elif expression_data.LHS_TYPE == b"i":
+            stack.append(struct.unpack("!Qq", expression_data.LHS)[1])
+        elif expression_data.LHS_TYPE == b"s":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+            continue
+        elif expression_data.LHS_TYPE == b"e":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+            continue
+        elif expression_data.LHS_TYPE == b"u":
+            size = struct.unpack_from("!QQ", expression_data.LHS)[0]
+            subs_map_data = buf.read(size)
+            with io.BytesIO(subs_map_data) as mapping_buf:
+                mapping = common.read_mapping(
+                    mapping_buf, deserializer=loads_value, version=version, vectors=vectors
+                )
+            stack.append({name_map[k]: v for k, v in mapping.items()})
+        else:
+            raise exceptions.QpyError(
+                "Unknown ParameterExpression operation type {expression_data.LHS_TYPE}"
+            )
+        # RHS
+        if expression_data.RHS_TYPE == b"p":
+            stack.append(param_uuid_map[uuid.UUID(bytes=expression_data.RHS)])
+        elif expression_data.RHS_TYPE == b"f":
+            stack.append(struct.unpack("!Qd", expression_data.RHS)[1])
+        elif expression_data.RHS_TYPE == b"n":
+            pass
+        elif expression_data.RHS_TYPE == b"c":
+            stack.append(complex(*struct.unpack("!dd", expression_data.RHS)))
+        elif expression_data.RHS_TYPE == b"i":
+            stack.append(struct.unpack("!Qq", expression_data.RHS)[1])
+        elif expression_data.RHS_TYPE == b"s":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+            continue
+        elif expression_data.RHS_TYPE == b"e":
+            data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+            continue
+        else:
+            raise exceptions.QpyError(
+                f"Unknown ParameterExpression operation type {expression_data.RHS_TYPE}"
+            )
+        if expression_data.OP_CODE == 255:
+            continue
+        method_str = op_code_to_method(_OPCode(expression_data.OP_CODE))
+        if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
+            rhs = stack.pop()
+            lhs = stack.pop()
+            # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
+            # op codes 13 and 15 can never be reversed and 18, 19, 20
+            # are the reversed versions of non-commuative operations
+            # so 1, 3, 4 and 18, 19, 20 handle this explicitly.
+            if (
+                not isinstance(lhs, ParameterExpression)
+                and isinstance(rhs, ParameterExpression)
+                and expression_data.OP_CODE in {0, 2}
+            ):
+                if expression_data.OP_CODE == 0:
+                    method_str = "__radd__"
+                elif expression_data.OP_CODE == 2:
+                    method_str = "__rmul__"
+                stack.append(getattr(rhs, method_str)(lhs))
+            else:
+                stack.append(getattr(lhs, method_str)(rhs))
+        else:
+            lhs = stack.pop()
+            stack.append(getattr(lhs, method_str)())
+        data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+    return stack.pop()
 
 
 def _read_expr(
@@ -667,12 +960,16 @@ def loads_value(
     if type_key == type_keys.Value.PARAMETER_EXPRESSION:
         if version < 3:
             return common.data_from_binary(binary_data, _read_parameter_expression)
-        else:
+        elif version < 13:
             return common.data_from_binary(
                 binary_data,
                 _read_parameter_expression_v3,
                 vectors=vectors,
                 use_symengine=use_symengine,
+            )
+        else:
+            return common.data_from_binary(
+                binary_data, _read_parameter_expression_v13, vectors=vectors, version=version
             )
     if type_key == type_keys.Value.EXPRESSION:
         return common.data_from_binary(

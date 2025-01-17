@@ -29,6 +29,7 @@ Example Usage
 Here is an example of using a simulated backend for transpilation and running.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile

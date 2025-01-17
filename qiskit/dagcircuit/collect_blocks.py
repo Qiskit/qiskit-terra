@@ -306,7 +306,7 @@ def split_block_into_layers(block: list[DAGOpNode | DAGDepNode]):
         cur_bits = set(node.qargs)
         cur_bits.update(node.cargs)
 
-        cond = getattr(node.op, "condition", None)
+        cond = getattr(node.op, "_condition", None)
         if cond is not None:
             cur_bits.update(condition_resources(cond).clbits)
 
@@ -356,7 +356,7 @@ class BlockCollapser:
             for node in block:
                 cur_qubits.update(node.qargs)
                 cur_clbits.update(node.cargs)
-                cond = getattr(node.op, "condition", None)
+                cond = getattr(node.op, "_condition", None)
                 if cond is not None:
                     cur_clbits.update(condition_resources(cond).clbits)
                     if isinstance(cond[0], ClassicalRegister):
@@ -378,7 +378,7 @@ class BlockCollapser:
 
             for node in block:
                 instructions = qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
-                cond = getattr(node.op, "condition", None)
+                cond = getattr(node.op, "_condition", None)
                 if cond is not None:
                     instructions.c_if(*cond)
 

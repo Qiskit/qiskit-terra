@@ -1,0 +1,7 @@
+---
+upgrade_misc:
+  - |
+    The ``deprecate_function`` and ``deprecate_arguments`` decorators had been deprecated since 0.24, released
+    on May 2023, and have been removed in 2.0.
+    Current :func:`deprecate_func`` replaces ``@deprecate_function`` and current
+    :func:`deprecate_arg` replaces ``@deprecate_arguments``.

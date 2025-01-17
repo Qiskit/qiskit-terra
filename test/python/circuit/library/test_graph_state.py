@@ -13,10 +13,12 @@
 """Test library of graph state circuits."""
 
 import unittest
+import numpy as np
 
+from qiskit.circuit import Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import GraphState
-from qiskit.quantum_info import Clifford
+from qiskit.circuit.library import GraphState, GraphStateGate
+from qiskit.quantum_info import Clifford, Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -24,11 +26,15 @@ class TestGraphStateLibrary(QiskitTestCase):
     """Test the graph state circuit."""
 
     def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
-        """Check the stabilizers of the graph state against the expected stabilizers.
+        """Check the stabilizers of the graph state circuit/gate against the expected stabilizers.
         Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
         """
+        if isinstance(graph_state, Gate):
+            cliff = Clifford(graph_state.definition)
+        else:
+            cliff = Clifford(graph_state)
 
-        stabilizers = [stabilizer[1:] for stabilizer in Clifford(graph_state).to_labels(mode="S")]
+        stabilizers = [stabilizer[1:] for stabilizer in cliff.to_labels(mode="S")]
 
         expected_stabilizers = []  # keep track of all expected stabilizers
         num_vertices = len(adjacency_matrix)
@@ -47,7 +53,7 @@ class TestGraphStateLibrary(QiskitTestCase):
 
         self.assertListEqual(expected_stabilizers, stabilizers)
 
-    def test_graph_state(self):
+    def test_graph_state_circuit(self):
         """Verify the GraphState by checking if the circuit has the expected stabilizers."""
         adjacency_matrix = [
             [0, 1, 0, 0, 1],
@@ -59,11 +65,81 @@ class TestGraphStateLibrary(QiskitTestCase):
         graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
-    def test_non_symmetric_raises(self):
+    def test_non_symmetric_circuit_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
         adjacency_matrix = [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
         with self.assertRaises(CircuitError):
             GraphState(adjacency_matrix)
+
+    def test_graph_state_gate(self):
+        """Verify correctness of GraphStatGate by checking that the gate's definition circuit
+        has the expected stabilizers.
+        """
+        adjacency_matrix = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        graph_state = GraphStateGate(adjacency_matrix)
+        self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
+
+    def test_non_symmetric_gate_raises(self):
+        """Test that adjacency matrix is required to be symmetric."""
+        adjacency_matrix = [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
+        with self.assertRaises(CircuitError):
+            GraphStateGate(adjacency_matrix)
+
+    def test_circuit_and_gate_equivalence(self):
+        """Test that GraphState-circuit and GraphStateGate yield equal operators."""
+        adjacency_matrix = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        graph_state_gate = GraphStateGate(adjacency_matrix)
+        graph_state_circuit = GraphState(adjacency_matrix)
+        self.assertEqual(Operator(graph_state_gate), Operator(graph_state_circuit))
+
+    def test_adjacency_matrix(self):
+        """Test GraphStateGate's adjacency_matrix method."""
+        adjacency_matrix = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        graph_state_gate = GraphStateGate(adjacency_matrix)
+        self.assertTrue(np.all(graph_state_gate.adjacency_matrix == adjacency_matrix))
+
+    def test_equality(self):
+        """Test GraphStateGate's equality method."""
+        mat1 = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        mat2 = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        with self.subTest("equal"):
+            gate1 = GraphStateGate(mat1)
+            gate2 = GraphStateGate(mat1)
+            self.assertEqual(gate1, gate2)
+        with self.subTest("not equal"):
+            gate1 = GraphStateGate(mat1)
+            gate2 = GraphStateGate(mat2)
+            self.assertNotEqual(gate1, gate2)
 
 
 if __name__ == "__main__":

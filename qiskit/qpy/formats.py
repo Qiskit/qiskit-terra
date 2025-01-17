@@ -259,6 +259,13 @@ PARAMETER = namedtuple("PARAMETER", ["name_size", "uuid"])
 PARAMETER_PACK = "!H16s"
 PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 
+# PARAMETEREXPRESSION_ENTRY
+PARAM_EXPR_ELEM_V13 = namedtuple(
+    "PARAM_EXPR_ELEM_V13", ["OP_CODE", "LHS_TYPE", "LHS", "RHS_TYPE", "RHS"]
+)
+PARAM_EXPR_ELEM_V13_PACK = "!Bc16sc16s"
+PARAM_EXPR_ELEM_V13_SIZE = struct.calcsize(PARAM_EXPR_ELEM_V13_PACK)
+
 # COMPLEX
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"

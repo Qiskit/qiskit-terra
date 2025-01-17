@@ -32,7 +32,9 @@ def _value_repr(value: Any) -> str:
 class DataBin(ShapedMixin):
     """Namespace for storing data.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         import numpy as np
         from qiskit.primitives import DataBin, BitArray

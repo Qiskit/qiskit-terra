@@ -75,7 +75,6 @@ Optimizations
    CollectLinearFunctions
    CollectCliffords
    ConsolidateBlocks
-   CXCancellation
    InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
@@ -93,6 +92,7 @@ Optimizations
    NormalizeRXAngle
    OptimizeAnnotated
    Split2QUnitaries
+   RemoveIdentityEquivalent
 
 Calibration
 =============
@@ -229,7 +229,6 @@ from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CommutativeInverseCancellation
-from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
@@ -247,6 +246,7 @@ from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 
 # circuit analysis

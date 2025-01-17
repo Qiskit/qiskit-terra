@@ -1,0 +1,36 @@
+---
+features_circuits:
+  - |
+    Added the :class:`.MCMTGate` to represent a multi-control multi-target
+    operation as a gate. This gate representation of the existing :class:`.MCMT`
+    circuit allows the compiler to select the best available implementation
+    according to the number and the state of auxiliary qubits present in the circuit.
+
+    Specific implementation can be chosen by specifying the high-level synthesis plugin::
+
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.circuit.library import MCMTGate, HGate
+      from qiskit.transpiler.passes import HLSConfig  # used for the synthesis config
+
+      mcmt = MCMTGate(HGate(), num_ctrl_qubits=5, num_target_qubits=3)
+
+      circuit = QuantumCircuit(20)
+      circuit.append(mcmt, range(mcmt.num_qubits))
+
+      config = HLSConfig(mcmt=["vchain"])  # alternatively use the "noaux" method
+      synthesized = transpile(circuit, hls_config=config)
+
+
+    The :class:`.MCMTGate` in addition also supports custom (i.e., open) control states of
+    the control qubits.
+
+features_synthesis:
+  - |
+    Added :func:`.synth_mcmt_vchain` to synthesize the multi-control multi-target
+    gate with a linear number of Toffoli gates and `k-1` auxiliary qubits for `k` control
+    qubits, along with the high-level synthesis plugin :class:`.MCMTSynthesisVChain`.
+  - |
+    Added a high-level synthesis plugin structure for the :class:`.MCMTGate`, including
+    the :class:`.MCMTSynthesisNoAux` (for no auxiliary qubits), the aforementioned
+    :class:`.MCMTSynthesisVChain` (using ``num_control - 1`` auxiliary qubits), and the
+    :class:`.MCMTSynthesisDefault` to let the compiler choose the optimal decomposition.

@@ -25,6 +25,7 @@ class RemoveBarriers(TransformationPass):
     Example:
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit

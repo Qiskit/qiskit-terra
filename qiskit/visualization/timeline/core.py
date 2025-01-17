@@ -58,6 +58,7 @@ from enum import Enum
 import numpy as np
 
 from qiskit import circuit
+from qiskit.transpiler.target import Target
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import drawings, types
 from qiskit.visualization.timeline.stylesheet import QiskitTimelineStyle
@@ -138,11 +139,13 @@ class DrawerCanvas:
         self._collections[data.data_key] = data
 
     # pylint: disable=cyclic-import
-    def load_program(self, program: circuit.QuantumCircuit):
+    def load_program(self, program: circuit.QuantumCircuit, target: Target | None = None):
         """Load quantum circuit and create drawing..
 
         Args:
             program: Scheduled circuit object to draw.
+            target: The target the circuit is scheduled for. This contains backend information
+                including the instruction durations used in scheduling.
 
         Raises:
            VisualizationError: When circuit is not scheduled.
@@ -180,10 +183,30 @@ class DrawerCanvas:
             for bit_pos, bit in enumerate(bits):
                 if not isinstance(instruction.operation, not_gate_like):
                     # Generate draw object for gates
+                    if target is not None:
+                        duration = None
+                        op_props = target.get(instruction.operation.name)
+                        if op_props is not None:
+                            inst_props = op_props.get(tuple(instruction.qubits))
+                            if inst_props is not None:
+                                duration = inst_props.getattr("duration")
+
+                        if duration is None:
+                            # Warn here because an incomplete target isn't obvious most of the time
+                            warnings.warn(
+                                "Target doesn't contain a duration for "
+                                f"{instruction.operation.name} on {bit_pos}, this will error in "
+                                "Qiskit 2.0.",
+                                DeprecationWarning,
+                                stacklevel=3,
+                            )
+                            duration = instruction.operation.duration
+                    else:
+                        duration = instruction.operation.duration
                     gate_source = types.ScheduledGate(
                         t0=t0,
                         operand=instruction.operation,
-                        duration=instruction.operation.duration,
+                        duration=duration,
                         bits=bits,
                         bit_position=bit_pos,
                     )

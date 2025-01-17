@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Commutation relations of :class:`~.circuit.Instruction`\ s with float-only ``params``
+    were eagerly cached by the :class:`.CommutationChecker`, using the ``params`` as key to
+    query the relation. This could lead to faulty results, if the instruction's definition
+    depended on additional information that just the :attr:`~.circuit.Instruction.params`
+    attribute, such as e.g. the case for :class:`.PauliEvolutionGate`.
+    This behavior is now fixed, and the commutation checker only conservatively caches
+    commutations for Qiskit-native standard gates. This can incur a performance cost if you were
+    relying on your custom gates being cached, however, we cannot guarantee safe caching for
+    custom gates, as they might rely on information beyond :attr:`~.circuit.Instruction.params`.
+  - |
+    Fixed a bug in the :class:`.CommmutationChecker`, where checking commutation of instruction
+    with non-numeric values in the :attr:`~.circuit.Instruction.params` attribute (such as the
+    :class:`.PauliGate`) could raise an error.
+    Fixed `#13570 <https://github.com/Qiskit/qiskit/issues/13570>`__.
+

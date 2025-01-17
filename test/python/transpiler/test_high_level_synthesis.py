@@ -45,9 +45,12 @@ from qiskit.circuit.library import (
     QFTGate,
     IGate,
     MCXGate,
+    SGate,
+    QAOAAnsatz,
 )
-from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.quantum_info import Clifford, Operator, Statevector
+from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
+from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -662,6 +665,18 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             out = hls(circuit)
             self.assertEqual(out.count_ops(), {"u": 1})
 
+    def test_both_basis_gates_and_plugin_specified(self):
+        """Test that a gate is not synthesized when it belongs to basis_gates,
+        regardless of whether there is a plugin method available.
+
+        See: https://github.com/Qiskit/qiskit/issues/13412 for more
+        details.
+        """
+        qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
+        pm = PassManager([HighLevelSynthesis(basis_gates=["PauliEvolution"])])
+        qct = pm.run(qc)
+        self.assertEqual(qct.count_ops()["PauliEvolution"], 2)
+
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
     """Tests for the PMHSynthesisLinearFunction plugin for synthesizing linear functions."""
@@ -812,6 +827,17 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             self.assertEqual(qct.size(), 24)
             self.assertEqual(qct.depth(), 13)
 
+    def test_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="linear_function")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("linear_function", synthesized.count_ops())
+
 
 class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
     """Tests for the KMSSynthesisLinearFunction plugin for synthesizing linear functions."""
@@ -861,6 +887,17 @@ class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
             self.assertEqual(qct.size(), 87)
             self.assertEqual(qct.depth(), 32)
+
+    def test_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="linear_function")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("linear_function", synthesized.count_ops())
 
 
 class TestTokenSwapperPermutationPlugin(QiskitTestCase):
@@ -1043,6 +1080,17 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
             for inst in qc_transpiled:
                 qubits = tuple(qc_transpiled.find_bit(q).index for q in inst.qubits)
                 self.assertIn(qubits, edges)
+
+    def test_unfortunate_name(self):
+        """Test the synthesis is not triggered for a custom gate with the same name."""
+        intruder = QuantumCircuit(2, name="permutation")
+        circuit = QuantumCircuit(2)
+        circuit.append(intruder.to_gate(), [0, 1])
+
+        hls = HighLevelSynthesis()
+        synthesized = hls(circuit)
+
+        self.assertIn("permutation", synthesized.count_ops())
 
 
 class TestHighLevelSynthesisModifiers(QiskitTestCase):
@@ -1489,6 +1537,137 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         for op in ops:
             self.assertIn(op, ["u", "cx", "ecr", "measure"])
 
+    def test_simple_circuit(self):
+        """Test HLS on a simple circuit."""
+        qc = QuantumCircuit(3)
+        qc.cz(1, 2)
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_simple_circuit2(self):
+        """Test HLS on a simple circuit."""
+        qc = QuantumCircuit(6)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 3)
+        qc.h(5)
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u", "h"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner = QuantumCircuit(2)
+        inner.cz(0, 1)
+        qc = QuantumCircuit(3)
+        qc.append(inner.to_gate(), [0, 2])
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def2(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner1 = QuantumCircuit(2)
+        inner1.cz(0, 1)
+        qc = QuantumCircuit(4)
+        qc.append(inner1.to_instruction(), [2, 3])
+        pass_ = HighLevelSynthesis(basis_gates=["cz", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def3(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner2 = QuantumCircuit(2)
+        inner2.h(0)
+        inner2.cx(0, 1)
+
+        inner1 = QuantumCircuit(4)
+        inner1.cz(0, 1)
+        inner1.append(inner2.to_instruction(), [0, 2])
+
+        qc = QuantumCircuit(6)
+        qc.h(1)
+        qc.h(2)
+        qc.cz(1, 2)
+        qc.append(inner1.to_instruction(), [2, 0, 4, 3])
+        qc.h(2)
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_mcx(self):
+        """Test synthesis with plugins."""
+        qc = QuantumCircuit(10)
+        qc.mcx([3, 4, 5, 6, 7], 2)
+        basis_gates = ["u", "cx"]
+        qct = HighLevelSynthesis(basis_gates=basis_gates)(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_circuit_with_mcx_def(self):
+        """Test synthesis where the plugin is called within the recursive call
+        on the definition."""
+        circuit = QuantumCircuit(6)
+        circuit.mcx([0, 1, 2, 3, 4], 5)
+        custom_gate = circuit.to_gate()
+        qc = QuantumCircuit(10)
+        qc.append(custom_gate, [3, 4, 5, 6, 7, 2])
+        basis_gates = ["u", "cx"]
+        qct = HighLevelSynthesis(basis_gates=basis_gates)(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_circuit_with_mcx_def_rec(self):
+        """Test synthesis where the plugin is called within the recursive call
+        on the definition."""
+        inner2 = QuantumCircuit(6)
+        inner2.mcx([0, 1, 2, 3, 4], 5)
+        inner1 = QuantumCircuit(7)
+        inner1.append(inner2.to_gate(), [1, 2, 3, 4, 5, 6])
+        qc = QuantumCircuit(10)
+        qc.append(inner1.to_gate(), [2, 3, 4, 5, 6, 7, 8])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_gate(self):
+        """Test synthesis with annotated gate."""
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(SGate().control(3, annotated=True), [0, 1, 8, 9])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_annotated_circuit(self):
+        """Test synthesis with annotated custom gate."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cy(0, 1)
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(circ.to_gate().control(3, annotated=True), [2, 0, 3, 7, 8])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_rec(self):
+        """Test synthesis with annotated custom gates and recursion."""
+        inner2 = QuantumCircuit(2)
+        inner2.h(0)
+        inner2.cy(0, 1)
+        inner1 = QuantumCircuit(5)
+        inner1.h(1)
+        inner1.append(inner2.to_gate().control(2, annotated=True), [1, 2, 3, 4])
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(inner1.to_gate().control(3, annotated=True), [9, 8, 7, 6, 5, 4, 3, 2])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatibility with the UnrollCustomDefinitions pass.
@@ -1588,9 +1767,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.rz(0.3, qr)
         circuit.rx(0.1, qr)
         circuit.measure(qr, cr)
-        circuit.x(qr).c_if(cr, 1)
-        circuit.y(qr).c_if(cr, 1)
-        circuit.z(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.y(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
         pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u1", "u2", "u3"])
         dag = pass_.run(dag)
@@ -1621,9 +1803,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U1Gate(0.3), [qr[0]])
         ref_circuit.append(U3Gate(0.1, -np.pi / 2, np.pi / 2), [qr[0]])
         ref_circuit.measure(qr[0], cr[0])
-        ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(unrolled_dag, ref_dag)
@@ -2467,6 +2652,153 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         qc.append(MCXGate(3).inverse(annotated=True).control(2, annotated=True), [0, 1, 2, 3, 4, 5])
         qct = transpile(qc, qubits_initially_zero=False)
         self.assertEqual(Operator(qc), Operator(qct))
+
+
+@ddt
+class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for PauliEvolutionGate."""
+
+    def test_supported_names(self):
+        """Test that "default" and "rustiq" plugins do exist."""
+        supported_plugin_names = high_level_synthesis_plugin_names("PauliEvolution")
+        self.assertIn("default", supported_plugin_names)
+        self.assertIn("rustiq", supported_plugin_names)
+
+    @data("default", "rustiq")
+    def test_correctness(self, plugin_name):
+        """Test that plugins return the correct Operator."""
+        op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        hls_config = HLSConfig(PauliEvolution=[plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        self.assertEqual(count_rotation_gates(qct), 4)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    @data("default", "rustiq")
+    def test_trivial_rotations(self, plugin_name):
+        """Test that plugins return the correct Operator in the presence of
+        trivial (all-I) rotations.
+        """
+        op = SparsePauliOp(["III", "XZY", "III", "III"], [1, 2, 3, 4])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        hls_config = HLSConfig(PauliEvolution=[plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(count_rotation_gates(qct), 1)
+
+    def test_rustiq_upto_options(self):
+        """Test non-default Rustiq options upto_phase and upto_clifford."""
+        op = SparsePauliOp(["XXXX", "YYYY", "ZZZZ"], coeffs=[1, 2, 3])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
+
+        # These calls to Rustiq are deterministic.
+        # On the one hand, we may need to change these tests if we switch
+        # to a newer version of Rustiq that implements different heuristics.
+        # On the other hand, these tests serve to show that the options
+        # have the desired effect of reducing the number of CX-gates.
+        with self.subTest("default_options"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 3)
+            self.assertEqual(cnt_ops["cx"], 10)
+        with self.subTest("upto_phase"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 3)
+            self.assertEqual(cnt_ops["cx"], 9)
+        with self.subTest("upto_clifford"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_clifford": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 3)
+            self.assertEqual(cnt_ops["cx"], 5)
+
+    def test_rustiq_preserve_order(self):
+        """Test non-default Rustiq option preserve_order."""
+        op = SparsePauliOp(["IXX", "YYI", "IXX", "YYI", "IXX", "YYI"])
+        qc = QuantumCircuit(3)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2])
+        with self.subTest("preserve_order_is_true"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": True})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 16)
+        with self.subTest("preserve_order_is_false"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 4)
+
+    def test_rustiq_upto_phase(self):
+        """Check that Rustiq synthesis with ``upto_phase=True`` produces a correct
+        circuit up to the global phase.
+        """
+        # On this example Rustiq with the option "upto_phase=True" does produce a circuit
+        # with a different global phase.
+        op = SparsePauliOp(
+            [
+                "IIII",
+                "XXII",
+                "XIXI",
+                "XIIX",
+                "YYII",
+                "YIYI",
+                "YIIY",
+                "ZZII",
+                "ZIZI",
+                "ZIIZ",
+                "IXIX",
+                "IYIY",
+                "IZIZ",
+            ]
+        )
+        qc = QuantumCircuit(4)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq", {"upto_phase": True})])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertEqual(count_rotation_gates(qct_default), 12)
+        self.assertEqual(count_rotation_gates(qct_rustiq), 12)
+        self.assertTrue(Operator(qct_default).equiv(Operator(qct_rustiq)))
+
+    def test_rustiq_with_parameterized_angles(self):
+        """Test Rustiq's synthesis with parameterized angles."""
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        pauli_network = [("XXX", [0, 1, 2], alpha), ("Y", [1], beta)]
+        qct = synth_pauli_network_rustiq(
+            num_qubits=4, pauli_network=pauli_network, upto_clifford=True
+        )
+        self.assertEqual(count_rotation_gates(qct), 2)
+        self.assertEqual(set(qct.parameters), {alpha, beta})
+
+
+def count_rotation_gates(qc: QuantumCircuit):
+    """Return the number of rotation gates in a quantum circuit."""
+    ops = qc.count_ops()
+    return (
+        ops.get("rx", 0)
+        + ops.get("ry", 0)
+        + ops.get("rz", 0)
+        + ops.get("rxx", 0)
+        + ops.get("ryy", 0)
+        + ops.get("rzz", 0)
+    )
 
 
 if __name__ == "__main__":

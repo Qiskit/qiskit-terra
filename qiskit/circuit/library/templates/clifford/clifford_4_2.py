@@ -10,21 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Clifford template 4_2:
-.. parsed-literal::
-
-        q_0: ───────■────────■─
-             ┌───┐┌─┴─┐┌───┐ │
-        q_1: ┤ H ├┤ X ├┤ H ├─■─
-             └───┘└───┘└───┘
-"""
+# pylint: disable=missing-module-docstring
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def clifford_4_2():
     """
+    Clifford template 4_2:
+
+    .. code-block:: text
+
+        q_0: ───────■────────■─
+             ┌───┐┌─┴─┐┌───┐ │
+        q_1: ┤ H ├┤ X ├┤ H ├─■─
+             └───┘└───┘└───┘
+
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """

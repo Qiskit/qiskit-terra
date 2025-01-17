@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix a bug in :class:`.qasm3.Exporter` that caused the exporter to crash when
+    handling a unitary gate due to incorrect processing of its ``params`` field.

@@ -17,8 +17,8 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
+from qiskit._accelerate.two_qubit_decompose import weyl_coordinates
 from qiskit.quantum_info.random import random_unitary
-from qiskit.synthesis.two_qubit.weyl import weyl_coordinates
 from qiskit.synthesis.two_qubit.local_invariance import (
     two_qubit_local_invariants,
     local_equivalence,
@@ -32,7 +32,7 @@ class TestWeyl(QiskitTestCase):
     def test_weyl_coordinates_simple(self):
         """Check Weyl coordinates against known cases."""
         # Identity [0,0,0]
-        U = np.identity(4)
+        U = np.identity(4, dtype=complex)
         weyl = weyl_coordinates(U)
         assert_allclose(weyl, [0, 0, 0])
 

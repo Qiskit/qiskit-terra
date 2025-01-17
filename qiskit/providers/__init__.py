@@ -160,7 +160,7 @@ steps for writing a provider are:
    interacting with a running job.
 
 For a simple example of a provider, see the
-`qiskit-aqt-provider <https://github.com/Qiskit-Partners/qiskit-aqt-provider>`__
+`qiskit-aqt-provider <https://github.com/qiskit-community/qiskit-aqt-provider>`__
 
 Provider
 --------
@@ -307,7 +307,7 @@ Custom Basis Gates
 
            def _define(self):
                qc = QuantumCircuit(1)
-               q.ry(np.pi / 2, 0)
+               qc.ry(np.pi / 2, 0)
                self.definition = qc
 
    The key thing to ensure is that for any custom gates in your Backend's basis set
@@ -664,7 +664,7 @@ that abstract away the mechanics of getting the best result efficiently, to
 concentrate on higher level applications using these outputs.
 
 For example, if your backends were well suited to leverage
-`mthree <https://github.com/Qiskit-Partners/mthree/>`__ measurement
+`mthree <https://github.com/Qiskit/qiskit-addon-mthree>`__ measurement
 mitigation to improve the quality of the results, you could implement a
 provider-specific :class:`~.Sampler` implementation that leverages the
 ``M3Mitigation`` class internally to run the circuits and return

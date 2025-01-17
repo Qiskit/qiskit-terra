@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.pulse import library
 from qiskit.pulse.library import samplers
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
 def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:
@@ -32,6 +33,7 @@ def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:
     return m * times + b
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSampler(QiskitTestCase):
     """Test continuous pulse function samplers."""
 

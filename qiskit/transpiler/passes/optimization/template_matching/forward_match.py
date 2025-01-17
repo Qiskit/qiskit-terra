@@ -311,15 +311,15 @@ class ForwardMatch:
         """
         if (
             node_circuit.type == "op"
-            and getattr(node_circuit.op, "condition", None)
+            and getattr(node_circuit.op, "_condition", None)
             and node_template.type == "op"
-            and getattr(node_template.op, "condition", None)
+            and getattr(node_template.op, "_condition", None)
         ):
             if set(self.carg_indices) != set(node_template.cindices):
                 return False
             if (
-                getattr(node_circuit.op, "condition", None)[1]
-                != getattr(node_template.op, "condition", None)[1]
+                getattr(node_circuit.op, "_condition", None)[1]
+                != getattr(node_template.op, "_condition", None)[1]
             ):
                 return False
         return True

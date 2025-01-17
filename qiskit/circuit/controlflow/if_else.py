@@ -87,11 +87,19 @@ class IfElseOp(ControlFlowOp):
 
         super().__init__("if_else", num_qubits, num_clbits, [true_body, false_body], label=label)
 
-        self.condition = validate_condition(condition)
+        self._condition = validate_condition(condition)
 
     @property
     def params(self):
         return self._params
+
+    @property
+    def condition(self):
+        return self._condition
+
+    @condition.setter
+    def condition(self, value):
+        self._condition = value
 
     @params.setter
     def params(self, parameters):
@@ -152,7 +160,7 @@ class IfElseOp(ControlFlowOp):
         true_body, false_body = (
             ablock for ablock, _ in itertools.zip_longest(blocks, range(2), fillvalue=None)
         )
-        return IfElseOp(self.condition, true_body, false_body=false_body, label=self.label)
+        return IfElseOp(self._condition, true_body, false_body=false_body, label=self.label)
 
     def c_if(self, classical, val):
         raise NotImplementedError(
@@ -200,7 +208,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
         )
         # Set the condition after super().__init__() has initialized it to None.
-        self.condition = validate_condition(condition)
+        self._condition = validate_condition(condition)
 
     def with_false_block(self, false_block: ControlFlowBuilderBlock) -> "IfElsePlaceholder":
         """Return a new placeholder instruction, with the false block set to the given value,
@@ -225,7 +233,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         false_bits = false_block.qubits() | false_block.clbits()
         true_block.add_bits(false_bits - true_bits)
         false_block.add_bits(true_bits - false_bits)
-        return type(self)(self.condition, true_block, false_block, label=self.label)
+        return type(self)(self._condition, true_block, false_block, label=self.label)
 
     def registers(self):
         """Get the registers used by the interior blocks."""
@@ -288,7 +296,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
             )
         return (
             self._copy_mutable_properties(
-                IfElseOp(self.condition, true_body, false_body, label=self.label)
+                IfElseOp(self._condition, true_body, false_body, label=self.label)
             ),
             InstructionResources(
                 qubits=tuple(true_body.qubits),

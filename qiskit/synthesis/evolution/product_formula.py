@@ -15,16 +15,25 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable
-from typing import Any
-from functools import partial
+import itertools
+from collections.abc import Callable, Sequence
+from collections import defaultdict
+from itertools import combinations
+import typing
 import numpy as np
+import rustworkx as rx
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
+from qiskit._accelerate.circuit_library import pauli_evolution
 
 from .evolution_synthesis import EvolutionSynthesis
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.library import PauliEvolutionGate
+
+SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -60,6 +69,7 @@ class ProductFormula(EvolutionSynthesis):
             | None
         ) = None,
         wrap: bool = False,
+        preserve_order: bool = True,
     ) -> None:
         """
         Args:
@@ -78,24 +88,31 @@ class ProductFormula(EvolutionSynthesis):
                 Alternatively, the function can also take Pauli operator and evolution time as
                 inputs and returns the circuit that will be appended to the overall circuit being
                 built.
-            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
-                effect when ``atomic_evolution is None``.
+            wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
+                this to ``True`` is slower than ``False``. This only takes effect when
+                ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
         super().__init__()
         self.order = order
         self.reps = reps
         self.insert_barriers = insert_barriers
+        self.preserve_order = preserve_order
 
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
+
+        if cx_structure not in ["chain", "fountain"]:
+            raise ValueError(f"Unsupported CX structure: {cx_structure}")
+
         self._cx_structure = cx_structure
         self._wrap = wrap
 
         # if atomic evolution is not provided, set a default
         if atomic_evolution is None:
-            self.atomic_evolution = partial(
-                _default_atomic_evolution, cx_structure=cx_structure, wrap=wrap
-            )
+            self.atomic_evolution = None
 
         elif len(inspect.signature(atomic_evolution).parameters) == 2:
 
@@ -108,8 +125,50 @@ class ProductFormula(EvolutionSynthesis):
         else:
             self.atomic_evolution = atomic_evolution
 
+    def expand(
+        self, evolution: PauliEvolutionGate
+    ) -> list[tuple[str, tuple[int], ParameterValueType]]:
+        """Apply the product formula to expand the Hamiltonian in the evolution gate.
+
+        Args:
+            evolution: The :class:`.PauliEvolutionGate`, whose Hamiltonian we expand.
+
+        Returns:
+            A list of Pauli rotations in a sparse format, where each element is
+            ``(paulistring, qubits, coefficient)``. For example, the Lie-Trotter expansion
+            of ``H = XI + ZZ`` would return ``[("X", [1], 1), ("ZZ", [0, 1], 1)]``.
+        """
+        raise NotImplementedError(
+            f"The method ``expand`` is not implemented for {self.__class__}. Implement it to "
+            f"automatically enable the call to {self.__class__}.synthesize."
+        )
+
+    def synthesize(self, evolution: PauliEvolutionGate) -> QuantumCircuit:
+        """Synthesize a :class:`.PauliEvolutionGate`.
+
+        Args:
+            evolution: The evolution gate to synthesize.
+
+        Returns:
+            QuantumCircuit: A circuit implementing the evolution.
+        """
+        pauli_rotations = self.expand(evolution)
+        num_qubits = evolution.num_qubits
+
+        if self._wrap or self._atomic_evolution is not None:
+            # this is the slow path, where each Pauli evolution is constructed in Rust
+            # separately and then wrapped into a gate object
+            circuit = self._custom_evolution(num_qubits, pauli_rotations)
+        else:
+            # this is the fast path, where the whole evolution is constructed Rust-side
+            cx_fountain = self._cx_structure == "fountain"
+            data = pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers, cx_fountain)
+            circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+
+        return circuit
+
     @property
-    def settings(self) -> dict[str, Any]:
+    def settings(self) -> dict[str, typing.Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:
@@ -129,256 +188,118 @@ class ProductFormula(EvolutionSynthesis):
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
+            "preserve_order": self.preserve_order,
         }
 
+    def _custom_evolution(self, num_qubits, pauli_rotations):
+        """Implement the evolution for the non-standard path.
 
-def evolve_pauli(
-    output: QuantumCircuit,
-    pauli: Pauli,
-    time: float | ParameterExpression = 1.0,
-    cx_structure: str = "chain",
-    wrap: bool = False,
-    label: str | None = None,
-) -> None:
-    r"""Construct a circuit implementing the time evolution of a single Pauli string.
+        This is either because a user-defined atomic evolution is given, or because the evolution
+        of individual Paulis needs to be wrapped in gates.
+        """
+        circuit = QuantumCircuit(num_qubits)
+        cx_fountain = self._cx_structure == "fountain"
 
-    For a Pauli string :math:`P = \{I, X, Y, Z\}^{\otimes n}` on :math:`n` qubits and an
-    evolution time :math:`t`, the returned circuit implements the unitary operation
+        num_paulis = len(pauli_rotations)
+        for i, pauli_rotation in enumerate(pauli_rotations):
+            if self._atomic_evolution is not None:
+                # use the user-provided evolution with a global operator
+                operator = SparsePauliOp.from_sparse_list([pauli_rotation], num_qubits)
+                self.atomic_evolution(circuit, operator, time=1)  # time is inside the Pauli coeff
 
-    .. math::
+            else:  # this means self._wrap is True
+                # we create a local sparse Pauli representation such that the operator
+                # does not span over all qubits of the circuit
+                pauli_string, qubits, coeff = pauli_rotation
+                local_pauli = (pauli_string, list(range(len(qubits))), coeff)
 
-        U(t) = e^{-itP}.
+                # build the circuit Rust-side
+                data = pauli_evolution(
+                    len(qubits),
+                    [local_pauli],
+                    False,
+                    cx_fountain,
+                )
+                evo = QuantumCircuit._from_circuit_data(data)
 
-    Since only a single Pauli string is evolved the circuit decomposition is exact.
+                # and append it to the circuit with the correct label
+                gate = evo.to_gate(label=f"exp(it {pauli_string})")
+                circuit.append(gate, qubits)
+
+            if self.insert_barriers and i < num_paulis - 1:
+                circuit.barrier()
+
+        return circuit
+
+
+def real_or_fail(value, tol=100):
+    """Return real if close, otherwise fail. Unbound parameters are left unchanged.
+
+    Based on NumPy's ``real_if_close``, i.e. ``tol`` is in terms of machine precision for float.
+    """
+    if isinstance(value, ParameterExpression):
+        return value
+
+    abstol = tol * np.finfo(float).eps
+    if abs(np.imag(value)) < abstol:
+        return np.real(value)
+
+    raise ValueError(f"Encountered complex value {value}, but expected real.")
+
+
+def reorder_paulis(
+    paulis: Sequence[SparsePauliLabel],
+    strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation,
+) -> list[SparsePauliLabel]:
+    r"""
+    Creates an equivalent operator by reordering terms in order to yield a
+    shallower circuit after evolution synthesis. The original operator remains
+    unchanged.
+
+    This method works in three steps. First, a graph is constructed, where the
+    nodes are the terms of the operator and where two nodes are connected if
+    their terms act on the same qubit (for example, the terms :math:`IXX` and
+    :math:`IYI` would be connected, but not :math:`IXX` and :math:`YII`). Then,
+    the graph is colored.  Two terms with the same color thus do not act on the
+    same qubit, and in particular, their evolution subcircuits can be run in
+    parallel in the greater evolution circuit of ``paulis``.
+
+    This method is deterministic and invariant under permutation of the Pauli
+    term in ``paulis``.
 
     Args:
-        output: The circuit object to which to append the evolved Pauli.
-        pauli: The Pauli to evolve.
-        time: The evolution time.
-        cx_structure: Determine the structure of CX gates, can be either ``"chain"`` for
-            next-neighbor connections or ``"fountain"`` to connect directly to the top qubit.
-        wrap: Whether to wrap the single Pauli evolutions into custom gate objects.
-        label: A label for the gate.
-    """
-    num_non_identity = len([label for label in pauli.to_label() if label != "I"])
+        paulis: The operator whose terms to reorder.
+        strategy: The coloring heuristic to use, see ``ColoringStrategy`` [#].
+            Default is ``ColoringStrategy.Saturation``.
 
-    # first check, if the Pauli is only the identity, in which case the evolution only
-    # adds a global phase
-    if num_non_identity == 0:
-        output.global_phase -= time
-    # if we evolve on a single qubit, if yes use the corresponding qubit rotation
-    elif num_non_identity == 1:
-        _single_qubit_evolution(output, pauli, time, wrap)
-    # same for two qubits, use Qiskit's native rotations
-    elif num_non_identity == 2:
-        _two_qubit_evolution(output, pauli, time, cx_structure, wrap)
-    # otherwise do basis transformation and CX chains
-    else:
-        _multi_qubit_evolution(output, pauli, time, cx_structure, wrap)
+    .. [#] https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy
 
-
-def _single_qubit_evolution(output, pauli, time, wrap):
-    dest = QuantumCircuit(1) if wrap else output
-    # Note that all phases are removed from the pauli label and are only in the coefficients.
-    # That's because the operators we evolved have all been translated to a SparsePauliOp.
-    qubits = []
-    label = ""
-    for i, pauli_i in enumerate(reversed(pauli.to_label())):
-        idx = 0 if wrap else i
-        if pauli_i == "X":
-            dest.rx(2 * time, idx)
-            qubits.append(i)
-            label += "X"
-        elif pauli_i == "Y":
-            dest.ry(2 * time, idx)
-            qubits.append(i)
-            label += "Y"
-        elif pauli_i == "Z":
-            dest.rz(2 * time, idx)
-            qubits.append(i)
-            label += "Z"
-
-    if wrap:
-        gate = dest.to_gate(label=f"exp(it {label})")
-        qubits = [output.qubits[q] for q in qubits]
-        output.append(gate, qargs=qubits, copy=False)
-
-
-def _two_qubit_evolution(output, pauli, time, cx_structure, wrap):
-    # Get the Paulis and the qubits they act on.
-    # Note that all phases are removed from the pauli label and are only in the coefficients.
-    # That's because the operators we evolved have all been translated to a SparsePauliOp.
-    labels_as_array = np.array(list(reversed(pauli.to_label())))
-    qubits = np.where(labels_as_array != "I")[0]
-    indices = [0, 1] if wrap else qubits
-    labels = np.array([labels_as_array[idx] for idx in qubits])
-
-    dest = QuantumCircuit(2) if wrap else output
-
-    # go through all cases we have implemented in Qiskit
-    if all(labels == "X"):  # RXX
-        dest.rxx(2 * time, indices[0], indices[1])
-    elif all(labels == "Y"):  # RYY
-        dest.ryy(2 * time, indices[0], indices[1])
-    elif all(labels == "Z"):  # RZZ
-        dest.rzz(2 * time, indices[0], indices[1])
-    elif labels[0] == "Z" and labels[1] == "X":  # RZX
-        dest.rzx(2 * time, indices[0], indices[1])
-    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
-        dest.rzx(2 * time, indices[1], indices[0])
-    else:  # all the others are not native in Qiskit, so use default the decomposition
-        _multi_qubit_evolution(output, pauli, time, cx_structure, wrap)
-        return
-
-    if wrap:
-        gate = dest.to_gate(label=f"exp(it {''.join(labels)})")
-        qubits = [output.qubits[q] for q in qubits]
-        output.append(gate, qargs=qubits, copy=False)
-
-
-def _multi_qubit_evolution(output, pauli, time, cx_structure, wrap):
-    # get diagonalizing clifford
-    cliff = diagonalizing_clifford(pauli)
-
-    # get CX chain to reduce the evolution to the top qubit
-    if cx_structure == "chain":
-        chain = cnot_chain(pauli)
-    else:
-        chain = cnot_fountain(pauli)
-
-    # determine qubit to do the rotation on
-    target = None
-    # Note that all phases are removed from the pauli label and are only in the coefficients.
-    # That's because the operators we evolved have all been translated to a SparsePauliOp.
-    for i, pauli_i in enumerate(reversed(pauli.to_label())):
-        if pauli_i != "I":
-            target = i
-            break
-
-    # build the evolution as: diagonalization, reduction, 1q evolution, followed by inverses
-    dest = QuantumCircuit(pauli.num_qubits) if wrap else output
-    dest.compose(cliff, inplace=True)
-    dest.compose(chain, inplace=True)
-    dest.rz(2 * time, target)
-    dest.compose(chain.inverse(), inplace=True)
-    dest.compose(cliff.inverse(), inplace=True)
-
-    if wrap:
-        gate = dest.to_gate(label=f"exp(it {pauli.to_label()})")
-        output.append(gate, qargs=output.qubits, copy=False)
-
-
-def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
-    """Get the clifford circuit to diagonalize the Pauli operator.
-
-    Args:
-        pauli: The Pauli to diagonalize.
-
-    Returns:
-        A circuit to diagonalize.
-    """
-    cliff = QuantumCircuit(pauli.num_qubits)
-    for i, pauli_i in enumerate(reversed(pauli.to_label())):
-        if pauli_i == "Y":
-            cliff.sdg(i)
-        if pauli_i in ["X", "Y"]:
-            cliff.h(i)
-
-    return cliff
-
-
-def cnot_chain(pauli: Pauli) -> QuantumCircuit:
-    """CX chain.
-
-    For example, for the Pauli with the label 'XYZIX'.
-
-    .. parsed-literal::
-
-                       ┌───┐
-        q_0: ──────────┤ X ├
-                       └─┬─┘
-        q_1: ────────────┼──
-                  ┌───┐  │
-        q_2: ─────┤ X ├──■──
-             ┌───┐└─┬─┘
-        q_3: ┤ X ├──■───────
-             └─┬─┘
-        q_4: ──■────────────
-
-    Args:
-        pauli: The Pauli for which to construct the CX chain.
-
-    Returns:
-        A circuit implementing the CX chain.
     """
 
-    chain = QuantumCircuit(pauli.num_qubits)
-    control, target = None, None
+    def _term_sort_key(term: SparsePauliLabel) -> typing.Any:
+        # sort by index, then by pauli
+        return (term[1], term[0])
 
-    # iterate over the Pauli's and add CNOTs
-    for i, pauli_i in enumerate(pauli.to_label()):
-        i = pauli.num_qubits - i - 1
-        if pauli_i != "I":
-            if control is None:
-                control = i
-            else:
-                target = i
+    # Do nothing in trivial cases
+    if len(paulis) <= 1:
+        return paulis
 
-        if control is not None and target is not None:
-            chain.cx(control, target)
-            control = i
-            target = None
+    terms = sorted(paulis, key=_term_sort_key)
+    graph = rx.PyGraph()
+    graph.add_nodes_from(terms)
+    indexed_nodes = list(enumerate(graph.nodes()))
+    for (idx1, (_, ind1, _)), (idx2, (_, ind2, _)) in combinations(indexed_nodes, 2):
+        # Add an edge between two terms if they touch the same qubit
+        if len(set(ind1).intersection(ind2)) > 0:
+            graph.add_edge(idx1, idx2, None)
 
-    return chain
+    # rx.graph_greedy_color is supposed to be deterministic
+    coloring = rx.graph_greedy_color(graph, strategy=strategy)
+    terms_by_color = defaultdict(list)
 
+    for term_idx, color in sorted(coloring.items()):
+        term = graph.nodes()[term_idx]
+        terms_by_color[color].append(term)
 
-def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
-    """CX chain in the fountain shape.
-
-    For example, for the Pauli with the label 'XYZIX'.
-
-    .. parsed-literal::
-
-             ┌───┐┌───┐┌───┐
-        q_0: ┤ X ├┤ X ├┤ X ├
-             └─┬─┘└─┬─┘└─┬─┘
-        q_1: ──┼────┼────┼──
-               │    │    │
-        q_2: ──■────┼────┼──
-                    │    │
-        q_3: ───────■────┼──
-                         │
-        q_4: ────────────■──
-
-    Args:
-        pauli: The Pauli for which to construct the CX chain.
-
-    Returns:
-        A circuit implementing the CX chain.
-    """
-
-    chain = QuantumCircuit(pauli.num_qubits)
-    control, target = None, None
-    for i, pauli_i in enumerate(reversed(pauli.to_label())):
-        if pauli_i != "I":
-            if target is None:
-                target = i
-            else:
-                control = i
-
-        if control is not None and target is not None:
-            chain.cx(control, target)
-            control = None
-
-    return chain
-
-
-def _default_atomic_evolution(output, operator, time, cx_structure, wrap):
-    if isinstance(operator, Pauli):
-        # single Pauli operator: just exponentiate it
-        evolve_pauli(output, operator, time, cx_structure, wrap)
-    else:
-        # sum of Pauli operators: exponentiate each term (this assumes they commute)
-        pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
-        for pauli, coeff in pauli_list:
-            evolve_pauli(output, pauli, coeff * time, cx_structure, wrap)
+    terms = list(itertools.chain(*terms_by_color.values()))
+    return terms

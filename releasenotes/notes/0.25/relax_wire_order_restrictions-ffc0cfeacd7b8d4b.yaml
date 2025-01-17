@@ -19,7 +19,7 @@ features:
       circuit.x(3).c_if(cr, 10)
       circuit.draw('text', wire_order=[2, 3, 0, 1], cregbundle=True)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        q_2: ────────────
             ┌───┐ ┌───┐

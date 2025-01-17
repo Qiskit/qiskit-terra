@@ -28,7 +28,8 @@ class DCXGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
 
-    .. parsed-literal::
+    .. code-block:: text
+
                   ┌───┐
         q_0: ──■──┤ X ├
              ┌─┴─┐└─┬─┘

@@ -13,6 +13,7 @@
 """Tests for qiskit/tools/parallel"""
 import os
 import time
+import warnings
 
 from unittest.mock import patch
 
@@ -36,7 +37,10 @@ def _build_simple_circuit(_):
 
 
 def _build_simple_schedule(_):
-    return Schedule()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # `Schedule` is deprecated in Qiskit 1.3
+        return Schedule()
 
 
 class TestGetPlatformParallelDefault(QiskitTestCase):

@@ -15,11 +15,14 @@
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import layouts, device_info
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestChannelArrangement(QiskitTestCase):
     """Tests for channel mapping functions."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         self.channels = [
@@ -180,6 +183,7 @@ class TestChannelArrangement(QiskitTestCase):
         self.assertListEqual(list(out_layout), ref)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestHorizontalAxis(QiskitTestCase):
     """Tests for horizontal axis mapping functions."""
 
@@ -226,9 +230,11 @@ class TestHorizontalAxis(QiskitTestCase):
         self.assertEqual(haxis.label, "System cycle time (dt)")
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestFigureTitle(QiskitTestCase):
     """Tests for figure title generation."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self) -> None:
         super().setUp()
         self.device = device_info.OpenPulseBackendInfo(name="test_backend", dt=1e-9)

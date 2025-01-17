@@ -25,7 +25,7 @@ potentially irreversible functions into quantum circuits.  Below is a simple exa
 how to synthesize a simple boolean function defined using Python into a
 QuantumCircuit:
 
-   .. code-block::
+  .. code-block:: python
 
       from qiskit.circuit.classicalfunction import classical_function
       from qiskit.circuit.classicalfunction.types import Int1
@@ -36,6 +36,8 @@ QuantumCircuit:
 
       quantum_circuit = grover_oracle.synth(registerless=False)
       quantum_circuit.draw('text')
+
+  .. code-block:: text
 
            a: ──o──
                 │

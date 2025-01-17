@@ -175,13 +175,15 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
         circuit.h(qr0)
         circuit.measure(qr0, cr0)
-        circuit.z(qr1).c_if(cr0, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr1).c_if(cr0, 1)
         circuit.measure(qr1, cr1)
 
         expected = QuantumCircuit(qr0, qr1, cr0, cr1)
         expected.h(qr0)
         expected.measure(qr0, cr0)
-        expected.z(qr1).c_if(cr0, 1)
+        with self.assertWarns(DeprecationWarning):
+            expected.z(qr1).c_if(cr0, 1)
         expected.barrier(qr0, qr1)
         expected.measure(qr1, cr1)
 
@@ -377,17 +379,23 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
         circuit = QuantumCircuit(QuantumRegister(3), ClassicalRegister(2), [Clbit()])
         circuit.h(range(3))
         circuit.measure(range(3), range(3))
-        circuit.h(0).c_if(circuit.cregs[0], 3)
-        circuit.h(1).c_if(circuit.clbits[-1], True)
-        circuit.h(2).c_if(circuit.clbits[-1], False)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(0).c_if(circuit.cregs[0], 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(1).c_if(circuit.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(2).c_if(circuit.clbits[-1], False)
         circuit.measure(range(3), range(3))
 
         expected = circuit.copy_empty_like()
         expected.h(range(3))
         expected.measure(range(3), range(3))
-        expected.h(0).c_if(expected.cregs[0], 3)
-        expected.h(1).c_if(expected.clbits[-1], True)
-        expected.h(2).c_if(expected.clbits[-1], False)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(0).c_if(expected.cregs[0], 3)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(1).c_if(expected.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(2).c_if(expected.clbits[-1], False)
         expected.barrier(range(3))
         expected.measure(range(3), range(3))
 

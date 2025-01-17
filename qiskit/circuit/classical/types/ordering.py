@@ -205,7 +205,10 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
 
     Examples:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+
 
             >>> from qiskit.circuit.classical import types
             >>> types.cast_kind(types.Bool(), types.Bool())

@@ -14,3 +14,4 @@
 
 from .hrs_cumulative_multiplier import HRSCumulativeMultiplier
 from .rg_qft_multiplier import RGQFTMultiplier
+from .multiplier import MultiplierGate

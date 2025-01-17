@@ -109,7 +109,6 @@ class TestGateMap(QiskitVisualizationTestCase):
         """Test plotting error map with fake backend v1."""
         backend = GenericBackendV2(
             num_qubits=27,
-            pulse_channels=True,
             coupling_map=MUMBAI_CMAP,
         )
         img_ref = path_to_diagram_reference("fake_27_q_error.png")
@@ -128,7 +127,6 @@ class TestGateMap(QiskitVisualizationTestCase):
         coupling_map = MUMBAI_CMAP
         backend = GenericBackendV2(
             num_qubits=27,
-            pulse_channels=True,
             coupling_map=coupling_map,
         )
         img_ref = path_to_diagram_reference("fake_27_q_v2_error.png")
@@ -145,9 +143,7 @@ class TestGateMap(QiskitVisualizationTestCase):
     def test_plot_error_map_over_100_qubit(self):
         """Test plotting error map with large fake backend."""
         coupling_map = KYOTO_CMAP
-        backend = GenericBackendV2(
-            num_qubits=127, coupling_map=coupling_map, pulse_channels=True, seed=42
-        )
+        backend = GenericBackendV2(num_qubits=127, coupling_map=coupling_map, seed=42)
         img_ref = path_to_diagram_reference("fake_127_q_error.png")
         fig = plot_error_map(backend)
         with BytesIO() as img_buffer:
@@ -447,9 +443,7 @@ class TestGateMap(QiskitVisualizationTestCase):
             [126, 112],
             [126, 125],
         ]
-        backend = GenericBackendV2(
-            num_qubits=127, coupling_map=coupling_map, pulse_channels=True, seed=42
-        )
+        backend = GenericBackendV2(num_qubits=127, coupling_map=coupling_map, seed=42)
         img_ref = path_to_diagram_reference("fake_127_q_v2_error.png")
         fig = plot_error_map(backend)
         with BytesIO() as img_buffer:

@@ -51,7 +51,8 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
     circuit = QuantumCircuit._from_circuit_data(
-        synth_clifford_greedy_inner(clifford.tableau.astype(bool)), add_regs=True
+        synth_clifford_greedy_inner(clifford.tableau.astype(bool)),
+        add_regs=True,
+        name=str(clifford),
     )
-    circuit.name = str(clifford)
     return circuit

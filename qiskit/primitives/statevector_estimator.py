@@ -49,6 +49,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         ``StatevectorEstimator(seed=123)``.
 
     .. plot::
+        :alt: Output from the previous code.
         :include-source:
 
         from qiskit.circuit import Parameter, QuantumCircuit

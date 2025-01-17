@@ -111,6 +111,7 @@ def plot_histogram(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
@@ -215,6 +216,7 @@ def plot_distribution(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.

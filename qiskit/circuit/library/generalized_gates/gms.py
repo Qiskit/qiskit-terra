@@ -15,13 +15,16 @@
 Global Mølmer–Sørensen gate.
 """
 
-from typing import Union, List
+from __future__ import annotations
+from collections.abc import Sequence
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.gate import Gate
+from qiskit.utils.deprecation import deprecate_func
 
 
 class GMS(QuantumCircuit):
@@ -29,7 +32,7 @@ class GMS(QuantumCircuit):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤0          ├
@@ -42,6 +45,7 @@ class GMS(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GMS
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -74,7 +78,8 @@ class GMS(QuantumCircuit):
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
     """
 
-    def __init__(self, num_qubits: int, theta: Union[List[List[float]], np.ndarray]) -> None:
+    @deprecate_func(since="1.3", additional_msg="Use the MSGate instead.", pending=True)
+    def __init__(self, num_qubits: int, theta: list[list[float]] | np.ndarray) -> None:
         """Create a new Global Mølmer–Sørensen (GMS) gate.
 
         Args:
@@ -94,28 +99,77 @@ class GMS(QuantumCircuit):
 
 
 class MSGate(Gate):
-    """MSGate has been deprecated.
-    Please use ``GMS`` in ``qiskit.circuit.generalized_gates`` instead.
+    r"""The Mølmer–Sørensen gate.
 
-    Global Mølmer–Sørensen gate.
+    The Mølmer–Sørensen gate is native to ion-trap systems. The global MS
+    can be applied to multiple ions to entangle multiple qubits simultaneously [1].
 
-    The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
-    applied to multiple ions to entangle multiple qubits simultaneously.
+    In the two-qubit case, this is equivalent to an XX interaction,
+    and is thus reduced to the :class:`.RXXGate`. The global MS gate is a sum of XX
+    interactions on all pairs [2].
 
-    In the two-qubit case, this is equivalent to an XX(theta) interaction,
-    and is thus reduced to the RXXGate.
+    .. math::
+
+        MS(\chi_{12}, \chi_{13}, ..., \chi_{n-1 n}) =
+        exp(-i \sum_{i=1}^{n} \sum_{j=i+1}^{n} X{\otimes}X \frac{\chi_{ij}}{2})
+
+    Example::
+
+        import numpy as np
+        from qiskit.circuit.library import MSGate
+        from qiskit.quantum_info import Operator
+
+        gate = MSGate(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
+                                           [0, 0, np.pi/2],
+                                           [0, 0, 0]])
+        print(Operator(gate))
+
+
+    **References:**
+
+    [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
+    Physical Review Letters. 82 (9): 1835–1838.
+    `arXiv:9810040 <https://arxiv.org/abs/quant-ph/9810040>`_
+
+    [2] Maslov, D. and Nam, Y., Use of global interactions in efficient quantum circuit
+    constructions. New Journal of Physics, 20(3), p.033018.
+    `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
     """
 
-    def __init__(self, num_qubits, theta, label=None):
-        """Create new MS gate."""
+    def __init__(
+        self,
+        num_qubits: int,
+        theta: ParameterValueType | Sequence[Sequence[ParameterValueType]],
+        label: str | None = None,
+    ):
+        """
+        Args:
+            num_qubits: The number of qubits the MS gate acts on.
+            theta: The XX rotation angles. If a single value, the same angle is used on all
+                interactions. Alternatively an upper-triangular, square matrix with width
+                ``num_qubits`` can be provided with interaction angles for each qubit pair.
+            label: A gate label.
+        """
         super().__init__("ms", num_qubits, [theta], label=label)
 
     def _define(self):
-        theta = self.params[0]
-        q = QuantumRegister(self.num_qubits, "q")
+        thetas = self.params[0]
+        q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
+                # if theta is just a single angle, use that, otherwise use the correct index
+                theta = thetas if not isinstance(thetas, Sequence) else thetas[i][j]
                 qc._append(RXXGate(theta), [q[i], q[j]], [])
 
         self.definition = qc
+
+    def validate_parameter(self, parameter):
+        if isinstance(parameter, Sequence):
+            # pylint: disable=super-with-arguments
+            return [
+                [super(MSGate, self).validate_parameter(theta) for theta in row]
+                for row in parameter
+            ]
+
+        return super().validate_parameter(parameter)

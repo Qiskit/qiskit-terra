@@ -67,7 +67,9 @@ class BindingsArray(ShapedMixin):
     allows flexibility about whether values for different parameters are stored in one big array, or
     across several smaller arrays.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         # 0-d array (i.e. only one binding)
         BindingsArray({"a": 4, ("b", "c"): [5, 6]})
