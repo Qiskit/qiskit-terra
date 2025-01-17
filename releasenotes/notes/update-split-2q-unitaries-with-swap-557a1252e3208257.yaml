@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    The :class:`.Split2QUnitaries` transpiler pass has been upgraded to
+    handle the case where the unitary in consideration can be written
+    as a SWAP gate and two 1-qubit gates. In this case, it splits the
+    unitary and also applies virtual swapping similar to what is done in
+    :class:`.ElidePermutations`.

@@ -22,7 +22,7 @@ from qiskit.circuit.library import UnitaryGate, XGate, ZGate, HGate, CPhaseGate
 from qiskit.circuit import Parameter, CircuitInstruction, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, generate_preset_pass_manager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
@@ -266,3 +266,99 @@ class TestSplit2QUnitaries(QiskitTestCase):
         no_split = Split2QUnitaries()(qc)
 
         self.assertDictEqual({"mygate": 1}, no_split.count_ops())
+
+    def test_2q_swap(self):
+        """Test that a 2q unitary matching a swap gate is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        res = pm.run(qc_split)
+        res_op = Operator.from_circuit(res)
+        expected_op = Operator(qc_split)
+
+        self.assertNotIn("swap", res.count_ops())
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
+
+    def test_2q_swap_with_1_qubit_gates(self):
+        """Test that a 2q unitary matching a swap gate with 1-qubit
+        gates before and after is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        qc.swap(0, 1)
+        qc.sx(0)
+        qc.sdg(1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        res = pm.run(qc_split)
+        res_op = Operator.from_circuit(res)
+        expected_op = Operator(qc_split)
+
+        self.assertNotIn("swap", res.count_ops())
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
+
+    def test_2q_swap_with_non_unitary_swaps(self):
+        """Test that a 2q unitary matching a swap gate in a
+        circuit containing explicit swap gates."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+
+        qc_split = QuantumCircuit(3)
+        qc_split.swap(0, 2)
+        qc_split.swap(0, 1)
+
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = generate_preset_pass_manager(optimization_level=2)
+        res = pm.run(qc_split)
+        res_op = Operator.from_circuit(res)
+        expected_op = Operator(qc_split)
+
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
+
+    def test_2q_swap_with_large_circuit(self):
+        """Test that a 2q unitary matching a swap gate with 1-qubit gates is
+        correctly processed as part of a full transpilation pass on a large circuit."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        qc.swap(0, 1)
+        qc.sx(0)
+        qc.sdg(1)
+        qc.global_phase += 1.2345
+
+        qc_split = QuantumCircuit(5)
+        qc_split.h(0)
+        qc_split.swap(0, 2)
+        qc_split.cx(0, 1)
+        qc_split.swap(1, 0)
+        qc_split.cx(0, 1)
+        qc_split.append(UnitaryGate(Operator(qc)), [3, 1])
+        qc_split.cx(0, 2)
+        qc_split.cx(0, 3)
+        qc_split.cx(0, 4)
+        qc_split.h(1)
+
+        pm = generate_preset_pass_manager(optimization_level=2)
+        res = pm.run(qc_split)
+        res_op = Operator.from_circuit(res)
+        expected_op = Operator(qc_split)
+
+        self.assertTrue(expected_op.equiv(res_op))
+        self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
