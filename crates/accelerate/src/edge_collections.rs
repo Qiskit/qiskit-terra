@@ -55,7 +55,7 @@ impl EdgeCollection {
     /// output array here would be ``[0, 1, 1, 2, 2, 3]``.
     #[pyo3(text_signature = "(self, /)")]
     pub fn edges(&self, py: Python) -> PyObject {
-        self.edges.clone().into_pyarray_bound(py).into()
+        self.edges.clone().into_pyarray(py).into_any().unbind()
     }
 
     fn __getstate__(&self) -> Vec<PhysicalQubit> {

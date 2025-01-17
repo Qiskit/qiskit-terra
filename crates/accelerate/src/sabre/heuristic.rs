@@ -13,6 +13,7 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
@@ -33,11 +34,11 @@ impl SetScaling {
             SetScaling::Constant => "Constant",
             SetScaling::Size => "Size",
         };
-        Ok((
-            py.import_bound("builtins")?.getattr("getattr")?,
-            (py.get_type_bound::<Self>(), name),
+        (
+            py.import("builtins")?.getattr("getattr")?,
+            (py.get_type::<Self>(), name),
         )
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -60,8 +61,8 @@ impl BasicHeuristic {
         Self { weight, scale }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.weight, self.scale).into_py(py)
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (self.weight, self.scale).into_py_any(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -74,9 +75,9 @@ impl BasicHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "BasicHeuristic(weight={!r}, scale={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1("format", (self.weight, self.scale))?
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -105,8 +106,8 @@ impl LookaheadHeuristic {
         }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.weight, self.size, self.scale).into_py(py)
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (self.weight, self.size, self.scale).into_py_any(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -119,9 +120,9 @@ impl LookaheadHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "LookaheadHeuristic(weight={!r}, size={!r}, scale={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1("format", (self.weight, self.size, self.scale))?
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -145,8 +146,8 @@ impl DecayHeuristic {
         Self { increment, reset }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.increment, self.reset).into_py(py)
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (self.increment, self.reset).into_py_any(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -159,9 +160,9 @@ impl DecayHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "DecayHeuristic(increment={!r}, reset={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1("format", (self.increment, self.reset))?
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -211,7 +212,7 @@ impl Heuristic {
         }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
         (
             self.basic,
             self.lookahead,
@@ -219,7 +220,7 @@ impl Heuristic {
             self.attempt_limit,
             self.best_epsilon,
         )
-            .into_py(py)
+            .into_py_any(py)
     }
 
     /// Set the weight of the ``basic`` heuristic (the sum of distances of gates in the front
@@ -268,7 +269,7 @@ impl Heuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "Heuristic(basic={!r}, lookahead={!r}, decay={!r}, attempt_limit={!r}, best_epsilon={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1(
                 "format",
                 (
@@ -279,6 +280,6 @@ impl Heuristic {
                     self.best_epsilon,
                 ),
             )?
-            .into_py(py))
+            .into_py_any(py)
     }
 }

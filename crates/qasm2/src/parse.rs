@@ -17,7 +17,7 @@
 
 use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
-use pyo3::prelude::{PyObject, PyResult, Python};
+use pyo3::prelude::{IntoPyObject, PyObject, PyResult};
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
@@ -64,18 +64,12 @@ const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 /// the second is whether to also define addition to make offsetting the newtype easier.
 macro_rules! newtype_id {
     ($id:ident, false) => {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, IntoPyObject)]
         pub struct $id(usize);
 
         impl $id {
             pub fn new(value: usize) -> Self {
                 Self(value)
-            }
-        }
-
-        impl pyo3::IntoPy<PyObject> for $id {
-            fn into_py(self, py: Python<'_>) -> PyObject {
-                self.0.into_py(py)
             }
         }
     };

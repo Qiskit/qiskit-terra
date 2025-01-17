@@ -69,8 +69,8 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
         }
     }
     (
-        indices.into_pyarray_bound(py).into(),
-        inverses.into_pyarray_bound(py).into(),
+        indices.into_pyarray(py).into_any().unbind(),
+        inverses.into_pyarray(py).into_any().unbind(),
     )
 }
 
@@ -410,14 +410,14 @@ pub fn decompose_dense(
     let array_view = operator.as_array();
     let out = py.allow_threads(|| decompose_dense_inner(array_view, tolerance))?;
     Ok(ZXPaulis {
-        z: PyArray1::from_vec_bound(py, out.z)
+        z: PyArray1::from_vec(py, out.z)
             .reshape([out.phases.len(), out.num_qubits])?
             .into(),
-        x: PyArray1::from_vec_bound(py, out.x)
+        x: PyArray1::from_vec(py, out.x)
             .reshape([out.phases.len(), out.num_qubits])?
             .into(),
-        phases: PyArray1::from_vec_bound(py, out.phases).into(),
-        coeffs: PyArray1::from_vec_bound(py, out.coeffs).into(),
+        phases: PyArray1::from_vec(py, out.phases).into(),
+        coeffs: PyArray1::from_vec(py, out.coeffs).into(),
     })
 }
 
@@ -945,7 +945,7 @@ pub fn to_matrix_dense<'py>(
     let side = 1usize << paulis.num_qubits();
     let parallel = !force_serial && crate::getenv_use_multiple_threads();
     let out = to_matrix_dense_inner(&paulis, parallel);
-    PyArray1::from_vec_bound(py, out).reshape([side, side])
+    PyArray1::from_vec(py, out).reshape([side, side])
 }
 
 /// Inner worker of the Python-exposed [to_matrix_dense].  This is separate primarily to allow
@@ -1017,17 +1017,20 @@ pub fn to_matrix_sparse(
 
     // This deliberately erases the Rust types in the output so we can return either 32- or 64-bit
     // indices as appropriate without breaking Rust's typing.
-    fn to_py_tuple<T>(py: Python, csr_data: CSRData<T>) -> Py<PyTuple>
+    fn to_py_tuple<T>(py: Python, csr_data: CSRData<T>) -> PyResult<Py<PyTuple>>
     where
         T: numpy::Element,
     {
         let (values, indices, indptr) = csr_data;
-        (
-            PyArray1::from_vec_bound(py, values),
-            PyArray1::from_vec_bound(py, indices),
-            PyArray1::from_vec_bound(py, indptr),
-        )
-            .into_py(py)
+        Ok(PyTuple::new(
+            py,
+            [
+                PyArray1::from_vec(py, values).into_any(),
+                PyArray1::from_vec(py, indices).into_any(),
+                PyArray1::from_vec(py, indptr).into_any(),
+            ],
+        )?
+        .unbind())
     }
 
     // Pessimistic estimation of whether we can fit in `i32`.  If there's any risk of overflowing
@@ -1041,14 +1044,14 @@ pub fn to_matrix_sparse(
         } else {
             to_matrix_sparse_serial_32
         };
-        Ok(to_py_tuple(py, to_sparse(&paulis)))
+        to_py_tuple(py, to_sparse(&paulis))
     } else {
         let to_sparse: ToCSRData<i64> = if crate::getenv_use_multiple_threads() && !force_serial {
             to_matrix_sparse_parallel_64
         } else {
             to_matrix_sparse_serial_64
         };
-        Ok(to_py_tuple(py, to_sparse(&paulis)))
+        to_py_tuple(py, to_sparse(&paulis))
     }
 }
 

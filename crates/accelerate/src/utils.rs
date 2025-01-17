@@ -37,8 +37,9 @@ pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObj
         .into_iter()
         .map(|x| Complex::<f64>::new(x.re, x.im))
         .collect::<Vec<_>>()
-        .into_pyarray_bound(py)
-        .into()
+        .into_pyarray(py)
+        .into_any()
+        .unbind()
 }
 
 pub fn utils(m: &Bound<PyModule>) -> PyResult<()> {

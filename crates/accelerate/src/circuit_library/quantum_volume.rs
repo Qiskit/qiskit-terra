@@ -113,7 +113,7 @@ pub fn quantum_volume(
     let num_unitaries = width * depth;
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
-    let kwargs = PyDict::new_bound(py);
+    let kwargs = PyDict::new(py);
     kwargs.set_item(intern!(py, "num_qubits"), 2)?;
     let mut build_instruction = |(unitary_index, unitary_array): (usize, Array2<Complex64>),
                                  rng: &mut Pcg64Mcg|
@@ -122,7 +122,7 @@ pub fn quantum_volume(
         if layer_index == 0 {
             permutation.shuffle(rng);
         }
-        let unitary = unitary_array.into_pyarray_bound(py);
+        let unitary = unitary_array.into_pyarray(py);
 
         let unitary_gate = UNITARY_GATE
             .get_bound(py)
@@ -137,7 +137,7 @@ pub fn quantum_volume(
         let qubit = layer_index * 2;
         Ok((
             PackedOperation::from_gate(Box::new(instruction)),
-            smallvec![Param::Obj(unitary.unbind().into())],
+            smallvec![Param::Obj(unitary.into_any().unbind())],
             vec![permutation[qubit], permutation[qubit + 1]],
             vec![],
         ))

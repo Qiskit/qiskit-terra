@@ -247,7 +247,7 @@ fn py_run_main_loop(
                 .instruction
                 .getattr(py, "blocks")?
                 .bind(py)
-                .iter()?
+                .try_iter()?
                 .collect();
             let mut new_blocks = Vec::with_capacity(raw_blocks.len());
             for raw_block in raw_blocks {
@@ -364,7 +364,7 @@ fn py_run_main_loop(
             // Run 3q+ synthesis
             _ => {
                 let qs_decomposition: &Bound<'_, PyAny> = imports::QS_DECOMPOSITION.get_bound(py);
-                let synth_circ = qs_decomposition.call1((unitary.into_pyarray_bound(py),))?;
+                let synth_circ = qs_decomposition.call1((unitary.into_pyarray(py),))?;
                 let synth_dag = circuit_to_dag(
                     py,
                     QuantumCircuitData::extract_bound(&synth_circ)?,
@@ -729,7 +729,7 @@ fn get_2q_decomposers_from_target(
                 fidelity_value *= approx_degree;
             }
             let mut embodiment =
-                xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
+                xx_embodiments.get_item(op.into_pyobject(py)?.getattr("base_class")?)?;
 
             if embodiment.getattr("parameters")?.len()? == 1 {
                 embodiment = embodiment.call_method1("assign_parameters", (vec![strength],))?;
@@ -742,11 +742,11 @@ fn get_2q_decomposers_from_target(
         },
     );
 
-    let basis_2q_fidelity_dict = PyDict::new_bound(py);
-    let embodiments_dict = PyDict::new_bound(py);
+    let basis_2q_fidelity_dict = PyDict::new(py);
+    let embodiments_dict = PyDict::new(py);
     for (strength, fidelity, embodiment) in xx_decomposer_args.flatten() {
         basis_2q_fidelity_dict.set_item(strength, fidelity)?;
-        embodiments_dict.set_item(strength, embodiment.into_py(py))?;
+        embodiments_dict.set_item(strength, embodiment)?;
     }
 
     // Iterate over 2q fidelities and select decomposers
@@ -778,7 +778,7 @@ fn get_2q_decomposers_from_target(
 
             let decomposer = xx_decomposer.call1((
                 &basis_2q_fidelity_dict,
-                PyString::new_bound(py, basis_1q),
+                PyString::new(py, basis_1q),
                 &embodiments_dict,
                 pi2_decomposer,
             ))?;
@@ -987,10 +987,10 @@ fn synth_su4_dag(
             .into_iter()
             .collect();
         decomposer
-            .call_bound(
+            .call(
                 py,
-                (su4_mat.clone().into_pyarray_bound(py),),
-                Some(&kwargs.into_py_dict_bound(py)),
+                (su4_mat.clone().into_pyarray(py),),
+                Some(&kwargs.into_py_dict(py)?),
             )?
             .extract::<DAGCircuit>(py)?
     } else {
@@ -1053,10 +1053,10 @@ fn reversed_synth_su4_dag(
             .into_iter()
             .collect();
         decomposer
-            .call_bound(
+            .call(
                 py,
-                (su4_mat.clone().into_pyarray_bound(py),),
-                Some(&kwargs.into_py_dict_bound(py)),
+                (su4_mat.clone().into_pyarray(py),),
+                Some(&kwargs.into_py_dict(py)?),
             )?
             .extract::<DAGCircuit>(py)?
     } else {

@@ -27,6 +27,8 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
 use pyo3::types::{IntoPyDict, PyList, PyType};
+use pyo3::BoundObject;
+use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -213,14 +215,14 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
         out
     })
     .collect::<Vec<_>>();
-    let obj = py.import_bound("enum")?.getattr("IntEnum")?.call(
+    let obj = py.import("enum")?.getattr("IntEnum")?.call(
         ("BitTerm", terms),
         Some(
             &[
                 ("module", "qiskit.quantum_info"),
                 ("qualname", "SparseObservable.BitTerm"),
             ]
-            .into_py_dict_bound(py),
+            .into_py_dict(py)?,
         ),
     )?;
     Ok(obj.downcast_into::<PyType>()?.unbind())
@@ -230,8 +232,12 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
-impl IntoPy<Py<PyAny>> for BitTerm {
-    fn into_py(self, py: Python) -> Py<PyAny> {
+impl<'py> IntoPyObject<'py> for BitTerm {
+    type Target = PyAny; // the Python type
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let terms = BIT_TERM_INTO_PY.get_or_init(py, || {
             let py_enum = BIT_TERM_PY_ENUM
                 .get_or_try_init(py, || make_py_bit_term(py))
@@ -248,17 +254,15 @@ impl IntoPy<Py<PyAny>> for BitTerm {
                     })
             })
         });
-        terms[self as usize]
+        Ok(terms[self as usize]
             .as_ref()
             .expect("the lookup table initializer populated a 'Some' in all valid locations")
             .clone_ref(py)
+            .bind(py)
+            .to_owned())
     }
 }
-impl ToPyObject for BitTerm {
-    fn to_object(&self, py: Python) -> Py<PyAny> {
-        self.into_py(py)
-    }
-}
+
 impl<'py> FromPyObject<'py> for BitTerm {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let value = ob
@@ -1244,7 +1248,7 @@ impl SparseObservable {
     #[allow(non_snake_case)]
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
-        py.get_type_bound::<SparseTerm>()
+        py.get_type::<SparseTerm>()
     }
 
     /// Get the zero operator over the given number of qubits.
@@ -1315,14 +1319,14 @@ impl SparseObservable {
 
     fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
         let indices = match index.with_len(self.num_terms())? {
-            SequenceIndex::Int(index) => return Ok(self.term(index).to_term().into_py(py)),
+            SequenceIndex::Int(index) => return self.term(index).to_term().into_py_any(py),
             indices => indices,
         };
         let mut out = SparseObservable::zero(self.num_qubits);
         for index in indices.iter() {
             out.add_term(self.term(index))?;
         }
-        Ok(out.into_py(py))
+        Ok(out.into_pyobject(py)?.into_any().unbind())
     }
 
     fn __repr__(&self) -> String {
@@ -1353,17 +1357,19 @@ impl SparseObservable {
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let bit_terms: &[u8] = ::bytemuck::cast_slice(&self.bit_terms);
         Ok((
-            py.get_type_bound::<Self>().getattr("from_raw_parts")?,
+            py.get_type::<Self>().getattr("from_raw_parts")?,
             (
                 self.num_qubits,
-                PyArray1::from_slice_bound(py, &self.coeffs),
-                PyArray1::from_slice_bound(py, bit_terms),
-                PyArray1::from_slice_bound(py, &self.indices),
-                PyArray1::from_slice_bound(py, &self.boundaries),
+                PyArray1::from_slice(py, &self.coeffs),
+                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, &self.indices),
+                PyArray1::from_slice(py, &self.boundaries),
                 false,
             ),
         )
-            .into_py(py))
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> bool {
@@ -1385,7 +1391,9 @@ impl SparseObservable {
                 &slf_.borrow(),
                 Complex64::new(2.0, 0.0),
             )
-            .into_py(py));
+            .into_pyobject(py)?
+            .into_any()
+            .unbind());
         }
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented());
@@ -1393,7 +1401,10 @@ impl SparseObservable {
         let slf_ = slf_.borrow();
         let other = other.borrow();
         slf_.check_equal_qubits(&other)?;
-        Ok(<&SparseObservable as ::std::ops::Add>::add(&slf_, &other).into_py(py))
+        Ok(<&SparseObservable as ::std::ops::Add>::add(&slf_, &other)
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
     fn __radd__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
         // No need to handle the `self is other` case here, because `__add__` will get it.
@@ -1403,7 +1414,10 @@ impl SparseObservable {
         };
         let other = other.borrow();
         self.check_equal_qubits(&other)?;
-        Ok((<&SparseObservable as ::std::ops::Add>::add(&other, self)).into_py(py))
+        Ok((<&SparseObservable as ::std::ops::Add>::add(&other, self))
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
     fn __iadd__(slf_: Bound<SparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
         if slf_.is(other) {
@@ -1429,7 +1443,10 @@ impl SparseObservable {
     fn __sub__(slf_: &Bound<Self>, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
         let py = slf_.py();
         if slf_.is(other) {
-            return Ok(SparseObservable::zero(slf_.borrow().num_qubits).into_py(py));
+            return Ok(SparseObservable::zero(slf_.borrow().num_qubits)
+                .into_pyobject(py)?
+                .into_any()
+                .unbind());
         }
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented());
@@ -1437,7 +1454,10 @@ impl SparseObservable {
         let slf_ = slf_.borrow();
         let other = other.borrow();
         slf_.check_equal_qubits(&other)?;
-        Ok(<&SparseObservable as ::std::ops::Sub>::sub(&slf_, &other).into_py(py))
+        Ok(<&SparseObservable as ::std::ops::Sub>::sub(&slf_, &other)
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
     fn __rsub__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
         let py = other.py();
@@ -1446,7 +1466,10 @@ impl SparseObservable {
         };
         let other = other.borrow();
         self.check_equal_qubits(&other)?;
-        Ok((<&SparseObservable as ::std::ops::Sub>::sub(&other, self)).into_py(py))
+        Ok((<&SparseObservable as ::std::ops::Sub>::sub(&other, self))
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
     fn __isub__(slf_: Bound<SparseObservable>, other: &Bound<PyAny>) -> PyResult<()> {
         if slf_.is(other) {
@@ -1508,14 +1531,23 @@ impl SparseObservable {
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented());
         };
-        Ok(self.tensor(&other.borrow()).into_py(py))
+        Ok(self
+            .tensor(&other.borrow())
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
     fn __rxor__(&self, other: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
         let py = other.py();
         let Some(other) = coerce_to_observable(other)? else {
             return Ok(py.NotImplemented());
         };
-        Ok(other.borrow().tensor(self).into_py(py))
+        Ok(other
+            .borrow()
+            .tensor(self)
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     // This doesn't actually have any interaction with Python space, but uses the `py_` prefix on
@@ -1547,7 +1579,7 @@ impl SparseObservable {
     /// Examples:
     ///
     ///     .. code-block:: python
-    ///         
+    ///
     ///         >>> SparseObservable.from_label("IIII+ZI")
     ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
     ///         >>> label = "IYXZI"
@@ -1749,7 +1781,7 @@ impl SparseObservable {
     /// Examples:
     ///
     ///     .. code-block:: python
-    ///         
+    ///
     ///         >>> label = "IYXZI"
     ///         >>> pauli = Pauli(label)
     ///         >>> SparseObservable.from_pauli(pauli)
@@ -1909,7 +1941,7 @@ impl SparseObservable {
     #[staticmethod]
     #[pyo3(signature = (obj, /, num_qubits=None), name="from_terms")]
     fn py_from_terms(obj: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
-        let mut iter = obj.iter()?;
+        let mut iter = obj.try_iter()?;
         let mut obs = match num_qubits {
             Some(num_qubits) => SparseObservable::zero(num_qubits),
             None => {
@@ -2102,7 +2134,11 @@ impl SparseObservable {
                 other.get_type().repr()?
             )));
         };
-        Ok(self.tensor(&other.borrow()).into_py(py))
+        Ok(self
+            .tensor(&other.borrow())
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     /// Reverse-order tensor product.
@@ -2136,7 +2172,12 @@ impl SparseObservable {
                 other.get_type().repr()?
             )));
         };
-        Ok(other.borrow().tensor(self).into_py(py))
+        Ok(other
+            .borrow()
+            .tensor(self)
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     /// Calculate the adjoint of this observable.
@@ -2266,7 +2307,7 @@ impl SparseObservable {
             return Ok(out);
         }
         let (num_qubits, layout) = if layout.is_instance(
-            &py.import_bound(intern!(py, "qiskit.transpiler"))?
+            &py.import(intern!(py, "qiskit.transpiler"))?
                 .getattr(intern!(py, "TranspileLayout"))?,
         )? {
             (
@@ -2326,8 +2367,8 @@ impl SparseObservable {
             .get_bound(py)
             .getattr(intern!(py, "from_symplectic"))?
             .call1((
-                PyArray2::from_owned_array_bound(py, z),
-                PyArray2::from_owned_array_bound(py, x),
+                PyArray2::from_owned_array(py, z),
+                PyArray2::from_owned_array(py, x),
             ))
     }
 }
@@ -2649,7 +2690,7 @@ impl ArrayView {
             ArraySlot::Boundaries => format!("{:?}", obs.boundaries),
             // Complexes don't have a nice repr in Rust, so just delegate the whole load to Python
             // and convert back.
-            ArraySlot::Coeffs => PyList::new_bound(py, &obs.coeffs).repr()?.to_string(),
+            ArraySlot::Coeffs => PyList::new(py, &obs.coeffs)?.repr()?.to_string(),
             ArraySlot::BitTerms => format!(
                 "[{}]",
                 obs.bit_terms
@@ -2671,22 +2712,25 @@ impl ArrayView {
         ))
     }
 
-    fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
+    fn __getitem__<'py>(&'py self, py: Python<'py>, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
         // The slightly verbose generic setup here is to allow the type of a scalar return to be
         // different to the type that gets put into the Numpy array, since the `BitTerm` enum can be
         // a direct scalar, but for Numpy, we need it to be a raw `u8`.
-        fn get_from_slice<T, S>(
-            py: Python,
+        fn get_from_slice<'py, T, S>(
+            py: Python<'py>,
             slice: &[T],
             index: PySequenceIndex,
         ) -> PyResult<Py<PyAny>>
         where
-            T: ToPyObject + Copy + Into<S>,
+            T: IntoPyObject<'py> + Copy + Into<S>,
+            pyo3::PyErr: From<<T as pyo3::IntoPyObject<'py>>::Error>,
             S: ::numpy::Element,
         {
             match index.with_len(slice.len())? {
-                SequenceIndex::Int(index) => Ok(slice[index].to_object(py)),
-                indices => Ok(PyArray1::from_iter_bound(
+                SequenceIndex::Int(index) => {
+                    Ok(slice[index].into_pyobject(py)?.into_any().unbind())
+                }
+                indices => Ok(PyArray1::from_iter(
                     py,
                     indices.iter().map(|index| slice[index].into()),
                 )
@@ -2738,7 +2782,7 @@ impl ArrayView {
                         }
                     } else {
                         let values = values
-                            .iter()?
+                            .try_iter()?
                             .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
                             .collect::<PyResult<Vec<_>>>()?;
                         if indices.len() != values.len() {
@@ -2794,18 +2838,16 @@ impl ArrayView {
         }
         let obs = self.base.borrow(py);
         match self.slot {
-            ArraySlot::Coeffs => {
-                cast_array_type(py, PyArray1::from_slice_bound(py, &obs.coeffs), dtype)
-            }
+            ArraySlot::Coeffs => cast_array_type(py, PyArray1::from_slice(py, &obs.coeffs), dtype),
             ArraySlot::Indices => {
-                cast_array_type(py, PyArray1::from_slice_bound(py, &obs.indices), dtype)
+                cast_array_type(py, PyArray1::from_slice(py, &obs.indices), dtype)
             }
             ArraySlot::Boundaries => {
-                cast_array_type(py, PyArray1::from_slice_bound(py, &obs.boundaries), dtype)
+                cast_array_type(py, PyArray1::from_slice(py, &obs.boundaries), dtype)
             }
             ArraySlot::BitTerms => {
                 let bit_terms: &[u8] = ::bytemuck::cast_slice(&obs.bit_terms);
-                cast_array_type(py, PyArray1::from_slice_bound(py, bit_terms), dtype)
+                cast_array_type(py, PyArray1::from_slice(py, bit_terms), dtype)
             }
         }
     }
@@ -2915,18 +2957,20 @@ impl SparseTerm {
         )
     }
 
-    fn __getnewargs__(slf_: Bound<Self>, py: Python) -> Py<PyAny> {
+    fn __getnewargs__(slf_: Bound<Self>, py: Python) -> PyResult<Py<PyAny>> {
         let (num_qubits, coeff) = {
             let slf_ = slf_.borrow();
             (slf_.num_qubits, slf_.coeff)
         };
-        (
+        Ok((
             num_qubits,
             coeff,
             Self::get_bit_terms(slf_.clone()),
             Self::get_indices(slf_),
         )
-            .into_py(py)
+            .into_pyobject(py)?
+            .into_any()
+            .unbind())
     }
 
     /// Get a copy of this term.
@@ -2947,7 +2991,7 @@ impl SparseTerm {
         // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
         // `Box<[BitTerm]>` allocation (including dropping or reallocating it) other than the entire
         // object getting dropped, which Python will keep safe.
-        let out = unsafe { PyArray1::borrow_from_array_bound(&arr, slf_.into_any()) };
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
         out.readwrite().make_nonwriteable();
         out
     }
@@ -2963,7 +3007,7 @@ impl SparseTerm {
         // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
         // `Box<[u32]>` allocation (including dropping or reallocating it) other than the entire
         // object getting dropped, which Python will keep safe.
-        let out = unsafe { PyArray1::borrow_from_array_bound(&arr, slf_.into_any()) };
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
         out.readwrite().make_nonwriteable();
         out
     }
@@ -2988,10 +3032,9 @@ impl SparseTerm {
             x[*index as usize] = bit_term.has_x_component();
             z[*index as usize] = bit_term.has_z_component();
         }
-        PAULI_TYPE.get_bound(py).call1(((
-            PyArray1::from_vec_bound(py, z),
-            PyArray1::from_vec_bound(py, x),
-        ),))
+        PAULI_TYPE
+            .get_bound(py)
+            .call1(((PyArray1::from_vec(py, z), PyArray1::from_vec(py, x)),))
     }
 }
 
@@ -3004,12 +3047,12 @@ fn cast_array_type<'py, T>(
 ) -> PyResult<Bound<'py, PyAny>> {
     let base_dtype = array.dtype();
     let dtype = dtype
-        .map(|dtype| PyArrayDescr::new_bound(py, dtype))
+        .map(|dtype| PyArrayDescr::new(py, dtype))
         .unwrap_or_else(|| Ok(base_dtype.clone()))?;
     if dtype.is_equiv_to(&base_dtype) {
         return Ok(array.into_any());
     }
-    PyModule::import_bound(py, intern!(py, "numpy"))?
+    PyModule::import(py, intern!(py, "numpy"))?
         .getattr(intern!(py, "array"))?
         .call(
             (array,),
@@ -3018,7 +3061,7 @@ fn cast_array_type<'py, T>(
                     (intern!(py, "copy"), NUMPY_COPY_ONLY_IF_NEEDED.get_bound(py)),
                     (intern!(py, "dtype"), dtype.as_any()),
                 ]
-                .into_py_dict_bound(py),
+                .into_py_dict(py)?,
             ),
         )
         .map(|obj| obj.into_any())

@@ -12,6 +12,7 @@
 
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 use crate::nlayout::PhysicalQubit;
 
@@ -101,14 +102,19 @@ impl ErrorMap {
     }
 
     #[pyo3(signature=(key, default=None))]
-    fn get(&self, py: Python, key: [PhysicalQubit; 2], default: Option<PyObject>) -> PyObject {
-        match self.error_map.get(&key).copied() {
-            Some(val) => val.to_object(py),
+    fn get(
+        &self,
+        py: Python,
+        key: [PhysicalQubit; 2],
+        default: Option<PyObject>,
+    ) -> PyResult<PyObject> {
+        Ok(match self.error_map.get(&key).copied() {
+            Some(val) => val.into_py_any(py)?,
             None => match default {
                 Some(val) => val,
                 None => py.None(),
             },
-        }
+        })
     }
 }
 

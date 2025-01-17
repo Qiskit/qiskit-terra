@@ -146,57 +146,76 @@ pub enum Expr {
     CustomFunction(PyObject, Vec<Expr>),
 }
 
-impl IntoPy<PyObject> for Expr {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self {
-            Expr::Constant(value) => bytecode::ExprConstant { value }.into_py(py),
-            Expr::Parameter(index) => bytecode::ExprArgument { index }.into_py(py),
+impl<'py> IntoPyObject<'py> for Expr {
+    type Target = PyAny; // the Python type
+    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self {
+            Expr::Constant(value) => bytecode::ExprConstant { value }
+                .into_pyobject(py)?
+                .into_any(),
+            Expr::Parameter(index) => bytecode::ExprArgument { index }
+                .into_pyobject(py)?
+                .into_any(),
             Expr::Negate(expr) => bytecode::ExprUnary {
                 opcode: bytecode::UnaryOpCode::Negate,
-                argument: expr.into_py(py),
+                argument: expr.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Add(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Add,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Subtract(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Subtract,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Multiply(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Multiply,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Divide(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Divide,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Power(left, right) => bytecode::ExprBinary {
                 opcode: bytecode::BinaryOpCode::Power,
-                left: left.into_py(py),
-                right: right.into_py(py),
+                left: left.into_pyobject(py)?.unbind(),
+                right: right.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::Function(func, expr) => bytecode::ExprUnary {
                 opcode: func.into(),
-                argument: expr.into_py(py),
+                argument: expr.into_pyobject(py)?.unbind(),
             }
-            .into_py(py),
+            .into_pyobject(py)?
+            .into_any(),
             Expr::CustomFunction(func, exprs) => bytecode::ExprCustom {
                 callable: func,
-                arguments: exprs.into_iter().map(|expr| expr.into_py(py)).collect(),
+                arguments: exprs
+                    .into_iter()
+                    .map(|expr| expr.into_pyobject(py).unwrap().unbind())
+                    .collect(),
             }
-            .into_py(py),
-        }
+            .into_pyobject(py)?
+            .into_any(),
+        })
     }
 }
 
@@ -424,7 +443,7 @@ impl ExprParser<'_> {
             // going to have to acquire the GIL and call the Python object the user gave us right
             // now.  We need to explicitly handle any exceptions that might occur from that.
             Python::with_gil(|py| {
-                let args = PyTuple::new_bound(
+                let args = PyTuple::new(
                     py,
                     exprs.iter().map(|x| {
                         if let Expr::Constant(val) = x {
@@ -433,7 +452,7 @@ impl ExprParser<'_> {
                             unreachable!()
                         }
                     }),
-                );
+                )?;
                 match callable.call1(py, args) {
                     Ok(retval) => {
                         match retval.extract::<f64>(py) {

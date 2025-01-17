@@ -13,13 +13,15 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::IntoPyArray;
+use numpy::{IntoPyArray, PyArray2};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyString, PyTuple, PyType};
-use pyo3::{intern, IntoPy, PyObject, PyResult};
+use pyo3::types::{PyBool, PyList, PyString, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
+use pyo3::{intern, PyObject, PyResult};
 
+use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::imports::{
@@ -80,7 +82,7 @@ impl ExtraInstructionAttributes {
                 attrs
                     .unit
                     .as_deref()
-                    .map(|unit| <&str as IntoPy<Py<PyString>>>::into_py(unit, py))
+                    .map(|unit| unit.into_pyobject(py).unwrap().unbind())
             })
             .unwrap_or_else(|| Self::default_unit(py).clone().unbind())
     }
@@ -281,7 +283,7 @@ impl CircuitInstruction {
             params: op_parts.params,
             extra_attrs: op_parts.extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: operation.into_py(py).into(),
+            py_op: operation.clone().unbind().into(),
         })
     }
 
@@ -297,7 +299,7 @@ impl CircuitInstruction {
         Ok(Self {
             operation: standard.into(),
             qubits: as_tuple(py, qubits)?.unbind(),
-            clbits: PyTuple::empty_bound(py).unbind(),
+            clbits: PyTuple::empty(py).unbind(),
             params,
             extra_attrs: ExtraInstructionAttributes::new(label, None, None, None),
             #[cfg(feature = "cache_pygates")]
@@ -347,19 +349,19 @@ impl CircuitInstruction {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> PyObject {
-        self.operation.name().to_object(py)
+    fn get_name(&self) -> &str {
+        self.operation.name()
     }
 
     #[getter]
-    fn get_params(&self, py: Python) -> PyObject {
-        self.params.to_object(py)
+    fn get_params(&self) -> &[Param] {
+        self.params.as_slice()
     }
 
     #[getter]
-    fn matrix(&self, py: Python) -> Option<PyObject> {
+    fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
         let matrix = self.operation.view().matrix(&self.params);
-        matrix.map(|mat| mat.into_pyarray_bound(py).into())
+        matrix.map(move |mat| mat.into_pyarray(py))
     }
 
     #[getter]
@@ -454,7 +456,7 @@ impl CircuitInstruction {
                 params: params.unwrap_or(op_parts.params),
                 extra_attrs: op_parts.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: operation.into_py(py).into(),
+                py_op: operation.clone().unbind().into(),
             })
         } else {
             Ok(Self {
@@ -470,12 +472,12 @@ impl CircuitInstruction {
     }
 
     pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        Ok((
+        (
             self.get_operation(py)?,
             self.qubits.bind(py),
             self.clbits.bind(py),
         )
-            .into_py(py))
+            .into_py_any(py)
     }
 
     pub fn __repr__(self_: &Bound<Self>, py: Python<'_>) -> PyResult<String> {
@@ -497,24 +499,30 @@ impl CircuitInstruction {
     // like that via unpacking or similar.  That means that the `parameters` field is completely
     // absent, and the qubits and clbits must be converted to lists.
     pub fn _legacy_format<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        Ok(PyTuple::new_bound(
+        PyTuple::new(
             py,
             [
                 self.get_operation(py)?,
                 self.qubits.bind(py).to_list().into(),
                 self.clbits.bind(py).to_list().into(),
             ],
-        ))
+        )
     }
 
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
+        self._legacy_format(py)?
+            .as_any()
+            .get_item(key)?
+            .into_py_any(py)
     }
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
+        self._legacy_format(py)?
+            .as_any()
+            .try_iter()?
+            .into_py_any(py)
     }
 
     pub fn __len__(&self, py: Python) -> PyResult<usize> {
@@ -582,15 +590,17 @@ impl CircuitInstruction {
             ))
         }
 
-        match op {
-            CompareOp::Eq => Ok(eq(py, self_, other)?
-                .map(|b| b.into_py(py))
-                .unwrap_or_else(|| py.NotImplemented())),
-            CompareOp::Ne => Ok(eq(py, self_, other)?
-                .map(|b| (!b).into_py(py))
-                .unwrap_or_else(|| py.NotImplemented())),
-            _ => Ok(py.NotImplemented()),
-        }
+        Ok(match op {
+            CompareOp::Eq => match eq(py, self_, other)? {
+                Some(res) => PyBool::new(py, res).to_owned().into_any().unbind(),
+                None => py.NotImplemented(),
+            },
+            CompareOp::Ne => match eq(py, self_, other)? {
+                Some(res) => PyBool::new(py, !res).to_owned().into_any().unbind(),
+                None => py.NotImplemented(),
+            },
+            _ => py.NotImplemented(),
+        })
     }
 }
 
@@ -702,7 +712,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: 0,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.into_py(py),
+                gate: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
@@ -718,7 +728,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
-                instruction: ob.into_py(py),
+                instruction: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_instruction(instruction),
@@ -733,7 +743,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.into_py(py),
+                operation: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_operation(operation),
@@ -748,7 +758,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
 /// Convert a sequence-like Python object to a tuple.
 fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyTuple>> {
     let Some(seq) = seq else {
-        return Ok(PyTuple::empty_bound(py));
+        return Ok(PyTuple::empty(py));
     };
     if seq.is_instance_of::<PyTuple>() {
         Ok(seq.downcast_into_exact::<PyTuple>()?)
@@ -756,12 +766,12 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
         Ok(seq.downcast_exact::<PyList>()?.to_tuple())
     } else {
         // New tuple from iterable.
-        Ok(PyTuple::new_bound(
+        PyTuple::new(
             py,
-            seq.iter()?
+            seq.try_iter()?
                 .map(|o| Ok(o?.unbind()))
                 .collect::<PyResult<Vec<PyObject>>>()?,
-        ))
+        )
     }
 }
 
@@ -783,7 +793,7 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
                     " Instead, use the `operation`, `qubits` and `clbits` named attributes."
                 )
             ),
-            py.get_type_bound::<PyDeprecationWarning>(),
+            py.get_type::<PyDeprecationWarning>(),
             // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
             // beacuse all our internal call structure is now Rust-space and invisible to Python.
             1,

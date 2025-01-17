@@ -106,7 +106,7 @@ pub(super) fn compose_transforms<'a>(
                 for (node, params) in nodes_to_replace {
                     let param_mapping: HashMap<ParameterUuid, Param> = equiv_params
                         .iter()
-                        .map(|x| ParameterUuid::from_parameter(x.to_object(py).bind(py)))
+                        .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
                         .zip(params)
                         .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
                             Ok((uuid?, param.clone_ref(py)))

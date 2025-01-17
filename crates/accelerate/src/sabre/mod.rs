@@ -23,6 +23,7 @@ use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 use crate::nlayout::PhysicalQubit;
@@ -45,7 +46,7 @@ pub struct SabreResult {
 impl SabreResult {
     #[getter]
     fn node_order(&self, py: Python) -> PyObject {
-        self.node_order.to_pyarray_bound(py).into()
+        self.node_order.to_pyarray(py).into_any().unbind()
     }
 }
 
@@ -70,10 +71,11 @@ impl NodeBlockResults {
         match self.results.get(&object) {
             Some(val) => Ok(val
                 .iter()
-                .map(|x| x.clone().into_py(py))
-                .collect::<Vec<_>>()
-                .into_pyarray_bound(py)
-                .into()),
+                .map(|x| x.clone().into_py_any(py))
+                .collect::<PyResult<Vec<_>>>()?
+                .into_pyarray(py)
+                .into_any()
+                .unbind()),
             None => Err(PyIndexError::new_err(format!(
                 "Node index {object} has no block results",
             ))),
@@ -96,13 +98,15 @@ pub struct BlockResult {
 #[pymethods]
 impl BlockResult {
     #[getter]
-    fn swap_epilogue(&self, py: Python) -> PyObject {
-        self.swap_epilogue
+    fn swap_epilogue(&self, py: Python) -> PyResult<PyObject> {
+        Ok(self
+            .swap_epilogue
             .iter()
-            .map(|x| x.into_py(py))
-            .collect::<Vec<_>>()
-            .into_pyarray_bound(py)
-            .into()
+            .map(|x| x.into_py_any(py))
+            .collect::<PyResult<Vec<_>>>()?
+            .into_pyarray(py)
+            .into_any()
+            .unbind())
     }
 }
 

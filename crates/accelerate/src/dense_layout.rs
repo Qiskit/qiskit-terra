@@ -122,9 +122,9 @@ pub fn best_subset(
         err,
     );
     (
-        rows.into_pyarray_bound(py).into(),
-        cols.into_pyarray_bound(py).into(),
-        best_map.into_pyarray_bound(py).into(),
+        rows.into_pyarray(py).into_any().unbind(),
+        cols.into_pyarray(py).into_any().unbind(),
+        best_map.into_pyarray(py).into_any().unbind(),
     )
 }
 

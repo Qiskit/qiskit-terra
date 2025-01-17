@@ -113,9 +113,9 @@ fn star_preroute(
 
     let final_res = (
         res.map,
-        res.node_order.into_pyarray_bound(py).into(),
+        res.node_order.into_pyarray(py).into_any().unbind(),
         res.node_block_results,
-        qubit_mapping.into_pyarray_bound(py).into(),
+        qubit_mapping.into_pyarray(py).into_any().unbind(),
     );
 
     final_res

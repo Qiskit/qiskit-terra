@@ -36,8 +36,9 @@ pub fn reverse_qubit_state(
     epsilon: f64,
 ) -> PyObject {
     reverse_qubit_state_inner(&state, basis_state, epsilon)
-        .into_pyarray_bound(py)
-        .into()
+        .into_pyarray(py)
+        .into_any()
+        .unbind()
 }
 
 #[inline(always)]
@@ -105,7 +106,7 @@ pub fn find_squs_for_disentangling(
     output.append(&mut squs);
     output
         .into_iter()
-        .map(|x| x.into_pyarray_bound(py).into())
+        .map(|x| x.into_pyarray(py).into_any().unbind())
         .collect()
 }
 
@@ -132,7 +133,7 @@ pub fn apply_ucg(
             m[[i + spacing, col]] = gate[[1, 0]] * a + gate[[1, 1]] * b;
         }
     }
-    m.into_pyarray_bound(py).into()
+    m.into_pyarray(py).into_any().unbind()
 }
 
 #[inline(always)]
@@ -165,7 +166,7 @@ pub fn apply_diagonal_gate(
             m[[i, j]] = diag[diag_index] * m[[i, j]]
         }
     }
-    Ok(m.into_pyarray_bound(py).into())
+    Ok(m.into_pyarray(py).into_any().unbind())
 }
 
 #[pyfunction]
@@ -247,7 +248,7 @@ pub fn apply_multi_controlled_gate(
             m[[e1, i]] = temp[0];
             m[[e2, i]] = temp[1];
         }
-        return m.into_pyarray_bound(py).into();
+        return m.into_pyarray(py).into_any().unbind();
     }
     for state_free in std::iter::repeat([0_u8, 1_u8])
         .take(free_qubits)
@@ -264,7 +265,7 @@ pub fn apply_multi_controlled_gate(
             m[[e2, i]] = temp[1];
         }
     }
-    m.into_pyarray_bound(py).into()
+    m.into_pyarray(py).into_any().unbind()
 }
 
 #[pyfunction]
@@ -317,7 +318,7 @@ pub fn merge_ucgate_and_diag(
         .map(|(i, raw_gate)| {
             let gate = raw_gate.as_array();
             let res = aview2(&[[diag[2 * i], C_ZERO], [C_ZERO, diag[2 * i + 1]]]).dot(&gate);
-            res.into_pyarray_bound(py).into()
+            res.into_pyarray(py).into_any().unbind()
         })
         .collect()
 }

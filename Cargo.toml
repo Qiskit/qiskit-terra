@@ -20,7 +20,7 @@ hashbrown.version = "0.14.5"
 num-bigint = "0.4"
 num-complex = "0.4"
 ndarray = "0.15"
-numpy = "0.22.1"
+numpy = "0.23"
 smallvec = "1.13"
 thiserror = "1.0"
 rustworkx-core = "0.15"
@@ -34,7 +34,7 @@ rayon = "1.10"
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.22.6", features = ["abi3-py39"] }
+pyo3 = { version = "0.23", features = ["abi3-py39"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }

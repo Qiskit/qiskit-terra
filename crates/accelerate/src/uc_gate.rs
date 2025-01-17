@@ -150,9 +150,9 @@ pub fn dec_ucg_help(
     (
         single_qubit_gates
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect(),
-        diag.into_pyarray_bound(py).into(),
+        diag.into_pyarray(py).into_any().unbind(),
     )
 }
 

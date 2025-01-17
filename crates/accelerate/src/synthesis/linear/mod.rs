@@ -13,6 +13,7 @@
 use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 mod pmh;
 pub mod utils;
@@ -39,7 +40,7 @@ fn gauss_elimination_with_perm(
 ) -> PyResult<PyObject> {
     let matmut = mat.as_array_mut();
     let perm = utils::gauss_elimination_with_perm_inner(matmut, ncols, full_elim);
-    Ok(perm.to_object(py))
+    perm.into_py_any(py)
 }
 
 #[pyfunction]
@@ -72,7 +73,7 @@ fn gauss_elimination(
 fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let view = mat.as_array();
     let rank = utils::compute_rank_after_gauss_elim_inner(view);
-    Ok(rank.to_object(py))
+    rank.into_py_any(py)
 }
 
 #[pyfunction]
@@ -84,7 +85,7 @@ fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyR
 ///     rank: the rank of the matrix
 fn compute_rank(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let rank = utils::compute_rank_inner(mat.as_array());
-    Ok(rank.to_object(py))
+    rank.into_py_any(py)
 }
 
 #[pyfunction]
@@ -105,7 +106,7 @@ pub fn calc_inverse_matrix(
     let view = mat.as_array();
     let invmat =
         utils::calc_inverse_matrix_inner(view, verify.is_some()).map_err(QiskitError::new_err)?;
-    Ok(invmat.into_pyarray_bound(py).unbind())
+    Ok(invmat.into_pyarray(py).unbind())
 }
 
 #[pyfunction]
@@ -126,7 +127,7 @@ pub fn binary_matmul(
     let view1 = mat1.as_array();
     let view2 = mat2.as_array();
     let result = utils::binary_matmul_inner(view1, view2).map_err(QiskitError::new_err)?;
-    Ok(result.into_pyarray_bound(py).unbind())
+    Ok(result.into_pyarray(py).unbind())
 }
 
 #[pyfunction]
@@ -159,7 +160,7 @@ fn random_invertible_binary_matrix(
     seed: Option<u64>,
 ) -> PyResult<Py<PyArray2<bool>>> {
     let matrix = utils::random_invertible_binary_matrix_inner(num_qubits, seed);
-    Ok(matrix.into_pyarray_bound(py).unbind())
+    Ok(matrix.into_pyarray(py).unbind())
 }
 
 #[pyfunction]
@@ -169,10 +170,9 @@ fn random_invertible_binary_matrix(
 ///     mat: a binary matrix.
 /// Returns:
 ///     bool: True if mat in invertible and False otherwise.
-fn check_invertible_binary_matrix(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+fn check_invertible_binary_matrix(mat: PyReadonlyArray2<bool>) -> bool {
     let view = mat.as_array();
-    let out = utils::check_invertible_binary_matrix_inner(view);
-    Ok(out.to_object(py))
+    utils::check_invertible_binary_matrix_inner(view)
 }
 
 pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {

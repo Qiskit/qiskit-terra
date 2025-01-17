@@ -18,7 +18,7 @@ fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult
 where
     F: FnOnce(&Bound<PyModule>) -> PyResult<()>,
 {
-    let new_mod = PyModule::new_bound(m.py(), name)?;
+    let new_mod = PyModule::new(m.py(), name)?;
     constructor(&new_mod)?;
     m.add_submodule(&new_mod)
 }

@@ -247,7 +247,7 @@ pub fn get_entangler_map<'py>(
         Ok(entanglement) => entanglement
             .into_iter()
             .map(|vec| match vec {
-                Ok(vec) => Ok(PyTuple::new_bound(py, vec)),
+                Ok(vec) => PyTuple::new(py, vec),
                 Err(e) => Err(e),
             })
             .collect::<Result<Vec<_>, _>>(),

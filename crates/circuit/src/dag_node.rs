@@ -21,13 +21,16 @@ use crate::TupleLikeArg;
 
 use ahash::AHasher;
 use approx::relative_eq;
+use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use numpy::IntoPyArray;
+use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyString, PyTuple};
-use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
+use pyo3::types::PyTuple;
+use pyo3::IntoPyObjectExt;
+use pyo3::{intern, PyObject, PyResult};
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
@@ -103,7 +106,7 @@ impl DAGNode {
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
-        self.py_nid().into_py(py).bind(py).hash()
+        self.py_nid().into_pyobject(py)?.hash()
     }
 }
 
@@ -127,9 +130,9 @@ impl DAGOpNode {
         #[allow(unused_variables)] dag: Option<Bound<PyAny>>,
     ) -> PyResult<Py<Self>> {
         let py_op = op.extract::<OperationFromPython>()?;
-        let qargs = qargs.map_or_else(|| PyTuple::empty_bound(py), |q| q.value);
+        let qargs = qargs.map_or_else(|| PyTuple::empty(py), |q| q.value);
         let sort_key = qargs.str().unwrap().into();
-        let cargs = cargs.map_or_else(|| PyTuple::empty_bound(py), |c| c.value);
+        let cargs = cargs.map_or_else(|| PyTuple::empty(py), |c| c.value);
         let instruction = CircuitInstruction {
             operation: py_op.operation,
             qubits: qargs.unbind(),
@@ -249,21 +252,17 @@ impl DAGOpNode {
             instruction,
             sort_key,
         });
-        Ok(Py::new(py, sub)?.to_object(py))
+        Py::new(py, sub)?.into_py_any(py)
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
-        Ok((
-            py.get_type_bound::<Self>(),
-            (
-                slf.instruction.get_operation(py)?,
-                &slf.instruction.qubits,
-                &slf.instruction.clbits,
-            ),
-            state,
-        )
-            .into_py(py))
+        let temp = (
+            slf.instruction.get_operation(py)?,
+            &slf.instruction.qubits,
+            &slf.instruction.clbits,
+        );
+        (py.get_type::<Self>(), temp, state).into_py_any(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
@@ -347,13 +346,13 @@ impl DAGOpNode {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> Py<PyString> {
-        self.instruction.operation.name().into_py(py)
+    fn get_name(&self) -> &str {
+        self.instruction.operation.name()
     }
 
     #[getter]
-    fn get_params(&self, py: Python) -> PyObject {
-        self.instruction.params.to_object(py)
+    fn get_params(&self) -> &[Param] {
+        self.instruction.params.as_slice()
     }
 
     #[setter]
@@ -362,9 +361,9 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn matrix(&self, py: Python) -> Option<PyObject> {
+    fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
         let matrix = self.instruction.operation.matrix(&self.instruction.params);
-        matrix.map(|mat| mat.into_pyarray_bound(py).into())
+        matrix.map(|mat| mat.into_pyarray(py))
     }
 
     #[getter]
@@ -491,9 +490,9 @@ impl DAGInNode {
         ))
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
+    fn __reduce__<'py>(slf: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
-        (py.get_type_bound::<Self>(), (&slf.wire,), state).into_py(py)
+        (py.get_type::<Self>(), (&slf.wire,), state).into_pyobject(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
@@ -564,9 +563,9 @@ impl DAGOutNode {
         ))
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
+    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
-        (py.get_type_bound::<Self>(), (&slf.wire,), state).into_py(py)
+        (py.get_type::<Self>(), (&slf.wire,), state).into_py_any(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {

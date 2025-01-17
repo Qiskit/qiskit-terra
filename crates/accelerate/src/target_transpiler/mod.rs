@@ -29,10 +29,11 @@ use pyo3::{
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet, PyTuple},
+    IntoPyObjectExt,
 };
 
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
@@ -57,28 +58,10 @@ type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionPropertie
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
-#[derive(FromPyObject, Debug, Clone)]
+#[derive(FromPyObject, Debug, Clone, IntoPyObjectRef)]
 pub(crate) enum TargetOperation {
     Normal(NormalOperation),
     Variadic(PyObject),
-}
-
-impl IntoPy<PyObject> for TargetOperation {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self {
-            Self::Normal(normal) => normal.into_py(py),
-            Self::Variadic(variable) => variable,
-        }
-    }
-}
-
-impl ToPyObject for TargetOperation {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        match self {
-            Self::Normal(normal) => normal.to_object(py),
-            Self::Variadic(variable) => variable.clone_ref(py),
-        }
-    }
 }
 
 impl TargetOperation {
@@ -112,6 +95,26 @@ pub(crate) struct NormalOperation {
     op_object: PyObject,
 }
 
+impl<'py> IntoPyObject<'py> for NormalOperation {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.op_object.bind(py).clone())
+    }
+}
+
+impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
+    type Target = PyAny;
+    type Output = Borrowed<'a, 'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.op_object.bind_borrowed(py))
+    }
+}
+
 impl<'py> FromPyObject<'py> for NormalOperation {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let operation: OperationFromPython = ob.extract()?;
@@ -120,18 +123,6 @@ impl<'py> FromPyObject<'py> for NormalOperation {
             params: operation.params,
             op_object: ob.clone().unbind(),
         })
-    }
-}
-
-impl IntoPy<PyObject> for NormalOperation {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        self.to_object(py)
-    }
-}
-
-impl ToPyObject for NormalOperation {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        self.op_object.clone_ref(py)
     }
 }
 
@@ -414,9 +405,11 @@ impl Target {
         operation: &str,
     ) -> PyResult<Option<Vec<PyObject>>> {
         match self.qargs_for_operation_name(operation) {
-            Ok(option_set) => {
-                Ok(option_set.map(|qargs| qargs.map(|qargs| qargs.to_object(py)).collect()))
-            }
+            Ok(option_set) => Ok(option_set.map(|qargs| {
+                qargs
+                    .map(|qargs| qargs.into_pyobject(py).unwrap().unbind())
+                    .collect()
+            })),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
     }
@@ -431,9 +424,13 @@ impl Target {
     ///     name. This also can also be the class for globally defined variable with
     ///     operations.
     #[pyo3(name = "operation_from_name")]
-    pub fn py_operation_from_name(&self, py: Python, instruction: &str) -> PyResult<PyObject> {
+    pub fn py_operation_from_name<'py>(
+        &'py self,
+        py: Python<'py>,
+        instruction: &str,
+    ) -> PyResult<Bound<'py, PyAny>> {
         match self._operation_from_name(instruction) {
-            Ok(instruction) => Ok(instruction.to_object(py)),
+            Ok(instruction) => instruction.into_pyobject(py),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
     }
@@ -462,7 +459,14 @@ impl Target {
         Ok(self
             .py_operation_names_for_qargs(qargs)?
             .into_iter()
-            .map(|x| self._gate_name_map[x].to_object(py))
+            .map(|x| {
+                self._gate_name_map[x]
+                    .into_pyobject(py)
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+                    .unbind()
+            })
             .collect())
     }
 
@@ -578,7 +582,7 @@ impl Target {
                         }
                     }
                     TargetOperation::Normal(normal) => {
-                        if python_is_instance(py, normal, _operation_class)? {
+                        if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.params.len() {
                                     continue;
@@ -639,7 +643,7 @@ impl Target {
                         let mut matching_params = false;
                         let obj_at_index = &obj_params[index];
                         if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, &params, &obj_params[index])?
+                            || python_compare(py, params, &obj_params[index])?
                         {
                             matching_params = true;
                         }
@@ -728,9 +732,11 @@ impl Target {
         &mut self,
         py: Python<'_>,
         strict_direction: bool,
-    ) -> PyObject {
-        self.get_non_global_operation_names(strict_direction)
-            .to_object(py)
+    ) -> PyResult<PyObject> {
+        Ok(self
+            .get_non_global_operation_names(strict_direction)
+            .into_pyobject(py)?
+            .unbind())
     }
 
     // Instance attributes
@@ -740,10 +746,10 @@ impl Target {
     #[pyo3(name = "qargs")]
     fn py_qargs(&self, py: Python) -> PyResult<PyObject> {
         if let Some(qargs) = self.qargs() {
-            let qargs = qargs.map(|qargs| qargs.map(|q| PyTuple::new_bound(py, q)));
-            let set = PySet::empty_bound(py)?;
+            let qargs = qargs.map(|qargs| qargs.map(|q| PyTuple::new(py, q)));
+            let set = PySet::empty(py)?;
             for qargs in qargs {
-                set.add(qargs)?;
+                set.add(qargs.transpose()?)?;
             }
             Ok(set.into_any().unbind())
         } else {
@@ -760,32 +766,46 @@ impl Target {
     #[getter]
     #[pyo3(name = "instructions")]
     pub fn py_instructions(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        let list = PyList::empty_bound(py);
+        let list = PyList::empty(py);
         for (inst, qargs) in self._instructions() {
-            let qargs = qargs.map(|q| PyTuple::new_bound(py, q).unbind());
-            list.append((inst, qargs))?;
+            let qargs = match qargs {
+                Some(q) => Some(PyTuple::new(py, q)?.unbind()),
+                None => None,
+            };
+            let out_inst = match inst {
+                TargetOperation::Normal(op) => match op.operation.view() {
+                    OperationRef::Standard(standard) => standard
+                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .into_any(),
+                    OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+                    OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
+                    OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+                },
+                TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
+            };
+            list.append((out_inst, qargs))?;
         }
         Ok(list.unbind())
     }
     /// Get the operation names in the target.
     #[getter]
     #[pyo3(name = "operation_names")]
-    fn py_operation_names(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, self.operation_names()).unbind()
+    fn py_operation_names(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.operation_names())?.unbind())
     }
 
     /// Get the operation objects in the target.
     #[getter]
     #[pyo3(name = "operations")]
-    fn py_operations(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, self._gate_name_map.values()).unbind()
+    fn py_operations(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self._gate_name_map.values())?.unbind())
     }
 
     /// Returns a sorted list of physical qubits.
     #[getter]
     #[pyo3(name = "physical_qubits")]
-    fn py_physical_qubits(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, self.physical_qubits()).unbind()
+    fn py_physical_qubits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.physical_qubits())?.unbind())
     }
 
     // Magic methods:
@@ -795,7 +815,7 @@ impl Target {
     }
 
     fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
-        let result_list = PyDict::new_bound(py);
+        let result_list = PyDict::new(py);
         result_list.set_item("description", self.description.clone())?;
         result_list.set_item("num_qubits", self.num_qubits)?;
         result_list.set_item("dt", self.dt)?;
@@ -822,9 +842,9 @@ impl Target {
                     )
                 })
                 .collect::<GateMapState>()
-                .into_py(py),
+                .into_pyobject(py)?,
         )?;
-        result_list.set_item("gate_name_map", self._gate_name_map.to_object(py))?;
+        result_list.set_item("gate_name_map", self._gate_name_map.into_pyobject(py)?)?;
         result_list.set_item("global_operations", self.global_operations.clone())?;
         result_list.set_item(
             "qarg_gate_map",
@@ -1256,25 +1276,13 @@ fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     true
 }
 
-pub fn python_compare<T, U>(py: Python, obj: &T, other: &U) -> PyResult<bool>
+pub fn python_compare<'a, T, U>(py: Python<'a>, obj: T, other: U) -> PyResult<bool>
 where
-    T: ToPyObject,
-    U: ToPyObject,
+    T: IntoPyObject<'a>,
+    U: IntoPyObject<'a>,
 {
-    let obj = obj.to_object(py);
-    let obj_bound = obj.bind(py);
-    obj_bound.eq(other)
-}
-
-pub fn python_is_instance<T, U>(py: Python, obj: &T, other: &U) -> PyResult<bool>
-where
-    T: ToPyObject,
-    U: ToPyObject,
-{
-    let obj = obj.to_object(py);
-    let other_obj = other.to_object(py);
-    let obj_bound = obj.bind(py);
-    obj_bound.is_instance(other_obj.bind(py))
+    let obj = obj.into_bound_py_any(py)?;
+    obj.eq(other.into_bound_py_any(py)?)
 }
 
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {

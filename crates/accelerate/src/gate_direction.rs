@@ -17,6 +17,7 @@ use hashbrown::HashSet;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::IntoPyObjectExt;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
@@ -117,7 +118,7 @@ where
                 let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
                 let py_inst = py_inst.instruction.bind(py);
 
-                for block in py_inst.getattr("blocks")?.iter()? {
+                for block in py_inst.getattr("blocks")?.try_iter()? {
                     let inner_dag: DAGCircuit = circuit_to_dag.call1((block?,))?.extract()?;
 
                     let block_ok = if let Some(mapping) = qubit_mapping {
@@ -389,7 +390,7 @@ fn has_calibration_for_op_node(
     packed_inst: &PackedInstruction,
     qargs: &[Qubit],
 ) -> PyResult<bool> {
-    let py_args = PyTuple::new_bound(py, dag.qubits().map_indices(qargs));
+    let py_args = PyTuple::new(py, dag.qubits().map_indices(qargs))?;
 
     let dag_op_node = Py::new(
         py,
@@ -398,13 +399,13 @@ fn has_calibration_for_op_node(
                 instruction: CircuitInstruction {
                     operation: packed_inst.op.clone(),
                     qubits: py_args.unbind(),
-                    clbits: PyTuple::empty_bound(py).unbind(),
+                    clbits: PyTuple::empty(py).unbind(),
                     params: packed_inst.params_view().iter().cloned().collect(),
                     extra_attrs: packed_inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: packed_inst.py_op.clone(),
                 },
-                sort_key: "".into_py(py),
+                sort_key: "".into_py_any(py)?,
             },
             DAGNode { node: None },
         ),

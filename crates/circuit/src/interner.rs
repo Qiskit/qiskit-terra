@@ -206,7 +206,8 @@ mod test {
     fn default_key_exists() {
         let mut interner = Interner::<[u32]>::new();
         assert_eq!(interner.get_default(), interner.get_default());
-        assert_eq!(interner.get(interner.get_default()), &[]);
+        let res: &[u32] = &[];
+        assert_eq!(interner.get(interner.get_default()), res);
         assert_eq!(interner.insert_owned(Vec::new()), interner.get_default());
         assert_eq!(interner.insert(&[]), interner.get_default());
 

@@ -62,15 +62,15 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
                 .ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             captured_vars: ob
                 .call_method0(intern!(py, "iter_captured_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
     }

@@ -29,7 +29,7 @@ pub(super) type LayerParameters<'a> = Vec<BlockParameters<'a>>; // parameter in 
 /// Internally, the parameters are stored in a 1-D vector and the ledger keeps track of
 /// which indices belong to which layer. For example, a 2-qubit circuit where both the
 /// rotation and entanglement layer have 1 block with 2 parameters each, we would store
-///    
+///
 ///     [x0 x1 x2 x3 x4 x5 x6 x7 ....]
 ///      ----- ----- ----- -----
 ///      rep0  rep0  rep1  rep2
@@ -105,7 +105,7 @@ impl ParameterLedger {
         let parameter_vector: Vec<Param> = imports::PARAMETER_VECTOR
             .get_bound(py)
             .call1((parameter_prefix, num_parameters))? // get the Python ParameterVector
-            .iter()? // iterate over the elements and cast them to Rust Params
+            .try_iter()? // iterate over the elements and cast them to Rust Params
             .map(|ob| Param::extract_no_coerce(&ob?))
             .collect::<PyResult<_>>()?;
 

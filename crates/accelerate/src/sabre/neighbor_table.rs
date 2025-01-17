@@ -107,14 +107,17 @@ impl NeighborTable {
         Ok(NeighborTable { neighbors })
     }
 
-    fn __getstate__(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(
+    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        PyList::new(
             py,
-            self.neighbors
-                .iter()
-                .map(|v| PyList::new_bound(py, v.iter()).to_object(py)),
+            self.neighbors.iter().map(|v| {
+                PyList::new(py, v.iter())
+                    .unwrap()
+                    .into_pyobject(py)
+                    .unwrap()
+            }),
         )
-        .into()
+        .map(|x| x.unbind())
     }
 
     fn __setstate__(&mut self, state: &Bound<PyList>) -> PyResult<()> {

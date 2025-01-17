@@ -92,7 +92,7 @@ where
             description,
             bits: Vec::new(),
             indices: HashMap::new(),
-            cached: PyList::empty_bound(py).unbind(),
+            cached: PyList::empty(py).unbind(),
         }
     }
 
@@ -101,7 +101,7 @@ where
             description,
             bits: Vec::with_capacity(capacity),
             indices: HashMap::with_capacity(capacity),
-            cached: PyList::empty_bound(py).unbind(),
+            cached: PyList::empty(py).unbind(),
         }
     }
 
@@ -189,7 +189,7 @@ where
             .try_insert(BitAsKey::new(bit), idx.into())
             .is_ok()
         {
-            self.bits.push(bit.into_py(py));
+            self.bits.push(bit.clone().unbind());
             self.cached.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(

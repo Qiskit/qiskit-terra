@@ -31,6 +31,7 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use hashbrown::{HashMap, HashSet};
@@ -132,12 +133,12 @@ impl CircuitData {
         };
         self_.set_global_phase(py, global_phase)?;
         if let Some(qubits) = qubits {
-            for bit in qubits.iter()? {
+            for bit in qubits.try_iter()? {
                 self_.add_qubit(py, &bit?, true)?;
             }
         }
         if let Some(clbits) = clbits {
-            for bit in clbits.iter()? {
+            for bit in clbits.try_iter()? {
                 self_.add_clbit(py, &bit?, true)?;
             }
         }
@@ -160,7 +161,7 @@ impl CircuitData {
                 self_.global_phase.clone(),
             )
         };
-        Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
+        (ty, args, None::<()>, self_.try_iter()?).into_py_any(py)
     }
 
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
@@ -296,7 +297,7 @@ impl CircuitData {
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
-            let memo = PyDict::new_bound(py);
+            let memo = PyDict::new(py);
             for inst in &self.data {
                 res.data.push(PackedInstruction {
                     op: inst.op.py_deepcopy(py, Some(&memo))?,
@@ -342,8 +343,8 @@ impl CircuitData {
     /// Returns:
     ///     tuple[set[:class:`.Qubit`], set[:class:`.Clbit`]]: The active qubits and clbits.
     pub fn active_bits(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
-        let qubits = PySet::empty_bound(py)?;
-        let clbits = PySet::empty_bound(py)?;
+        let qubits = PySet::empty(py)?;
+        let clbits = PySet::empty(py)?;
         for inst in self.data.iter() {
             for b in self.qargs_interner.get(inst.qubits) {
                 qubits.add(self.qubits.get(*b).unwrap().clone_ref(py))?;
@@ -353,7 +354,7 @@ impl CircuitData {
             }
         }
 
-        Ok((qubits, clbits).into_py(py))
+        Ok((qubits, clbits).into_pyobject(py)?.unbind())
     }
 
     /// Invokes callable ``func`` with each instruction's operation.
@@ -509,18 +510,23 @@ impl CircuitData {
             let clbits = self.cargs_interner.get(inst.clbits);
             CircuitInstruction {
                 operation: inst.op.clone(),
-                qubits: PyTuple::new_bound(py, self.qubits.map_indices(qubits)).unbind(),
-                clbits: PyTuple::new_bound(py, self.clbits.map_indices(clbits)).unbind(),
+                qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
+                    .unwrap()
+                    .unbind(),
+                clbits: PyTuple::new(py, self.clbits.map_indices(clbits))
+                    .unwrap()
+                    .unbind(),
                 params: inst.params_view().iter().cloned().collect(),
                 extra_attrs: inst.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
             }
-            .into_py(py)
+            .into_py_any(py)
+            .unwrap()
         };
         match index.with_len(self.data.len())? {
             SequenceIndex::Int(index) => Ok(get_single(index)),
-            indices => Ok(PyList::new_bound(py, indices.iter().map(get_single)).into_py(py)),
+            indices => PyList::new(py, indices.iter().map(get_single))?.into_py_any(py),
         }
     }
 
@@ -546,7 +552,7 @@ impl CircuitData {
                 step: 1,
             } => {
                 // `list` allows setting a slice with step +1 to an arbitrary length.
-                let values = value.iter()?.collect::<PyResult<Vec<_>>>()?;
+                let values = value.try_iter()?.collect::<PyResult<Vec<_>>>()?;
                 for (index, value) in indices.iter().zip(values.iter()) {
                     set_single(self, index, value)?;
                 }
@@ -567,7 +573,7 @@ impl CircuitData {
                 Ok(())
             }
             indices => {
-                let values = value.iter()?.collect::<PyResult<Vec<_>>>()?;
+                let values = value.try_iter()?.collect::<PyResult<Vec<_>>>()?;
                 if indices.len() == values.len() {
                     for (index, value) in indices.iter().zip(values.iter()) {
                         set_single(self, index, value)?;
@@ -648,7 +654,7 @@ impl CircuitData {
                 instruction: instruction_index,
                 parameter: parameter_index,
             };
-            for param in parameters.iter()? {
+            for param in parameters.try_iter()? {
                 self.param_table.track(&param?, Some(usage))?;
             }
         }
@@ -699,7 +705,7 @@ impl CircuitData {
             }
             return Ok(());
         }
-        for v in itr.iter()? {
+        for v in itr.try_iter()? {
             self.append(v?.downcast()?)?;
         }
         Ok(())
@@ -728,7 +734,7 @@ impl CircuitData {
             )
         } else {
             let values = sequence
-                .iter()?
+                .try_iter()?
                 .map(|ob| Param::extract_no_coerce(&ob?))
                 .collect::<PyResult<Vec<_>>>()?;
             self.assign_parameters_from_slice(sequence.py(), &values)
@@ -742,7 +748,7 @@ impl CircuitData {
     fn assign_parameters_mapping(&mut self, mapping: Bound<PyAny>) -> PyResult<()> {
         let py = mapping.py();
         let mut items = Vec::new();
-        for item in mapping.call_method0("items")?.iter()? {
+        for item in mapping.call_method0("items")?.try_iter()? {
             let (param_ob, value) = item?.extract::<(Py<PyAny>, AssignParam)>()?;
             let uuid = ParameterUuid::from_parameter(param_ob.bind(py))?;
             // It's fine if the mapping contains parameters that we don't have - just skip those.
@@ -798,8 +804,8 @@ impl CircuitData {
 
         // Implemented using generic iterators on both sides
         // for simplicity.
-        let mut ours_itr = slf.iter()?;
-        let mut theirs_itr = other.iter()?;
+        let mut ours_itr = slf.try_iter()?;
+        let mut theirs_itr = other.try_iter()?;
         loop {
             match (ours_itr.next(), theirs_itr.next()) {
                 (Some(ours), Some(theirs)) => {
@@ -849,7 +855,11 @@ impl CircuitData {
     #[setter]
     pub fn set_global_phase(&mut self, py: Python, angle: Param) -> PyResult<()> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
-            for param_ob in expr.bind(py).getattr(intern!(py, "parameters"))?.iter()? {
+            for param_ob in expr
+                .bind(py)
+                .getattr(intern!(py, "parameters"))?
+                .try_iter()?
+            {
                 match self.param_table.remove_use(
                     ParameterUuid::from_parameter(&param_ob?)?,
                     ParameterUse::GlobalPhase,
@@ -1331,7 +1341,7 @@ impl CircuitData {
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
-            let new_expr = expr.call_method1(assign_attr, (param_ob, value.to_object(py)))?;
+            let new_expr = expr.call_method1(assign_attr, (param_ob, value.into_py_any(py)?))?;
             if new_expr.getattr(parameters_attr)?.len()? == 0 {
                 let out = new_expr.call_method0(numeric_attr)?;
                 if coerce {
@@ -1448,10 +1458,10 @@ impl CircuitData {
                                     Param::extract_no_coerce(
                                         &obj.call_method(
                                             assign_parameters_attr,
-                                            ([(&param_ob, value.as_ref())].into_py_dict_bound(py),),
+                                            ([(&param_ob, value.as_ref())].into_py_dict(py)?,),
                                             Some(
                                                 &[("inplace", false), ("flat_input", true)]
-                                                    .into_py_dict_bound(py),
+                                                    .into_py_dict(py)?,
                                             ),
                                         )?,
                                     )?
@@ -1464,7 +1474,7 @@ impl CircuitData {
                             previous.extra_attrs = new_op.extra_attrs;
                             #[cfg(feature = "cache_pygates")]
                             {
-                                previous.py_op = op.into_py(py).into();
+                                previous.py_op = op.unbind().into();
                             }
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
@@ -1476,7 +1486,9 @@ impl CircuitData {
         }
 
         let assign_kwargs = (!user_operations.is_empty()).then(|| {
-            [("inplace", true), ("flat_input", true), ("strict", false)].into_py_dict_bound(py)
+            [("inplace", true), ("flat_input", true), ("strict", false)]
+                .into_py_dict(py)
+                .unwrap()
         });
         for (instruction, bindings) in user_operations {
             // We only put non-standard gates in `user_operations`, so we're not risking creating a
@@ -1504,7 +1516,7 @@ impl CircuitData {
             if !definition_cache.is_none() {
                 definition_cache.call_method(
                     assign_parameters_attr,
-                    (bindings.into_py_dict_bound(py),),
+                    (bindings.into_py_dict(py)?.into_any().unbind(),),
                     assign_kwargs.as_ref(),
                 )?;
             }

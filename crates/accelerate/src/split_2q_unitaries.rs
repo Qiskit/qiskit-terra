@@ -54,7 +54,7 @@ pub fn split_2q_unitaries(
             if matches!(decomp.specialization, Specialization::IdEquiv) {
                 let k1r_arr = decomp.K1r(py);
                 let k1l_arr = decomp.K1l(py);
-                let kwargs = PyDict::new_bound(py);
+                let kwargs = PyDict::new(py);
                 kwargs.set_item(intern!(py, "num_qubits"), 1)?;
                 let k1r_gate = UNITARY_GATE
                     .get_bound(py)

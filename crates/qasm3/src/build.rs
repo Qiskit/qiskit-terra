@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::{PySequence, PyString, PyTuple};
+use pyo3::types::{PySequence, PyTuple};
 
 use ahash::RandomState;
 
@@ -145,7 +145,7 @@ impl BuilderState {
         let gate = self.symbols.gates.get(gate_id).ok_or_else(|| {
             QASM3ImporterError::new_err(format!("internal error: unknown gate {:?}", gate_id))
         })?;
-        let params = PyTuple::new_bound(
+        let params = PyTuple::new(
             py,
             call.params()
                 .as_ref()
@@ -154,7 +154,7 @@ impl BuilderState {
                 .iter()
                 .map(|param| expr::eval_gate_param(py, &self.symbols, ast_symbols, param))
                 .collect::<PyResult<Vec<_>>>()?,
-        );
+        )?;
         let qargs = call.qubits();
         if params.len() != gate.num_params() {
             return Err(QASM3ImporterError::new_err(format!(
@@ -209,7 +209,7 @@ impl BuilderState {
                     }
                 }
             }
-            PyTuple::new_bound(py, qubits.values())
+            PyTuple::new(py, qubits.values())?
         } else {
             // If there's no qargs (represented in the ASG with a `None` rather than an empty
             // vector), it's a barrier over all in-scope qubits, which is all qubits, unless we're
@@ -320,9 +320,9 @@ impl BuilderState {
         }
     }
 
-    fn add_qreg<T: IntoPy<Py<PyString>>>(
-        &mut self,
-        py: Python,
+    fn add_qreg<'a, T: IntoPyObject<'a>>(
+        &'a mut self,
+        py: Python<'a>,
         ast_symbol: SymbolId,
         name: T,
         size: usize,
@@ -338,9 +338,9 @@ impl BuilderState {
         }
     }
 
-    fn add_creg<T: IntoPy<Py<PyString>>>(
+    fn add_creg<'py, T: IntoPyObject<'py>>(
         &mut self,
-        py: Python,
+        py: Python<'py>,
         ast_symbol: SymbolId,
         name: T,
         size: usize,

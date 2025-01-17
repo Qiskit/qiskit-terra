@@ -43,7 +43,7 @@ fn recurse<'py>(
                 if let OperationRef::Instruction(py_inst) = inst.op.view() {
                     let raw_blocks = py_inst.instruction.getattr(py, "blocks")?;
                     let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
-                    for raw_block in raw_blocks.bind(py).iter().unwrap() {
+                    for raw_block in raw_blocks.bind(py).try_iter().unwrap() {
                         let block_obj = raw_block?;
                         let block = block_obj
                             .getattr(intern!(py, "_data"))?

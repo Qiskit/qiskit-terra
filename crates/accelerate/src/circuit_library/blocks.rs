@@ -42,8 +42,7 @@ impl BlockOperation {
             )),
             Self::PyCustom { builder } => {
                 // the builder returns a Python operation plus the bound parameters
-                let py_params =
-                    PyList::new_bound(py, params.iter().map(|&p| p.clone().into_py(py))).into_any();
+                let py_params = PyList::new(py, params.iter().map(|&p| p.clone()))?.into_any();
 
                 let job = builder.call1(py, (py_params,))?;
                 let result = job.downcast_bound::<PyTuple>(py)?;
@@ -51,7 +50,7 @@ impl BlockOperation {
                 let operation: OperationFromPython = result.get_item(0)?.extract()?;
                 let bound_params = result
                     .get_item(1)?
-                    .iter()?
+                    .try_iter()?
                     .map(|ob| Param::extract_no_coerce(&ob?))
                     .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
@@ -84,7 +83,6 @@ impl Block {
     #[staticmethod]
     #[pyo3(signature = (num_qubits, num_parameters, builder,))]
     pub fn from_callable(
-        py: Python,
         num_qubits: i64,
         num_parameters: i64,
         builder: &Bound<PyAny>,
@@ -96,7 +94,7 @@ impl Block {
         }
         let block = Block {
             operation: BlockOperation::PyCustom {
-                builder: builder.to_object(py),
+                builder: builder.clone().unbind(),
             },
             num_qubits: num_qubits as u32,
             num_parameters: num_parameters as usize,

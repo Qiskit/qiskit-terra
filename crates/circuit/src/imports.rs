@@ -41,7 +41,7 @@ impl ImportOnceCell {
     #[inline]
     pub fn get(&self, py: Python) -> &Py<PyAny> {
         self.cell.get_or_init(py, || {
-            py.import_bound(self.module)
+            py.import(self.module)
                 .unwrap()
                 .getattr(self.object)
                 .unwrap()
@@ -286,7 +286,7 @@ pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<PyObjec
         Some(gate) => gate.clone_ref(py),
         None => {
             let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];
-            py.import_bound(py_mod)?.getattr(py_class)?.unbind()
+            py.import(py_mod)?.getattr(py_class)?.unbind()
         }
     };
     if populate {

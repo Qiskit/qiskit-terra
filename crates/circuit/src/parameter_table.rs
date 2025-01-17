@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
@@ -130,12 +130,12 @@ pub struct ParameterTable {
     /// calculate this on demand and cache it.
     ///
     /// Any method that adds or removes a parameter needs to invalidate this.
-    order_cache: OnceCell<Vec<ParameterUuid>>,
+    order_cache: OnceLock<Vec<ParameterUuid>>,
     /// Cache of a Python-space list of the parameter objects, in order.  We only generate this
     /// specifically when asked.
     ///
     /// Any method that adds or removes a parameter needs to invalidate this.
-    py_parameters_cache: OnceCell<Py<PyList>>,
+    py_parameters_cache: OnceLock<Py<PyList>>,
 }
 
 impl ParameterTable {
@@ -234,13 +234,14 @@ impl ParameterTable {
     pub fn py_parameters<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
         self.py_parameters_cache
             .get_or_init(|| {
-                PyList::new_bound(
+                PyList::new(
                     py,
                     self.order_cache
                         .get_or_init(|| self.sorted_order())
                         .iter()
                         .map(|uuid| self.by_uuid[uuid].object.bind(py).clone()),
                 )
+                .unwrap()
                 .unbind()
             })
             .bind(py)
@@ -249,7 +250,7 @@ impl ParameterTable {
 
     /// Get a Python set of all tracked `Parameter` objects.
     pub fn py_parameters_unsorted<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        PySet::new_bound(py, self.by_uuid.values().map(|info| &info.object))
+        PySet::new(py, self.by_uuid.values().map(|info| &info.object))
     }
 
     /// Get the sorted order of the `ParameterTable`.  This does not access the cache.
@@ -380,8 +381,8 @@ impl ParameterTable {
             .by_uuid
             .get(&uuid)
             .ok_or(ParameterTableError::ParameterNotTracked(uuid))?;
-        // PyO3's `PySet::new_bound` only accepts iterables of references.
-        let out = PySet::empty_bound(py)?;
+        // PyO3's `PySet::new` only accepts iterables of references.
+        let out = PySet::empty(py)?;
         for usage in info.uses.iter() {
             match usage {
                 ParameterUse::GlobalPhase => out.add((py.None(), py.None()))?,

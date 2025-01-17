@@ -67,12 +67,12 @@ pub fn pauli_feature_map(
     let pauli_strings = _get_paulis(feature_dimension, paulis)?;
 
     // set the default value for entanglement
-    let default = PyString::new_bound(py, "full");
+    let default = PyString::new(py, "full");
     let entanglement = entanglement.unwrap_or(&default);
 
     // extract the parameters from the input variable ``parameters``
     let parameter_vector = parameters
-        .iter()?
+        .try_iter()?
         .map(|el| Param::extract_no_coerce(&el?))
         .collect::<PyResult<Vec<Param>>>()?;
 

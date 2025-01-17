@@ -20,27 +20,27 @@ mod permutation;
 use pyo3::prelude::*;
 
 pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
-    let linear_mod = PyModule::new_bound(m.py(), "linear")?;
+    let linear_mod = PyModule::new(m.py(), "linear")?;
     linear::linear(&linear_mod)?;
     m.add_submodule(&linear_mod)?;
 
-    let linear_phase_mod = PyModule::new_bound(m.py(), "linear_phase")?;
+    let linear_phase_mod = PyModule::new(m.py(), "linear_phase")?;
     linear_phase::linear_phase(&linear_phase_mod)?;
     m.add_submodule(&linear_phase_mod)?;
 
-    let permutation_mod = PyModule::new_bound(m.py(), "permutation")?;
+    let permutation_mod = PyModule::new(m.py(), "permutation")?;
     permutation::permutation(&permutation_mod)?;
     m.add_submodule(&permutation_mod)?;
 
-    let clifford_mod = PyModule::new_bound(m.py(), "clifford")?;
+    let clifford_mod = PyModule::new(m.py(), "clifford")?;
     clifford::clifford(&clifford_mod)?;
     m.add_submodule(&clifford_mod)?;
 
-    let mc_mod = PyModule::new_bound(m.py(), "multi_controlled")?;
+    let mc_mod = PyModule::new(m.py(), "multi_controlled")?;
     multi_controlled::multi_controlled(&mc_mod)?;
     m.add_submodule(&mc_mod)?;
 
-    let evolution_mod = PyModule::new_bound(m.py(), "evolution")?;
+    let evolution_mod = PyModule::new(m.py(), "evolution")?;
     evolution::evolution(&evolution_mod)?;
     m.add_submodule(&evolution_mod)?;
 

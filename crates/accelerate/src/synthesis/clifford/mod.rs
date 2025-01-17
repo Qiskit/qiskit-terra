@@ -63,7 +63,7 @@ fn random_clifford_tableau(
     seed: Option<u64>,
 ) -> PyResult<Py<PyArray2<bool>>> {
     let tableau = random_clifford::random_clifford_tableau_inner(num_qubits, seed);
-    Ok(tableau.into_pyarray_bound(py).unbind())
+    Ok(tableau.into_pyarray(py).unbind())
 }
 
 /// Create a circuit that optimally synthesizes a given Clifford operator represented as

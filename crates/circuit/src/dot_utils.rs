@@ -77,16 +77,22 @@ where
 static ATTRS_TO_ESCAPE: [&str; 2] = ["label", "tooltip"];
 
 /// Convert an attr map to an output string
-fn attr_map_to_string<T: ToPyObject>(
-    py: Python,
-    attrs: Option<&PyObject>,
+fn attr_map_to_string<'py, T: IntoPyObject<'py>>(
+    py: Python<'py>,
+    attrs: Option<&'py PyObject>,
     weight: T,
-) -> PyResult<String> {
+) -> PyResult<String>
+where
+    <T as pyo3::IntoPyObject<'py>>::Output: pyo3::IntoPyObject<'py>,
+    <T as pyo3::IntoPyObject<'py>>::Error: std::fmt::Debug,
+{
     if attrs.is_none() {
         return Ok("".to_string());
     }
     let attr_callable = |node: T| -> PyResult<BTreeMap<String, String>> {
-        let res = attrs.unwrap().call1(py, (node.to_object(py),))?;
+        let res = attrs
+            .unwrap()
+            .call1(py, (node.into_pyobject(py).unwrap(),))?;
         res.extract(py)
     };
 

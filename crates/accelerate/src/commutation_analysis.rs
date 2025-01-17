@@ -146,39 +146,40 @@ pub(crate) fn analyze_commutations(
     // The Python dict will store both of these dictionaries in one.
     let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
 
-    let out_dict = PyDict::new_bound(py);
+    let out_dict = PyDict::new(py);
 
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire, commutations) in commutation_set {
         // we know all wires are of type Wire::Qubit, since in analyze_commutations_inner
         // we only iterater over the qubits
         let py_wire = match wire {
-            Wire::Qubit(q) => dag.qubits().get(q).unwrap().to_object(py),
+            Wire::Qubit(q) => dag.qubits().get(q).unwrap().into_pyobject(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),
-        };
+        }?;
 
         out_dict.set_item(
             py_wire,
-            PyList::new_bound(
+            PyList::new(
                 py,
                 commutations.iter().map(|inner| {
-                    PyList::new_bound(
+                    PyList::new(
                         py,
                         inner
                             .iter()
                             .map(|node_index| dag.get_node(py, *node_index).unwrap()),
                     )
+                    .unwrap()
                 }),
-            ),
+            )?,
         )?;
     }
 
     // Then we add the {(node, wire): index} dictionary
     for ((node_index, wire), index) in node_indices {
         let py_wire = match wire {
-            Wire::Qubit(q) => dag.qubits().get(q).unwrap().to_object(py),
+            Wire::Qubit(q) => dag.qubits().get(q).unwrap().into_pyobject(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),
-        };
+        }?;
         out_dict.set_item((dag.get_node(py, node_index)?, py_wire), index)?;
     }
 

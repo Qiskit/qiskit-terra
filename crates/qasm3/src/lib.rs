@@ -62,7 +62,7 @@ pub fn loads(
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
     let default_include_path = || -> PyResult<Vec<OsString>> {
-        let filename: PyBackedStr = py.import_bound("qiskit")?.filename()?.try_into()?;
+        let filename: PyBackedStr = py.import("qiskit")?.filename()?.try_into()?;
         Ok(vec![Path::new(filename.deref())
             .parent()
             .unwrap()
@@ -83,9 +83,9 @@ pub fn loads(
             .map(|gate| (gate.name().to_owned(), gate))
             .collect(),
         None => py
-            .import_bound("qiskit.qasm3")?
+            .import("qiskit.qasm3")?
             .getattr("STDGATES_INC_GATES")?
-            .iter()?
+            .try_iter()?
             .map(|obj| {
                 let gate = obj?.extract::<circuit::PyGate>()?;
                 Ok((gate.name().to_owned(), gate))
@@ -133,21 +133,20 @@ pub fn load(
     custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
-    let source = if pathlike_or_filelike
-        .is_instance(&PyModule::import_bound(py, "io")?.getattr("TextIOBase")?)?
-    {
-        pathlike_or_filelike
-            .call_method0("read")?
-            .extract::<String>()?
-    } else {
-        let path = PyModule::import_bound(py, "os")?
-            .getattr("fspath")?
-            .call1((pathlike_or_filelike,))?
-            .extract::<OsString>()?;
-        ::std::fs::read_to_string(&path).map_err(|err| {
-            QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
-        })?
-    };
+    let source =
+        if pathlike_or_filelike.is_instance(&PyModule::import(py, "io")?.getattr("TextIOBase")?)? {
+            pathlike_or_filelike
+                .call_method0("read")?
+                .extract::<String>()?
+        } else {
+            let path = PyModule::import(py, "os")?
+                .getattr("fspath")?
+                .call1((pathlike_or_filelike,))?
+                .extract::<OsString>()?;
+            ::std::fs::read_to_string(&path).map_err(|err| {
+                QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
+            })?
+        };
     loads(py, source, custom_gates, include_path)
 }
 
