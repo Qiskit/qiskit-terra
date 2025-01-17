@@ -38,6 +38,7 @@ from qiskit.circuit.library.standard_gates import (
     RXXGate,
     RZXGate,
     RZZGate,
+    RYYGate,
     ECRGate,
     RXGate,
     SXGate,
@@ -50,6 +51,10 @@ from qiskit.circuit.library.standard_gates import (
     U3Gate,
     RYGate,
     RGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
 )
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -62,6 +67,7 @@ from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
 )
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
@@ -88,16 +94,32 @@ GATE_NAME_MAP = {
     "u3": U3Gate._standard_gate,
     "ry": RYGate._standard_gate,
     "r": RGate._standard_gate,
+    "rzz": RZZGate._standard_gate,
+    "ryy": RYYGate._standard_gate,
+    "rxx": RXXGate._standard_gate,
+    "rzx": RXXGate._standard_gate,
+    "cp": CPhaseGate._standard_gate,
+    "crx": RXXGate._standard_gate,
+    "cry": RXXGate._standard_gate,
+    "crz": RXXGate._standard_gate,
 }
 
+KAK_GATE_PARAM_NAMES = {
+    "rxx": RXXGate,
+    "rzz": RZZGate,
+    "ryy": RYYGate,
+    "rzx": RZXGate,
+    "cphase": CPhaseGate,
+    "crx": CRXGate,
+    "cry": CRYGate,
+    "crz": CRZGate,
+}
 
 KAK_GATE_NAMES = {
     "cx": CXGate(),
     "cz": CZGate(),
     "iswap": iSwapGate(),
-    "rxx": RXXGate(pi / 2),
     "ecr": ECRGate(),
-    "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
 }
 
 GateNameToGate = get_standard_gate_name_mapping()
@@ -106,9 +128,14 @@ GateNameToGate = get_standard_gate_name_mapping()
 def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
     kak_gate = None
-    kak_gates = set(basis_gates or []).intersection(KAK_GATE_NAMES.keys())
-    if kak_gates:
-        kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
+    kak_gates = sorted(set(basis_gates or []).intersection(KAK_GATE_NAMES.keys()))
+    kak_gates_params = sorted(set(basis_gates or []).intersection(KAK_GATE_PARAM_NAMES.keys()))
+
+    if kak_gates_params:
+        kak_gate = KAK_GATE_PARAM_NAMES[kak_gates_params[0]]
+
+    elif kak_gates:
+        kak_gate = KAK_GATE_NAMES[kak_gates[0]]
 
     return kak_gate
 
@@ -151,14 +178,9 @@ def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximat
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
     basis_fidelity = approximation_degree or 1.0
-    if isinstance(kak_gate, RZXGate):
-        backup_optimizer = TwoQubitBasisDecomposer(
-            CXGate(),
-            basis_fidelity=basis_fidelity,
-            euler_basis=euler_basis,
-            pulse_optimize=pulse_optimize,
-        )
-        decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+
+    if kak_gate in KAK_GATE_PARAM_NAMES.values():
+        decomposer2q = TwoQubitControlledUDecomposer(kak_gate, euler_basis)
     elif kak_gate is not None:
         decomposer2q = TwoQubitBasisDecomposer(
             kak_gate,

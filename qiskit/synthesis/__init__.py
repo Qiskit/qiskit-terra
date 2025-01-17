@@ -119,6 +119,7 @@ Two-Qubit Synthesis
    TwoQubitBasisDecomposer
    XXDecomposer
    TwoQubitWeylDecomposition
+   TwoQubitControlledUDecomposer
 
 .. autofunction:: two_qubit_cnot_decompose
 
@@ -200,6 +201,7 @@ from .two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
 )
 from .multi_controlled import (
     synth_mcmt_vchain,

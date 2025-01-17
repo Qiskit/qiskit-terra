@@ -1426,14 +1426,32 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
 class TestTwoQubitControlledUDecompose(CheckDecompositions):
     """Test TwoQubitControlledUDecomposer() for exact decompositions and raised exceptions"""
 
-    @combine(seed=range(10), name="seed_{seed}")
-    def test_correct_unitary(self, seed):
+    @combine(
+        seed=range(5),
+        gate=[RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate],
+        euler_basis=[
+            "ZYZ",
+            "ZXZ",
+            "XYX",
+            "XZX",
+            "RR",
+            "U",
+            "U3",
+            "U321",
+            "PSX",
+            "ZSX",
+            "ZSXX",
+            "U1X",
+        ],
+        name="seed_{seed}",
+    )
+    def test_correct_unitary(self, seed, gate, euler_basis):
         """Verify unitary for different gates in the decomposition"""
         unitary = random_unitary(4, seed=seed)
-        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate]:
-            decomposer = TwoQubitControlledUDecomposer(gate)
-            circ = decomposer(unitary)
-            self.assertEqual(Operator(unitary), Operator(circ))
+
+        decomposer = TwoQubitControlledUDecomposer(gate, euler_basis)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
 
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""

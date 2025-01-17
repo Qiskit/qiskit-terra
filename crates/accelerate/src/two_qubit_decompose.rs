@@ -2445,14 +2445,16 @@ impl RXXEquivalent {
     }
 }
 
+#[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitControlledUDecomposer {
     rxx_equivalent_gate: RXXEquivalent,
+    euler_basis: EulerBasis,
     #[pyo3(get)]
     scale: f64,
 }
 
-const DEFAULT_ATOL: f64 = 1e-12;
+pub const DEFAULT_ATOL: f64 = 1e-12;
 type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>);
 
 ///  Decompose two-qubit unitary in terms of a desired
@@ -2544,9 +2546,8 @@ impl TwoQubitControlledUDecomposer {
         let decomposer_inv =
             TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
 
-        let euler_basis = EulerBasis::ZYZ;
         let mut target_1q_basis_list = EulerBasisSet::new();
-        target_1q_basis_list.add_basis(euler_basis);
+        target_1q_basis_list.add_basis(self.euler_basis);
 
         // Express the RXXGate in terms of the user-provided RXXGate equivalent gate.
         let mut gates = Vec::with_capacity(13);
@@ -2583,14 +2584,14 @@ impl TwoQubitControlledUDecomposer {
         gates.push((None, smallvec![self.scale * angle], smallvec![0, 1]));
 
         if let Some(unitary_k1r) = unitary_k1r {
-            global_phase += unitary_k1r.global_phase;
+            global_phase -= unitary_k1r.global_phase;
             for gate in unitary_k1r.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
             }
         }
         if let Some(unitary_k1l) = unitary_k1l {
-            global_phase += unitary_k1l.global_phase;
+            global_phase -= unitary_k1l.global_phase;
             for gate in unitary_k1l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
@@ -2678,7 +2679,7 @@ impl TwoQubitControlledUDecomposer {
 
     ///  Returns the Weyl decomposition in circuit form.
     ///  Note: atol is passed to OneQubitEulerDecomposer.
-    fn call_inner(
+    pub fn call_inner(
         &self,
         py: Python,
         unitary: ArrayView2<Complex64>,
@@ -2687,9 +2688,8 @@ impl TwoQubitControlledUDecomposer {
         let target_decomposed =
             TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
 
-        let euler_basis = EulerBasis::ZYZ;
         let mut target_1q_basis_list = EulerBasisSet::new();
-        target_1q_basis_list.add_basis(euler_basis);
+        target_1q_basis_list.add_basis(self.euler_basis);
 
         let c1r = target_decomposed.K1r.view();
         let c2r = target_decomposed.K2r.view();
@@ -2728,13 +2728,13 @@ impl TwoQubitControlledUDecomposer {
         global_phase += gates1.global_phase;
 
         if let Some(unitary_c1r) = unitary_c1r {
-            global_phase -= unitary_c1r.global_phase;
+            global_phase += unitary_c1r.global_phase;
             for gate in unitary_c1r.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![0]));
             }
         }
         if let Some(unitary_c1l) = unitary_c1l {
-            global_phase -= unitary_c1l.global_phase;
+            global_phase += unitary_c1l.global_phase;
             for gate in unitary_c1l.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![1]));
             }
@@ -2751,11 +2751,17 @@ impl TwoQubitControlledUDecomposer {
     ///  Args:
     ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
     ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+    ///     euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
+    ///     for 1Q synthesis.
     ///  Raises:
     ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
     #[new]
-    #[pyo3(signature=(rxx_equivalent_gate))]
-    pub fn new(py: Python, rxx_equivalent_gate: RXXEquivalent) -> PyResult<Self> {
+    #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZYZ"))]
+    pub fn new(
+        py: Python,
+        rxx_equivalent_gate: RXXEquivalent,
+        euler_basis: &str,
+    ) -> PyResult<Self> {
         let atol = DEFAULT_ATOL;
         let test_angles = [0.2, 0.3, PI2];
 
@@ -2819,6 +2825,7 @@ impl TwoQubitControlledUDecomposer {
         Ok(TwoQubitControlledUDecomposer {
             scale,
             rxx_equivalent_gate,
+            euler_basis: EulerBasis::__new__(euler_basis)?,
         })
     }
 

@@ -129,7 +129,8 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
     @data(
         ["u3", "cx"],
         ["u1", "u2", "u3", "cx"],
-        ["rx", "ry", "rxx"],
+        ["ry", "rz", "rxx"],
+        ["rx", "rz", "rzz"],
         ["rx", "rz", "iswap"],
         ["u3", "rx", "rz", "cz", "iswap"],
     )

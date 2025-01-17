@@ -270,32 +270,46 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`."""
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate]):
+    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZYZ"):
         r"""Initialize the KAK decomposition.
 
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-            :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+                :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+                Valid options are [:class:`.RZZGate`, :class:`.RXXGate`, :class:`.RYYGate`,
+                :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`,
+                :class:`.CRZGate`].
+            euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
+                for 1Q synthesis.
+                Valid options are [``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
+                ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``, ``'ZSXX'``, ``'RR'``].
+
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
         """
         if rxx_equivalent_gate._standard_gate is not None:
             self._inner_decomposition = two_qubit_decompose.TwoQubitControlledUDecomposer(
-                rxx_equivalent_gate._standard_gate
+                rxx_equivalent_gate._standard_gate, euler_basis
             )
         else:
             self._inner_decomposition = two_qubit_decompose.TwoQubitControlledUDecomposer(
-                rxx_equivalent_gate
+                rxx_equivalent_gate, euler_basis
             )
         self.rxx_equivalent_gate = rxx_equivalent_gate
         self.scale = self._inner_decomposition.scale
+        self.euler_basis = euler_basis
 
-    def __call__(self, unitary: Operator | np.ndarray, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
+    def __call__(
+        self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
+    ) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.
+
         Args:
             unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
+
         Note: atol is passed to OneQubitEulerDecomposer.
         """
         circ_data = self._inner_decomposition(np.asarray(unitary, dtype=complex), atol)
