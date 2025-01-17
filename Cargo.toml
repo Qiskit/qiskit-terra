@@ -28,6 +28,8 @@ approx = "0.5"
 itertools = "0.13.0"
 ahash = "0.8.11"
 rayon = "1.10"
+nom = "7"
+nom-unicode = "0.3"
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python

@@ -50,7 +50,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         param_str = str(inpt)
         from sympy import sympify
 
-        expr = sympify(inpt._symbol_expr)
+        expr = sympify(str(inpt._symbol_expr))
         syms = expr.atoms()
         for sym in syms:
             if not sym.is_number:

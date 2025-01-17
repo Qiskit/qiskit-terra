@@ -689,6 +689,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "minimal-lexical"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
 name = "nano-gemm"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -784,6 +790,25 @@ dependencies = [
  "ndarray",
  "num-traits",
  "regex",
+]
+
+[[package]]
+name = "nom"
+version = "7.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
+dependencies = [
+ "memchr",
+ "minimal-lexical",
+]
+
+[[package]]
+name = "nom-unicode"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5c03a4d71ab9740c752c165329e9df13a808093b146dfbef6170ac260771ffe"
+dependencies = [
+ "nom",
 ]
 
 [[package]]
@@ -1191,6 +1216,8 @@ dependencies = [
  "indexmap",
  "itertools 0.13.0",
  "ndarray",
+ "nom",
+ "nom-unicode",
  "num-complex",
  "numpy",
  "pyo3",

@@ -23,7 +23,9 @@ import numbers
 import operator
 
 import numpy
-import symengine
+# import symengine
+import qiskit._accelerate.circuit
+SymbolExpr = qiskit._accelerate.circuit.PySymbolExpr
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -158,7 +160,7 @@ class ParameterExpression:
         new_replay = self._qpy_replay.copy()
         new_replay.append(new_op)
         conjugated = ParameterExpression(
-            self._parameter_symbols, symengine.conjugate(self._symbol_expr), _qpy_replay=new_replay
+            self._parameter_symbols, self._symbol_expr.conjugate(), _qpy_replay=new_replay
         )
         return conjugated
 
@@ -209,9 +211,9 @@ class ParameterExpression:
         symbol_values = {}
         for parameter, value in parameter_values.items():
             if (param_expr := self._parameter_symbols.get(parameter)) is not None:
-                symbol_values[param_expr] = value
+                symbol_values[str(param_expr)] = value
 
-        bound_symbol_expr = self._symbol_expr.subs(symbol_values)
+        bound_symbol_expr = self._symbol_expr.bind(symbol_values)
 
         # Don't use sympy.free_symbols to count remaining parameters here.
         # sympy will in some cases reduce the expression and remove even
@@ -275,14 +277,14 @@ class ParameterExpression:
         new_parameter_symbols = {
             p: s for p, s in self._parameter_symbols.items() if p not in parameter_map
         }
-        symbol_type = symengine.Symbol
+        symbol_type = SymbolExpr.Symbol
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
         symbol_map = {}
         for old_param, new_param in parameter_map.items():
             if (old_symbol := self._parameter_symbols.get(old_param)) is not None:
-                symbol_map[old_symbol] = new_param._symbol_expr
+                symbol_map[str(old_symbol)] = new_param._symbol_expr
                 for p in new_param.parameters:
                     new_parameter_symbols[p] = symbol_type(p.name)
 
@@ -418,24 +420,24 @@ class ParameterExpression:
 
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
-        expr_grad = symengine.Derivative(self._symbol_expr, key)
+        expr_grad = self._symbol_expr.derivative(key)
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.
         # when deriving linear expression)
         parameter_symbols = {}
         for parameter, symbol in self._parameter_symbols.items():
-            if symbol in expr_grad.free_symbols:
+            if symbol.name in expr_grad.symbols:
                 parameter_symbols[parameter] = symbol
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad, _qpy_replay=qpy_replay)
         # If no free symbols left, return a complex or float gradient
-        expr_grad_cplx = complex(expr_grad)
+        expr_grad_cplx = expr_grad.complex()
         if expr_grad_cplx.imag != 0:
             return expr_grad_cplx
         else:
-            return float(expr_grad)
+            return float(expr_grad_cplx.real)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other, op_code=_OPCode.ADD)
@@ -488,47 +490,45 @@ class ParameterExpression:
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        return self._call(symengine.sin, op_code=_OPCode.SIN)
+        return self._call(SymbolExpr.sin, op_code=_OPCode.SIN)
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        return self._call(symengine.cos, op_code=_OPCode.COS)
+        return self._call(SymbolExpr.cos, op_code=_OPCode.COS)
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        return self._call(symengine.tan, op_code=_OPCode.TAN)
+        return self._call(SymbolExpr.tan, op_code=_OPCode.TAN)
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        return self._call(symengine.asin, op_code=_OPCode.ASIN)
+        return self._call(SymbolExpr.asin, op_code=_OPCode.ASIN)
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        return self._call(symengine.acos, op_code=_OPCode.ACOS)
+        return self._call(SymbolExpr.acos, op_code=_OPCode.ACOS)
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        return self._call(symengine.atan, op_code=_OPCode.ATAN)
+        return self._call(SymbolExpr.atan, op_code=_OPCode.ATAN)
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        return self._call(symengine.exp, op_code=_OPCode.EXP)
+        return self._call(SymbolExpr.exp, op_code=_OPCode.EXP)
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        return self._call(symengine.log, op_code=_OPCode.LOG)
+        return self._call(SymbolExpr.log, op_code=_OPCode.LOG)
 
     def sign(self):
         """Sign of a ParameterExpression"""
-        return self._call(symengine.sign, op_code=_OPCode.SIGN)
+        return self._call(SymbolExpr.sign, op_code=_OPCode.SIGN)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
 
     def __str__(self):
-        from sympy import sympify, sstr
-
-        return sstr(sympify(self._symbol_expr), full_prec=False)
+        return str(self._symbol_expr)
 
     def __complex__(self):
         try:
@@ -588,7 +588,7 @@ class ParameterExpression:
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        return self._call(symengine.Abs, _OPCode.ABS)
+        return self._call(SymbolExpr.abs, _OPCode.ABS)
 
     def abs(self):
         """Absolute of a ParameterExpression"""
@@ -606,11 +606,10 @@ class ParameterExpression:
         if isinstance(other, ParameterExpression):
             if self.parameters != other.parameters:
                 return False
-            from sympy import sympify
 
-            return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
+            return self._symbol_expr == other._symbol_expr
         elif isinstance(other, numbers.Number):
-            return len(self.parameters) == 0 and complex(self._symbol_expr) == other
+            return self._symbol_expr == other
         return False
 
     def is_real(self):
@@ -621,7 +620,7 @@ class ParameterExpression:
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
-            if self._symbol_expr.imag == 0.0:
+            if self._symbol_expr.complex().imag == 0.0:
                 return True
             return False
         return self._symbol_expr.is_real
@@ -656,21 +655,12 @@ class ParameterExpression:
         if self._parameter_symbols:
             raise TypeError(
                 f"Expression with unbound parameters '{self.parameters}' is not numeric"
-            )
-        if self._symbol_expr.is_integer:
-            # Integer evaluation is reliable, as far as we know.
-            return int(self._symbol_expr)
-        # We've come across several ways in which symengine's general-purpose evaluators
-        # introduce spurious imaginary components can get involved in the output.  The most
-        # reliable strategy "try it and see" while forcing real floating-point evaluation.
-        try:
-            real_expr = self._symbol_expr.evalf(real=True)
-        except RuntimeError:
-            # Symengine returns `complex` if any imaginary floating-point enters at all, even if
-            # the result is zero.  The best we can do is detect that and decay to a float.
-            out = complex(self._symbol_expr)
-            return out.real if out.imag == 0.0 else out
-        return float(real_expr)
+            )      
+        if self._symbol_expr.is_complex:
+            return self._symbol_expr.complex()
+        if self._symbol_expr.is_int:
+            return self._symbol_expr.int()
+        return self._symbol_expr.float()
 
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.
