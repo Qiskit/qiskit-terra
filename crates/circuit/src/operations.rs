@@ -338,7 +338,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 53
+        *bits < (STANDARD_GATE_SIZE as u8)
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardGate {}
