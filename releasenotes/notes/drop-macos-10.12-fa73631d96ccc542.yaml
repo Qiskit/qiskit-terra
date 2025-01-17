@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    For macOS users, the minimum version of macOS is now 10.13. Previously, the
+    precompiled binary wheel packages for macOS x86_64 were published with
+    support for >=10.12. However, we are no longer able to provide automated
+    builds for macOS versions older than 10.13. If you're using Qiskit on macOS
+    10.12, you can probably build Qiskit from source.
