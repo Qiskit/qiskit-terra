@@ -7017,3 +7017,207 @@ fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
         1,
     ));
 }
+
+#[cfg(all(test, not(miri)))]
+mod test {
+    use crate::circuit_instruction::OperationFromPython;
+    use crate::dag_circuit::{DAGCircuit, Wire};
+    use crate::imports::{CLASSICAL_REGISTER, MEASURE, QUANTUM_REGISTER};
+    use crate::operations::StandardGate;
+    use crate::packed_instruction::{PackedInstruction, PackedOperation};
+    use crate::{Clbit, Qubit};
+    use ahash::HashSet;
+    use pyo3::prelude::*;
+    use rustworkx_core::petgraph::prelude::*;
+    use rustworkx_core::petgraph::visit::IntoEdgeReferences;
+
+    fn new_dag(py: Python, qubits: u32, clbits: u32) -> DAGCircuit {
+        let qreg = QUANTUM_REGISTER.get_bound(py).call1((qubits,)).unwrap();
+        let creg = CLASSICAL_REGISTER.get_bound(py).call1((clbits,)).unwrap();
+        let mut dag = DAGCircuit::new(py).unwrap();
+        dag.add_qreg(py, &qreg).unwrap();
+        dag.add_creg(py, &creg).unwrap();
+        dag
+    }
+
+    macro_rules! cx_gate {
+        ($dag:expr, $q0:expr, $q1:expr) => {
+            PackedInstruction {
+                op: PackedOperation::from_standard(StandardGate::CXGate),
+                qubits: $dag
+                    .qargs_interner
+                    .insert_owned(vec![Qubit($q0), Qubit($q1)]),
+                clbits: $dag.cargs_interner.get_default(),
+                params: None,
+                extra_attrs: Default::default(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: Default::default(),
+            }
+        };
+    }
+
+    macro_rules! measure {
+        ($dag:expr, $qarg:expr, $carg:expr) => {{
+            Python::with_gil(|py| {
+                let py_op = MEASURE.get_bound(py).call0().unwrap();
+                let op_from_py: OperationFromPython = py_op.extract().unwrap();
+                let qubits = $dag.qargs_interner.insert_owned(vec![Qubit($qarg)]);
+                let clbits = $dag.cargs_interner.insert_owned(vec![Clbit($qarg)]);
+                PackedInstruction {
+                    op: op_from_py.operation,
+                    qubits,
+                    clbits,
+                    params: Some(Box::new(op_from_py.params)),
+                    extra_attrs: op_from_py.extra_attrs,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: Default::default(),
+                }
+            })
+        }};
+    }
+
+    #[test]
+    fn test_push_back() -> PyResult<()> {
+        Python::with_gil(|py| {
+            let mut dag = new_dag(py, 2, 2);
+
+            // IO nodes.
+            let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
+            let [q1_in_node, q1_out_node] = dag.qubit_io_map[1];
+            let [c0_in_node, c0_out_node] = dag.clbit_io_map[0];
+            let [c1_in_node, c1_out_node] = dag.clbit_io_map[1];
+
+            // Add a CX to the otherwise empty circuit.
+            let cx = cx_gate!(dag, 0, 1);
+            let cx_node = dag.push_back(py, cx)?;
+            assert!(matches!(dag.op_names.get("cx"), Some(1)));
+
+            let expected_wires = HashSet::from_iter([
+                // q0In => CX => q0Out
+                (q0_in_node, cx_node, Wire::Qubit(Qubit(0))),
+                (cx_node, q0_out_node, Wire::Qubit(Qubit(0))),
+                // q1In => CX => q1Out
+                (q1_in_node, cx_node, Wire::Qubit(Qubit(1))),
+                (cx_node, q1_out_node, Wire::Qubit(Qubit(1))),
+                // No clbits used, so in goes straight to out.
+                (c0_in_node, c0_out_node, Wire::Clbit(Clbit(0))),
+                (c1_in_node, c1_out_node, Wire::Clbit(Clbit(1))),
+            ]);
+
+            let actual_wires: HashSet<_> = dag
+                .dag
+                .edge_references()
+                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .collect();
+
+            assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
+
+            // Add measures after CX.
+            let measure_q0 = measure!(dag, 0, 0);
+            let measure_q0_node = dag.push_back(py, measure_q0)?;
+
+            let measure_q1 = measure!(dag, 1, 1);
+            let measure_q1_node = dag.push_back(py, measure_q1)?;
+
+            let expected_wires = HashSet::from_iter([
+                // q0In -> CX -> M -> q0Out
+                (q0_in_node, cx_node, Wire::Qubit(Qubit(0))),
+                (cx_node, measure_q0_node, Wire::Qubit(Qubit(0))),
+                (measure_q0_node, q0_out_node, Wire::Qubit(Qubit(0))),
+                // q1In -> CX -> M -> q1Out
+                (q1_in_node, cx_node, Wire::Qubit(Qubit(1))),
+                (cx_node, measure_q1_node, Wire::Qubit(Qubit(1))),
+                (measure_q1_node, q1_out_node, Wire::Qubit(Qubit(1))),
+                // c0In -> M -> c0Out
+                (c0_in_node, measure_q0_node, Wire::Clbit(Clbit(0))),
+                (measure_q0_node, c0_out_node, Wire::Clbit(Clbit(0))),
+                // c1In -> M -> c1Out
+                (c1_in_node, measure_q1_node, Wire::Clbit(Clbit(1))),
+                (measure_q1_node, c1_out_node, Wire::Clbit(Clbit(1))),
+            ]);
+
+            let actual_wires: HashSet<_> = dag
+                .dag
+                .edge_references()
+                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .collect();
+
+            assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn test_push_front() -> PyResult<()> {
+        Python::with_gil(|py| {
+            let mut dag = new_dag(py, 2, 2);
+
+            // IO nodes.
+            let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
+            let [q1_in_node, q1_out_node] = dag.qubit_io_map[1];
+            let [c0_in_node, c0_out_node] = dag.clbit_io_map[0];
+            let [c1_in_node, c1_out_node] = dag.clbit_io_map[1];
+
+            // Add measures first (we'll add something before them afterwards).
+            let measure_q0 = measure!(dag, 0, 0);
+            let measure_q0_node = dag.push_back(py, measure_q0)?;
+
+            let measure_q1 = measure!(dag, 1, 1);
+            let measure_q1_node = dag.push_back(py, measure_q1)?;
+
+            let expected_wires = HashSet::from_iter([
+                // q0In => M => q0Out
+                (q0_in_node, measure_q0_node, Wire::Qubit(Qubit(0))),
+                (measure_q0_node, q0_out_node, Wire::Qubit(Qubit(0))),
+                // q1In => M => q1Out
+                (q1_in_node, measure_q1_node, Wire::Qubit(Qubit(1))),
+                (measure_q1_node, q1_out_node, Wire::Qubit(Qubit(1))),
+                // c0In -> M -> c0Out
+                (c0_in_node, measure_q0_node, Wire::Clbit(Clbit(0))),
+                (measure_q0_node, c0_out_node, Wire::Clbit(Clbit(0))),
+                // c1In -> M -> c1Out
+                (c1_in_node, measure_q1_node, Wire::Clbit(Clbit(1))),
+                (measure_q1_node, c1_out_node, Wire::Clbit(Clbit(1))),
+            ]);
+
+            let actual_wires: HashSet<_> = dag
+                .dag
+                .edge_references()
+                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .collect();
+
+            assert_eq!(actual_wires, expected_wires);
+
+            // Add a CX before the measures.
+            let cx = cx_gate!(dag, 0, 1);
+            let cx_node = dag.push_front(py, cx)?;
+            assert!(matches!(dag.op_names.get("cx"), Some(1)));
+
+            let expected_wires = HashSet::from_iter([
+                // q0In -> CX -> M -> q0Out
+                (q0_in_node, cx_node, Wire::Qubit(Qubit(0))),
+                (cx_node, measure_q0_node, Wire::Qubit(Qubit(0))),
+                (measure_q0_node, q0_out_node, Wire::Qubit(Qubit(0))),
+                // q1In -> CX -> M -> q1Out
+                (q1_in_node, cx_node, Wire::Qubit(Qubit(1))),
+                (cx_node, measure_q1_node, Wire::Qubit(Qubit(1))),
+                (measure_q1_node, q1_out_node, Wire::Qubit(Qubit(1))),
+                // c0In -> M -> c0Out
+                (c0_in_node, measure_q0_node, Wire::Clbit(Clbit(0))),
+                (measure_q0_node, c0_out_node, Wire::Clbit(Clbit(0))),
+                // c1In -> M -> c1Out
+                (c1_in_node, measure_q1_node, Wire::Clbit(Clbit(1))),
+                (measure_q1_node, c1_out_node, Wire::Clbit(Clbit(1))),
+            ]);
+
+            let actual_wires: HashSet<_> = dag
+                .dag
+                .edge_references()
+                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .collect();
+
+            assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
+            Ok(())
+        })
+    }
+}
