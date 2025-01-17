@@ -97,7 +97,7 @@ class RGQFTMultiplier(Multiplier):
         for j in range(1, num_state_qubits + 1):
             for i in range(1, num_state_qubits + 1):
                 for k in range(1, self.num_result_qubits + 1):
-                    lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
+                    lam = (2 * np.pi) / (2.0 ** (i + j + k - 2 * num_state_qubits))      # transfer int type 2 to float type 2.0
                     circuit.append(
                         PhaseGate(lam).control(2),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
