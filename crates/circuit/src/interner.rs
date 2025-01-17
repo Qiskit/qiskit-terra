@@ -196,6 +196,25 @@ where
             _type: PhantomData,
         }
     }
+
+    /// Checks whether an item is already packed in the interner
+    pub fn contains(&self, value: &T) -> bool
+    where
+        T: Hash + Eq,
+    {
+        self.0.contains(value)
+    }
+
+    /// Retrieves interner index of anitem if it exists
+    pub fn get_interned(&self, value: &T) -> Option<Interned<T>>
+    where
+        T: Hash + Eq,
+    {
+        self.0.get_index_of(value).map(|index| Interned {
+            index: index as u32,
+            _type: PhantomData,
+        })
+    }
 }
 
 #[cfg(test)]

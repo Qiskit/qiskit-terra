@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod bit;
 pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
@@ -24,11 +25,13 @@ pub mod interner;
 pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
+pub mod register;
 pub mod slice;
 pub mod util;
 
 mod rustworkx_core_vnext;
 
+use imports::{CLBIT, QUBIT};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
@@ -119,6 +122,27 @@ impl From<BitType> for Clbit {
 impl From<Clbit> for BitType {
     fn from(value: Clbit) -> Self {
         value.0
+    }
+}
+
+/// **For development purposes only.** This ensures we convert to the correct Bit
+/// type in Python since [BitData] does not know what its types are inherently.
+pub trait ToPyBit {
+    /// Creates an empty bit from a rust bit instance of the correct type.
+    ///
+    /// _**Note:** Should only be used when dealing with fully opaque bits._
+    fn to_py_bit(py: Python) -> PyResult<PyObject>;
+}
+
+impl ToPyBit for Qubit {
+    fn to_py_bit(py: Python) -> PyResult<PyObject> {
+        QUBIT.get_bound(py).call0().map(|bit| bit.into())
+    }
+}
+
+impl ToPyBit for Clbit {
+    fn to_py_bit(py: Python) -> PyResult<PyObject> {
+        CLBIT.get_bound(py).call0().map(|bit| bit.into())
     }
 }
 

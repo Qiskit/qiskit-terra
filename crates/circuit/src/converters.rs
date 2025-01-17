@@ -20,9 +20,9 @@ use pyo3::{
     types::{PyDict, PyList},
 };
 
-use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::packed_instruction::PackedInstruction;
+use crate::{bit_data::NewBitData, circuit_data::CircuitData};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -99,10 +99,10 @@ pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
 ) -> PyResult<CircuitData> {
-    CircuitData::from_packed_instructions(
+    let mut circuit = CircuitData::from_packed_instructions(
         py,
-        dag.qubits().clone(),
-        dag.clbits().clone(),
+        NewBitData::from_bit_data(py, dag.qubits()),
+        NewBitData::from_bit_data(py, dag.clbits()),
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
@@ -133,7 +133,15 @@ pub fn dag_to_circuit(
             }
         }),
         dag.get_global_phase(),
-    )
+    )?;
+    // Manually add qregs and cregs
+    for reg in dag.qregs.bind(py).values() {
+        circuit.add_qreg(&reg)?;
+    }
+    for reg in dag.cregs.bind(py).values() {
+        circuit.add_creg(&reg)?;
+    }
+    Ok(circuit)
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {

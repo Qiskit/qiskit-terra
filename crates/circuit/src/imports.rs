@@ -66,10 +66,12 @@ pub static CONTROL_FLOW_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
 pub static QUBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.quantumregister", "Qubit");
 pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classicalregister", "Clbit");
+pub static BIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.bit", "Bit");
 pub static QUANTUM_REGISTER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.quantumregister", "QuantumRegister");
 pub static CLASSICAL_REGISTER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classicalregister", "ClassicalRegister");
+pub static REGISTER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.register", "Register");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
 pub static PARAMETER_VECTOR: ImportOnceCell =
