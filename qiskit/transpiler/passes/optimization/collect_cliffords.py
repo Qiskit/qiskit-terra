@@ -39,6 +39,7 @@ class CollectCliffords(CollectAndCollapse):
         split_layers=False,
         collect_from_back=False,
         matrix_based=False,
+        max_block_width=None,
     ):
         """CollectCliffords initializer.
 
@@ -55,6 +56,9 @@ class CollectCliffords(CollectAndCollapse):
                 from the end of the circuit.
             matrix_based (bool): specifies whether to collect unitary gates
                which are Clifford gates only for certain parameters (based on their unitary matrix).
+            max_block_width (int | None): specifies the maximum width of the block
+                (that is, the number of qubits over which the block is defined)
+                for the block to be collected.
         """
 
         collect_function = partial(
@@ -64,6 +68,7 @@ class CollectCliffords(CollectAndCollapse):
             min_block_size=min_block_size,
             split_layers=split_layers,
             collect_from_back=collect_from_back,
+            max_block_width=max_block_width,
         )
         collapse_function = partial(collapse_to_operation, collapse_function=_collapse_to_clifford)
 

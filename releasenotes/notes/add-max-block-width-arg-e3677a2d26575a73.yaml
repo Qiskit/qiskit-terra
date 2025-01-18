@@ -1,0 +1,27 @@
+---
+features_transpiler:
+  - |
+    Added a new argument ``max_block_width`` to the class :class:`.BlockCollector`
+    and to the transpiler passes :class:`.CollectLinearFunctions` and :class:`.CollectCliffords`.
+    This argument allows to restrict the maximum number of qubits over which a block of nodes is 
+    defined. 
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import CollectLinearFunctions
+
+      qc = QuantumCircuit(5)
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.cx(1, 2)
+      qc.cx(2, 3)
+      qc.cx(3, 4)
+
+      # Collects all CX-gates into a single block 
+      qc1 = CollectLinearFunctions()(qc)
+      qc1.draw(output='mpl')
+
+      # Collects CX-gates into two blocks of width 3 
+      qc2 = CollectLinearFunctions(max_block_width=3)(qc)
+      qc2.draw(output='mpl')

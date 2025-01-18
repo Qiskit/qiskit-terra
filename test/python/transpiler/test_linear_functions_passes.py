@@ -532,6 +532,29 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertNotIn("linear_function", circuit4.count_ops().keys())
         self.assertEqual(circuit4.count_ops()["cx"], 6)
 
+    def test_max_block_width(self):
+        """Test that the option max_block_width for collecting linear functions works correctly."""
+        circuit = QuantumCircuit(6)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(2, 3)
+        circuit.cx(3, 4)
+        circuit.cx(4, 5)
+
+        # When max_block_width = 3, we should obtain 3 linear blocks
+        circuit1 = PassManager(CollectLinearFunctions(min_block_size=1, max_block_width=3)).run(
+            circuit
+        )
+        self.assertEqual(circuit1.count_ops()["linear_function"], 3)
+        self.assertNotIn("cx", circuit1.count_ops().keys())
+
+        # When max_block_width = 4, we should obtain 2 linear blocks
+        circuit1 = PassManager(CollectLinearFunctions(min_block_size=1, max_block_width=4)).run(
+            circuit
+        )
+        self.assertEqual(circuit1.count_ops()["linear_function"], 2)
+        self.assertNotIn("cx", circuit1.count_ops().keys())
+
     @combine(do_commutative_analysis=[False, True])
     def test_collect_from_back_correctness(self, do_commutative_analysis):
         """Test that collecting from the back of the circuit works correctly."""

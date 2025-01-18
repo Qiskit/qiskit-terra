@@ -95,6 +95,7 @@ def collect_using_filter_function(
     min_block_size,
     split_layers=False,
     collect_from_back=False,
+    max_block_width=None,
 ):
     """Corresponds to an important block collection strategy that greedily collects
     maximal blocks of nodes matching a given ``filter_function``.
@@ -105,6 +106,7 @@ def collect_using_filter_function(
         min_block_size=min_block_size,
         split_layers=split_layers,
         collect_from_back=collect_from_back,
+        max_block_width=max_block_width,
     )
 
 

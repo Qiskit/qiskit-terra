@@ -878,6 +878,112 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(blocks[0]), 1)
         self.assertEqual(len(blocks[1]), 7)
 
+    def test_max_block_width_dagcircuit(self):
+        """Test that the option max_block_width for collecting blocks works correctly."""
+
+        # original circuit
+        circuit = QuantumCircuit(6)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(2, 3)
+        circuit.cx(3, 4)
+        circuit.cx(4, 5)
+
+        block_collector = BlockCollector(circuit_to_dag(circuit))
+
+        # When max_block_width is not specified, we should obtain 1 block
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+        )
+        self.assertEqual(len(blocks), 1)
+
+        # When max_block_width is None, we should still obtain 1 block
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=None,
+        )
+        self.assertEqual(len(blocks), 1)
+
+        # When max_block_width=2, we should still obtain 5 blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=2,
+        )
+        self.assertEqual(len(blocks), 5)
+
+        # When max_block_width=3, we should still obtain 3 blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=3,
+        )
+        self.assertEqual(len(blocks), 3)
+
+        # When max_block_width=4, we should still obtain 2 blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=4,
+        )
+        self.assertEqual(len(blocks), 2)
+
+    def test_max_block_width_dagdependency(self):
+        """Test that the option max_block_width for collecting blocks works correctly."""
+
+        # original circuit
+        circuit = QuantumCircuit(6)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(2, 3)
+        circuit.cx(3, 4)
+        circuit.cx(4, 5)
+
+        block_collector = BlockCollector(circuit_to_dagdependency(circuit))
+
+        # When max_block_width is not specified, we should obtain 1 block
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+        )
+        self.assertEqual(len(blocks), 1)
+
+        # When max_block_width is None, we should still obtain 1 block
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=None,
+        )
+        self.assertEqual(len(blocks), 1)
+
+        # When max_block_width=2, we should still obtain 5 blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=2,
+        )
+        self.assertEqual(len(blocks), 5)
+
+        # When max_block_width=3, we should still obtain 3 blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=3,
+        )
+        self.assertEqual(len(blocks), 3)
+
+        # When max_block_width=4, we should still obtain 2 blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            min_block_size=1,
+            max_block_width=4,
+        )
+        self.assertEqual(len(blocks), 2)
+
     def test_split_layers_dagcircuit(self):
         """Test that splitting blocks of nodes into layers works correctly."""
 
