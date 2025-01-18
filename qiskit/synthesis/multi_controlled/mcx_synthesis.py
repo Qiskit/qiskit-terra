@@ -19,8 +19,8 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
     HGate,
-    MCU1Gate,
-    CU1Gate,
+    MCPhaseGate,
+    CPhaseGate,
     RC3XGate,
     C3SXGate,
 )
@@ -256,7 +256,7 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_gray")
     qc._append(HGate(), [q[-1]], [])
-    qc._append(MCU1Gate(np.pi, num_ctrl_qubits=num_ctrl_qubits), q[:], [])
+    qc._append(MCPhaseGate(np.pi, num_ctrl_qubits=num_ctrl_qubits), q[:], [])
     qc._append(HGate(), [q[-1]], [])
     return qc
 
@@ -344,11 +344,11 @@ def synth_c4x() -> QuantumCircuit:
 
     rules = [
         (HGate(), [q[4]], []),
-        (CU1Gate(np.pi / 2), [q[3], q[4]], []),
+        (CPhaseGate(np.pi / 2), [q[3], q[4]], []),
         (HGate(), [q[4]], []),
         (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
         (HGate(), [q[4]], []),
-        (CU1Gate(-np.pi / 2), [q[3], q[4]], []),
+        (CPhaseGate(-np.pi / 2), [q[3], q[4]], []),
         (HGate(), [q[4]], []),
         (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
         (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
