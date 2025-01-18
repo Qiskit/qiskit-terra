@@ -364,7 +364,7 @@ dependencies = [
  "libm",
  "num-complex",
  "num-traits",
- "pulp",
+ "pulp 0.18.22",
  "reborrow",
 ]
 
@@ -448,7 +448,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "paste",
- "pulp",
+ "pulp 0.18.22",
  "raw-cpuid",
  "rayon",
  "seq-macro",
@@ -1052,8 +1052,22 @@ dependencies = [
  "bytemuck",
  "libm",
  "num-complex",
+ "reborrow",
+]
+
+[[package]]
+name = "pulp"
+version = "0.21.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95fb7a99b37aaef4c7dd2fd15a819eb8010bfc7a2c2155230d51f497316cad6d"
+dependencies = [
+ "bytemuck",
+ "cfg-if",
+ "libm",
+ "num-complex",
  "pulp-macro",
  "reborrow",
+ "version_check",
 ]
 
 [[package]]
@@ -1167,7 +1181,7 @@ dependencies = [
  "num-traits",
  "numpy",
  "once_cell",
- "pulp",
+ "pulp 0.21.4",
  "pyo3",
  "qiskit-circuit",
  "rand",

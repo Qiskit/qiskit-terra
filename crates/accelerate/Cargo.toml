@@ -58,7 +58,7 @@ version = "0.2.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.18.22"
+version = "0.21.4"
 features = ["macro"]
 
 [features]
