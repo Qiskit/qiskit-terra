@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/github/license/Qiskit/qiskit.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
 [![Current Release](https://img.shields.io/github/release/Qiskit/qiskit.svg?logo=Qiskit)](https://github.com/Qiskit/qiskit/releases)
-[![Extended Support Release](https://img.shields.io/github/v/release/Qiskit/qiskit?sort=semver&filter=0.*&logo=Qiskit&label=extended%20support)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0)
+<!-- [![Extended Support Release](https://img.shields.io/github/v/release/Qiskit/qiskit?sort=semver&filter=0.*&logo=Qiskit&label=extended%20support)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0) -->
 [![Downloads](https://img.shields.io/pypi/dm/qiskit.svg)](https://pypi.org/project/qiskit/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
@@ -21,9 +21,6 @@ For more details on how to use Qiskit, refer to the documentation located here:
 
 
 ## Installation
-
-> [!WARNING]
-> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/migration-guides/qiskit-1.0-installation).
 
 We encourage installing Qiskit via ``pip``:
 
@@ -146,9 +143,9 @@ to the project at different levels. If you use Qiskit, please cite as per the in
 
 The changelog for a particular release is dynamically generated and gets
 written to the release page on Github for each release. For example, you can
-find the page for the `0.46.0` release here:
+find the page for the `1.2.0` release here:
 
-<https://github.com/Qiskit/qiskit/releases/tag/0.46.0>
+<https://github.com/Qiskit/qiskit/releases/tag/1.2.0>
 
 The changelog for the current release can be found in the releases tab:
 [![Releases](https://img.shields.io/github/release/Qiskit/qiskit.svg?style=flat&label=)](https://github.com/Qiskit/qiskit/releases)
