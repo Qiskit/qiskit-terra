@@ -1228,8 +1228,13 @@ dependencies = [
  "ahash 0.8.11",
  "hashbrown 0.14.5",
  "indexmap",
+ "lazy_static",
  "oq3_semantics",
+ "oq3_syntax",
  "pyo3",
+ "qiskit-circuit",
+ "regex",
+ "thiserror",
 ]
 
 [[package]]

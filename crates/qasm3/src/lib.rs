@@ -10,10 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod ast;
 mod build;
 mod circuit;
 mod error;
+mod exporter;
 mod expr;
+mod printer;
+mod symbols;
 
 use std::ffi::OsString;
 use std::ops::Deref;
@@ -26,6 +30,7 @@ use pyo3::types::PyModule;
 
 use oq3_semantics::syntax_to_semantics::parse_source_string;
 use pyo3::pybacked::PyBackedStr;
+use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::error::QASM3ImporterError;
 
@@ -151,11 +156,27 @@ pub fn load(
     loads(py, source, custom_gates, include_path)
 }
 
+#[pyfunction]
+#[pyo3(signature = (circuit,/))]
+pub fn dumps(_py: Python, circuit: &Bound<PyAny>) -> PyResult<String> {
+    let mut result = String::new();
+    let circuit_data = circuit
+        .getattr("_data")?
+        .downcast::<CircuitData>()?
+        .borrow();
+    let islayout = !circuit.getattr("layout")?.is_none();
+    let exporter =
+        exporter::Exporter::new(vec!["stdgates.inc"], vec!["U"], true, false, false, "  ");
+    let stream = exporter.dump(&circuit_data, islayout);
+    Ok(stream)
+}
+
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
 pub fn qasm3(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(loads, module)?)?;
     module.add_function(wrap_pyfunction!(load, module)?)?;
+    module.add_function(wrap_pyfunction!(dumps, module)?)?;
     module.add_class::<circuit::PyGate>()?;
     Ok(())
 }

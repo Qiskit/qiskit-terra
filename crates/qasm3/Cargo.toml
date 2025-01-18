@@ -13,7 +13,12 @@ doctest = false
 indexmap.workspace = true
 hashbrown.workspace = true
 oq3_semantics = "0.7.0"
+oq3_syntax = "0.7.0"
+qiskit-circuit.workspace = true
 ahash.workspace = true
+regex = "1.11"
+lazy_static = "1.5"
+thiserror = "1.0"
 
 [dependencies.pyo3]
 workspace = true
