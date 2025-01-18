@@ -773,6 +773,44 @@ class TestBackendEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result[0].data.evs, [1.901141473854881], rtol=self._rtol)
         np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
 
+    def test_precision_and_stds(self):
+        """Test that errors are within user-specified precision"""
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        hamiltonians = [
+            {"ZZ": 1.0},
+            {"ZZ": 2.0, "XX": 3.0},
+            [
+                {"ZZ": 1.0},
+                {"ZZ": 2.0, "XX": 3.0},
+                {"XX": 0.0, "ZZ": 0.0},
+            ],
+        ]
+        for hamiltonian in hamiltonians:
+            job = estimator.run([(circuit, hamiltonian)], precision=self._precision)
+            result = job.result()
+            np.testing.assert_array_less(result[0].data.stds, self._precision)
+
+    def test_precision_with_zero_coefficients(self):
+        """Test that errors are within user-specified precision with zero coefficients"""
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        hamiltonians = [
+            {"ZZ": 0.0},
+            {"ZZ": 0.0, "XX": 0.0},
+            [{"ZZ": 0.0}, {"ZZ": 0.0, "XX": 0.0}],
+        ]
+        for hamiltonian in hamiltonians:
+            job = estimator.run([(circuit, hamiltonian)], precision=self._precision)
+            result = job.result()
+            np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
+
     @combine(backend=BACKENDS_V1, abelian_grouping=[True, False])
     def test_diff_precision_v1(self, backend, abelian_grouping):
         """Test for running different precisions at once"""

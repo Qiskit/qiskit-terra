@@ -1,0 +1,4 @@
+---
+features_primitives:
+  - |
+    An estimation of the shots has been updated in :meth:`.BackendEstimatorV2.run` to account for the error from multi-term observables.

@@ -180,7 +180,11 @@ class BackendEstimatorV2(BaseEstimatorV2):
         pub_dict = defaultdict(list)
         # consolidate pubs with the same number of shots
         for i, pub in enumerate(pubs):
-            shots = int(math.ceil(1.0 / pub.precision**2))
+            coeff_sq_sum = 0
+            for obs in pub.observables.ravel():
+                # each element of pub.observables.ravel() may be a multi-term observable
+                coeff_sq_sum = max(coeff_sq_sum, sum(coeff**2 for coeff in obs.values()))
+            shots = max(1, int(math.ceil(coeff_sq_sum / pub.precision**2)))
             pub_dict[shots].append(i)
 
         results = [None] * len(pubs)
