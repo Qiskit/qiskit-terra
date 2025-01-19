@@ -1139,10 +1139,8 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         cliff = Clifford(qc)
         circuit = QuantumCircuit(4)
         circuit.append(AnnotatedOperation(cliff, ControlModifier(2)), [0, 1, 2, 3])
-        transpiled_circuit = HighLevelSynthesis()(circuit)
-        expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(cliff.to_instruction().control(2), [0, 1, 2, 3])
-        self.assertEqual(transpiled_circuit, expected_circuit)
+        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
+        self.assertEqual(transpiled_circuit.count_ops().keys(), {"cx", "u"})
 
     def test_multiple_controls(self):
         """Test lazy controlled synthesis with multiple control modifiers."""
@@ -1651,6 +1649,25 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
         qct = pass_(qc)
         self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_circuit_with_phase(self):
+        """Test controlled-annotated circuits with global phase."""
+        inner = QuantumCircuit(2)
+        inner.global_phase = 1
+        inner.h(0)
+        inner.cx(0, 1)
+        gate = inner.to_gate()
+
+        qc1 = QuantumCircuit(3)
+        qc1.append(gate.control(annotated=False), [0, 1, 2])
+        qct1 = HighLevelSynthesis(basis_gates=["cx", "u"])(qc1)
+
+        qc2 = QuantumCircuit(3)
+        qc2.append(gate.control(annotated=True), [0, 1, 2])
+        qct2 = HighLevelSynthesis(basis_gates=["cx", "u"])(qc2)
+
+        self.assertEqual(Operator(qc1), Operator(qc2))
+        self.assertEqual(Operator(qct1), Operator(qct2))
 
     def test_annotated_rec(self):
         """Test synthesis with annotated custom gates and recursion."""

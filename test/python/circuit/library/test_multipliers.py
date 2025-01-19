@@ -13,7 +13,6 @@
 """Test multiplier circuits."""
 
 import unittest
-import re
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -143,7 +142,7 @@ class TestMultiplier(QiskitTestCase):
         """Test setting the HLS plugins for the modular adder."""
 
         # all gates with the plugins we check, including an expected operation
-        plugins = [("cumulative_h18", "ccircuit-.*"), ("qft_r17", "qft")]
+        plugins = [("cumulative_h18", "ch"), ("qft_r17", "mcphase")]
 
         num_state_qubits = 2
 
@@ -159,8 +158,7 @@ class TestMultiplier(QiskitTestCase):
 
                 synth = hls(circuit)
                 ops = set(synth.count_ops().keys())
-
-                self.assertTrue(any(re.match(expected_op, op) for op in ops))
+                self.assertIn(expected_op, ops)
 
 
 if __name__ == "__main__":
