@@ -1,0 +1,3 @@
+fixes:
+  - |
+    Generating discrete basis approximations for a basis containing `sx` or `sxdg` gates would fail due to missing inverse definitions of these gates in the :mod:`qiskit.synthesis.discrete_basis/generate_basis_approximations` module. This has been fixed by adding the missing inverse definitions.

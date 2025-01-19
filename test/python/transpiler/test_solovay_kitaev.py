@@ -429,7 +429,7 @@ class TestSolovayKitaevUtils(QiskitTestCase):
 
         Regression test of Qiskit/qiskit-terra#9585.
         """
-        basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg"]
+        basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg", "sx", "sxdg"]
         approx = generate_basic_approximations(basis, depth=2)
 
         # This mainly checks that there are no errors in the generation (like
