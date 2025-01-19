@@ -14,6 +14,7 @@ use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
+mod lnn;
 mod pmh;
 pub mod utils;
 
@@ -187,5 +188,6 @@ pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(random_invertible_binary_matrix))?;
     m.add_wrapped(wrap_pyfunction!(check_invertible_binary_matrix))?;
     m.add_wrapped(wrap_pyfunction!(pmh::synth_cnot_count_full_pmh))?;
+    m.add_wrapped(wrap_pyfunction!(lnn::optimize_cx_circ_depth_5n_line))?;
     Ok(())
 }

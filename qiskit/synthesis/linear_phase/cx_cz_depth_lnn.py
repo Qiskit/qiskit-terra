@@ -33,7 +33,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import calc_inverse_matrix
-from qiskit.synthesis.linear.linear_depth_lnn import _optimize_cx_circ_depth_5n_line
+from qiskit._accelerate.synthesis.linear import optimize_cx_circ_depth_5n_line
 
 
 def _initialize_phase_schedule(mat_z):
@@ -245,7 +245,7 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
     n = len(mat_x)
     mat_x = calc_inverse_matrix(mat_x)
 
-    cx_instructions_rows_m2nw, cx_instructions_rows_nw2id = _optimize_cx_circ_depth_5n_line(mat_x)
+    cx_instructions_rows_m2nw, cx_instructions_rows_nw2id = optimize_cx_circ_depth_5n_line(mat_x)
 
     # Meanwhile, also build the -CZ- circuit via Phase gate insertions as per Algorithm 2 [2]
     phase_schedule = _initialize_phase_schedule(mat_z)
