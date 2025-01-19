@@ -795,6 +795,7 @@ def plot_state_qsphere(
     figsize=None,
     ax=None,
     show_state_labels=True,
+    show_all_state_labels=False,
     show_state_phases=False,
     use_degrees=False,
     *,
@@ -814,6 +815,10 @@ def plot_state_qsphere(
             will be no returned Figure since it is redundant.
         show_state_labels (bool): An optional boolean indicating whether to
             show labels for each basis state.
+        show_all_state_labels (bool): An optional boolean indicating whether
+            to show labels for all possible basis states. This defaults false, as with
+            larger qubit counts (eg. >3) the number of state labels can clutter
+            the output.
         show_state_phases (bool): An optional boolean indicating whether to
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
@@ -986,6 +991,29 @@ def plot_state_qsphere(
                         else:
                             element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
                             element_text += f"\n${element_angle}$"
+                    ax.text(
+                        xvalue_text,
+                        yvalue_text,
+                        zvalue_text,
+                        element_text,
+                        ha="center",
+                        va="center",
+                        size=12,
+                    )
+                elif show_all_state_labels:
+                    rprime = 1.3
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                    zvalue_text = rprime * np.cos(angle_theta)
+                    element_text = "$\\vert" + element + "\\rangle$"
+                    if show_state_phases:
+                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                        if use_degrees:
+                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
+                        else:
+                            element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
+                            element_text += "\n$%s$" % (element_angle)
                     ax.text(
                         xvalue_text,
                         yvalue_text,
