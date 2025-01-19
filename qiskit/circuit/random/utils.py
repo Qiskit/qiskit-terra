@@ -11,14 +11,334 @@
 # that they have been altered from the originals.
 
 """Utility functions for generating random circuits."""
-
 import numpy as np
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, CircuitInstruction
-from qiskit.circuit import Reset
+from qiskit.circuit import (
+    ClassicalRegister,
+    QuantumCircuit,
+    CircuitInstruction,
+)
+from qiskit.circuit import Reset, Delay
 from qiskit.circuit.library import standard_gates
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
+
+
+def _get_gates(n_qubits):
+    return [
+        (gate, gate.num_qubits, len(gate.params))
+        for gate in get_standard_gate_name_mapping().values()
+        if gate.num_qubits == n_qubits
+    ]
+
+
+def random_circuit_from_graph(
+    interaction_graph,
+    min_2q_gate_per_edge: int,
+    max_operands: int = 2,
+    measure: bool = False,
+    conditional: bool = False,
+    reset: bool = False,
+    seed: bool = None,
+    insert_1q_oper: bool = True,
+    prob_conditional: float = 0.1,
+    prob_reset: float = 0.1,
+):
+    """Generate random circuit of arbitrary size and form which strictly respect the interaction
+    graph passed as argument. Interaction Graph is a graph G=(V, E) where V are the qubits in the
+    circuit, and, E is the set of two-qubit gate interactions between two particular qubits in the
+    circuit.
+
+    This function will generate a random circuit by randomly selecting gates from the set of
+    standard gates in :mod:`qiskit.circuit.library.standard_gates`. User can attach a numerical
+    value as a metadata to the edge of the graph indicating the edge weight for that particular edge,
+    These edge weights would be normalized to the probabilities for the edges of getting selected.
+    If all the edge weights are passed as `None`, then the probability of each qubit-pair of getting
+    selected is set to 1/N, where `N` is the number of edges in the interaction_graph passed in,
+    i.e each edge is drawn uniformly. If any weight of an edge is set as zero, that particular
+    edge will be not be included in the output circuit.
+
+    If numerical values are present as probabilities but some/any are None, or negative, this will
+    raise a ValueError.
+
+    If :arg:`max_operands` is set to 1, then there are no 2Q operations, so no need to take care
+    of the edges, in such case the function will return a circuit from the `random_circuit` function,
+    which would be passed with the :arg:`max_operands` as 1.
+
+    If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs which
+    exists in the input interaction graph are chosen at random, the qubit-pairs are also chosen at
+    random based on the probability attached to the qubit-pair, the 2Q gates are applied on the
+    qubit-pairs which are idle for that particular iteration, this is to make sure that for a particular
+    iteration only one circuit layer exists, now, if `insert_1q_oper` is set to True, randomly
+    chosen 1Q gates are applied to qubits that are still idle for that particular iteration, after
+    applying 2Q gates for that particular iteration.
+
+    Example:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit.random.utils import random_circuit_from_graph
+       import rustworkx as rx
+       pydi_graph = rx.PyDiGraph()
+       pydi_graph.add_nodes_from(range(7))
+       cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22), (4, 5, 0.13), (5, 6, 0.17)]
+       pydi_graph.add_edges_from(cp_map)
+       qc = random_circuit_from_graph(pydi_graph, min_2q_gate_per_edge=1, measure = True)
+       qc.draw(output='mpl')
+
+    Args:
+        interaction_graph (PyGraph | PyDiGraph): Interaction Graph
+        min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used
+        in the random circuit.
+        max_operands (int): maximum qubit operands of each gate(should be 1 or 2)
+        (optional, default:2)
+        measure (bool): if True, measure all qubits at the end. (optional, default: False)
+        conditional (bool): if True, insert middle measurements and conditionals.
+        (optional, default: False)
+        reset (bool): if True, insert middle resets. (optional, default: False)
+        seed (int): sets random seed. (If `None`, a random seed is chosen) (optional)
+        insert_1q_oper (bool): Insert 1Q operations to the circuit. (optional, default: True)
+        prob_conditional (float): Probability less than 1.0, this is used to control the occurence
+        of conditionals in the circuit. (optional, default: 0.1)
+        prob_reset (float): Probability less than 1.0, this is used to control the occurence of
+        reset in the cirucit. (optional, default: 0.1)
+
+    Returns:
+        QuantumCircuit: constructed circuit
+
+    Raises:
+        CircuitError: When `max_operands` is not 1 or 2.
+        CircuitError: When `max_operands` is set to 1, but no 1Q operations are allowed by setting
+        `insert_1q_oper` to false.
+        ValueError: when any edge have probability None but not all or, any of the probabilities
+        are negatve.
+    """
+
+    # max_operands should be 1 or 2
+    if max_operands not in {1, 2}:
+        raise CircuitError(
+            "This function is intended to only work on single-qubit and two-qubit gates"
+        )
+
+    if max_operands == 1 and not insert_1q_oper:
+        raise CircuitError(
+            "`max_operands` of 1 means only 1Q gates are allowed, but `insert_1q_oper` is False"
+        )
+
+    num_qubits = interaction_graph.num_nodes()
+
+    if num_qubits == 0:
+        return QuantumCircuit()
+
+    max_operands = max_operands if num_qubits > max_operands else num_qubits
+
+    edges_probs = interaction_graph.edges()
+
+    num_edges = interaction_graph.num_edges()
+
+    if num_edges == 0 or max_operands == 1:
+        # If there is no edge then there could be no 2Q operation
+        # or, if only 1Q operations are allowed, then there is no
+        # point in considering edges.
+        return random_circuit(
+            num_qubits=num_qubits,
+            depth=min_2q_gate_per_edge,
+            max_operands=1,
+            measure=measure,
+            conditional=conditional,
+            reset=reset,
+            seed=seed,
+        )
+
+    edge_list = interaction_graph.edge_list()
+
+    # If any edge weight is zero, just remove that edge from the edge_list
+    if 0 in edges_probs:
+        edge_list = [edge for edge, edge_prob in zip(edge_list, edges_probs) if not edge_prob == 0]
+        edges_probs = [edge_prob for edge_prob in edges_probs if not edge_prob == 0]
+
+    # Now, zeros are filtered out in above if-block.
+    # Now, If none of the edges_probs are `None`
+    if all(edges_probs):
+        if not np.isclose(np.sum(edges_probs), 1.000, rtol=0.001):
+            # Normalize edge weights if not already normalized.
+            edges_probs = edges_probs / np.sum(edges_probs)
+
+    # If any of the values of the probability is None, then it would raise an error.
+    elif any(edges_probs):
+        raise ValueError(
+            "Some of the probabilities of a qubit-pair getting selected is `None`"
+            " It should either be all `None` or all positive numerical weights. "
+        )
+
+    # If all edge weights are none, assume the weight of each edge to be 1/N.
+    elif None in edges_probs:
+        edges_probs = [1.0 / num_edges for _ in range(num_edges)]
+
+    # edge weights in interaction_graph must be positive
+    for prob in edges_probs:
+        if prob < 0:
+            raise ValueError("The probability should be positive")
+
+    gates_1q = None
+    if insert_1q_oper:
+        gates_1q = _get_gates(n_qubits=1)
+
+        # Remove `measure` and `reset` from 1Q operations.
+        gates_1q = [
+            (instr, num_gates, num_params)
+            for instr, num_gates, num_params in gates_1q
+            if not instr.name in {"measure", "reset"}
+        ]
+        gates_1q = np.array(
+            gates_1q, dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)]
+        )
+
+    gates_2q = np.array(
+        _get_gates(n_qubits=2),
+        dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)],
+    )
+
+    qc = QuantumCircuit(num_qubits)
+
+    if measure or conditional:
+        cr = ClassicalRegister(num_qubits, "c")
+        qc.add_register(cr)
+
+    if seed is None:
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+    rng = np.random.default_rng(seed)
+
+    qubits = np.array(qc.qubits, dtype=object, copy=True)
+
+    edges_used = {edge: 0 for edge in edge_list}
+
+    # This loop will keep on applying gates to qubits until every qubit-pair
+    # has 2Q operations applied at-least `min_2q_gate_per_edge` times.
+    while not all(np.array(list(edges_used.values())) >= min_2q_gate_per_edge):
+
+        qubit_idx_used = set()
+        qubit_idx_not_used = set(range(num_qubits))
+
+        # normalized edge weights represent the probability with which each qubit-pair
+        # interaction is inserted into a layer.
+        edge_choices = rng.choice(
+            edge_list,
+            size=num_edges,
+            replace=True,
+            p=edges_probs,
+        )
+        gate_choices = rng.choice(gates_2q, size=num_edges, replace=True)
+
+        cumsum_params = np.cumsum(gate_choices["num_params"], dtype=np.int64)
+        parameters = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
+
+        # Generating a random boolean matrix of num_edges x 2,
+        # corresponding to probable reset on both control, target qubit of the edge from the edge_list.
+        is_reset = rng.random(size=(num_edges, 2)) < prob_reset
+
+        is_conditional = rng.random(size=len(gate_choices)) < prob_conditional
+
+        condition_values = rng.integers(
+            0, 1 << min(num_qubits, 63), size=np.count_nonzero(is_conditional)
+        )
+        clbit_idx = 0
+
+        for current_instr, num_gate_params, edge, is_cond, is_rst in zip(
+            gate_choices["class"],
+            gate_choices["num_params"],
+            edge_choices,
+            is_conditional,
+            is_reset,
+        ):
+
+            control_qubit, target_qubit = tuple(edge)
+
+            # For every edge there are two probabilistically generated boolean values corresponding
+            # to control, target qubits of the edge
+            # an idle qubit for a particular iteration on which reset is applied is considered idle.
+            if reset:
+                is_rst_control, is_rst_target = is_rst
+                rst_oper = Reset()
+                if is_rst_control:
+                    qc._append(
+                        CircuitInstruction(
+                            operation=rst_oper,
+                            qubits=[qubits[control_qubit]],
+                        )
+                    )
+                if is_rst_target:
+                    qc._append(
+                        CircuitInstruction(
+                            operation=rst_oper,
+                            qubits=[qubits[target_qubit]],
+                        )
+                    )
+
+            if current_instr.params != []:
+                # Check if instruction is mutable, so that it could accept parameters.
+                if not current_instr.mutable:
+                    current_instr = current_instr.to_mutable()
+                params = parameters[:num_gate_params]
+                parameters = parameters[num_gate_params:]
+                current_instr.params = params
+
+            if is_cond and conditional:
+                qc.measure(qc.qubits, cr)
+                # The condition values are required to be bigints, not Numpy's fixed-width type.
+                current_instr = current_instr.c_if(cr, int(condition_values[clbit_idx]))
+                clbit_idx += 1
+
+            if control_qubit in qubit_idx_not_used and target_qubit in qubit_idx_not_used:
+                qc._append(
+                    CircuitInstruction(
+                        operation=current_instr,
+                        qubits=[qubits[control_qubit], qubits[target_qubit]],
+                    )
+                )
+
+                qubit_idx_used.update(set(edge))
+                qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
+                edges_used[(control_qubit, target_qubit)] += 1
+
+        if insert_1q_oper:
+            if not len(qubit_idx_not_used) == 0:
+
+                # Some extra 1Q Gate in to fill qubits which are still idle for this
+                # particular while iteration.
+                extra_1q_gates = rng.choice(gates_1q, size=len(qubit_idx_not_used), replace=True)
+
+                cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)
+                parameters_1q = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
+
+                for current_instr, num_gate_params, qubit_idx in zip(
+                    extra_1q_gates["class"], extra_1q_gates["num_params"], qubit_idx_not_used
+                ):
+
+                    if current_instr.params != []:
+                        # Check if instruction is mutable, so that it could accept parameters.
+                        if not current_instr.mutable:
+                            current_instr = current_instr.to_mutable()
+                        param = parameters_1q[:num_gate_params]
+                        parameters_1q = parameters_1q[num_gate_params:]
+                        if isinstance(current_instr, Delay):
+                            current_instr.params = [int(param[0])]
+                        else:
+                            current_instr.params = param
+
+                    qc._append(
+                        CircuitInstruction(
+                            operation=current_instr,
+                            qubits=[qubits[qubit_idx]],
+                        )
+                    )
+
+    if measure:
+        qc.measure(qc.qubits, cr)
+
+    return qc
 
 
 def random_circuit(
@@ -97,74 +417,23 @@ def random_circuit(
     if num_qubits == 0:
         return QuantumCircuit()
 
+    # Remove 'reset' and 'measure', this will be added later if required.
     gates_1q = [
-        # (Gate class, number of qubits, number of parameters)
-        (standard_gates.IGate, 1, 0),
-        (standard_gates.SXGate, 1, 0),
-        (standard_gates.XGate, 1, 0),
-        (standard_gates.RZGate, 1, 1),
-        (standard_gates.RGate, 1, 2),
-        (standard_gates.HGate, 1, 0),
-        (standard_gates.PhaseGate, 1, 1),
-        (standard_gates.RXGate, 1, 1),
-        (standard_gates.RYGate, 1, 1),
-        (standard_gates.SGate, 1, 0),
-        (standard_gates.SdgGate, 1, 0),
-        (standard_gates.SXdgGate, 1, 0),
-        (standard_gates.TGate, 1, 0),
-        (standard_gates.TdgGate, 1, 0),
-        (standard_gates.UGate, 1, 3),
-        (standard_gates.U1Gate, 1, 1),
-        (standard_gates.U2Gate, 1, 2),
-        (standard_gates.U3Gate, 1, 3),
-        (standard_gates.YGate, 1, 0),
-        (standard_gates.ZGate, 1, 0),
-    ]
-    if reset:
-        gates_1q.append((Reset, 1, 0))
-    gates_2q = [
-        (standard_gates.CXGate, 2, 0),
-        (standard_gates.DCXGate, 2, 0),
-        (standard_gates.CHGate, 2, 0),
-        (standard_gates.CPhaseGate, 2, 1),
-        (standard_gates.CRXGate, 2, 1),
-        (standard_gates.CRYGate, 2, 1),
-        (standard_gates.CRZGate, 2, 1),
-        (standard_gates.CSXGate, 2, 0),
-        (standard_gates.CUGate, 2, 4),
-        (standard_gates.CU1Gate, 2, 1),
-        (standard_gates.CU3Gate, 2, 3),
-        (standard_gates.CYGate, 2, 0),
-        (standard_gates.CZGate, 2, 0),
-        (standard_gates.RXXGate, 2, 1),
-        (standard_gates.RYYGate, 2, 1),
-        (standard_gates.RZZGate, 2, 1),
-        (standard_gates.RZXGate, 2, 1),
-        (standard_gates.XXMinusYYGate, 2, 2),
-        (standard_gates.XXPlusYYGate, 2, 2),
-        (standard_gates.ECRGate, 2, 0),
-        (standard_gates.CSGate, 2, 0),
-        (standard_gates.CSdgGate, 2, 0),
-        (standard_gates.SwapGate, 2, 0),
-        (standard_gates.iSwapGate, 2, 0),
-    ]
-    gates_3q = [
-        (standard_gates.CCXGate, 3, 0),
-        (standard_gates.CSwapGate, 3, 0),
-        (standard_gates.CCZGate, 3, 0),
-        (standard_gates.RCCXGate, 3, 0),
-    ]
-    gates_4q = [
-        (standard_gates.C3SXGate, 4, 0),
-        (standard_gates.RC3XGate, 4, 0),
+        (oper, qargs, n_params)
+        for oper, qargs, n_params in _get_gates(n_qubits=1)
+        if not oper.name in {"measure", "reset"}
     ]
 
+    if reset:
+        gates_1q.append((Reset(), 1, 0))
+
     gates_1q = np.array(
-        gates_1q, dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)]
+        gates_1q,
+        dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)],
     )
-    gates_2q = np.array(gates_2q, dtype=gates_1q.dtype)
-    gates_3q = np.array(gates_3q, dtype=gates_1q.dtype)
-    gates_4q = np.array(gates_4q, dtype=gates_1q.dtype)
+    gates_2q = np.array(_get_gates(n_qubits=2), dtype=gates_1q.dtype)
+    gates_3q = np.array(_get_gates(n_qubits=3), dtype=gates_1q.dtype)
+    gates_4q = np.array(_get_gates(n_qubits=4), dtype=gates_1q.dtype)
 
     all_gate_lists = [gates_1q, gates_2q, gates_3q, gates_4q]
 
@@ -262,7 +531,7 @@ def random_circuit(
                 0, 1 << min(num_qubits, 63), size=np.count_nonzero(is_conditional)
             )
             c_ptr = 0
-            for gate, q_start, q_end, p_start, p_end, is_cond in zip(
+            for current_instr, q_start, q_end, p_start, p_end, is_cond in zip(
                 gate_specs["class"],
                 q_indices[:-1],
                 q_indices[1:],
@@ -270,19 +539,44 @@ def random_circuit(
                 p_indices[1:],
                 is_conditional,
             ):
-                operation = gate(*parameters[p_start:p_end])
-                if is_cond:
+                if current_instr.params != []:
+                    # Instruction needs to be mutable to change the parameters.
+                    if not current_instr.mutable:
+                        current_instr.to_mutable()
+
+                    if current_instr.name == "delay":
+                        # Parameter of `Delay` instruction is integer multiple of `dt`.
+                        current_instr.params = [int(parameters[p_start:p_end][0])]
+                    else:
+                        current_instr.params = parameters[p_start:p_end]
+
+                # Conditional `Delay` is yet to be implemented.
+                if is_cond and current_instr.name != "delay":
                     qc.measure(qc.qubits, cr)
                     # The condition values are required to be bigints, not Numpy's fixed-width type.
-                    operation = operation.c_if(cr, int(condition_values[c_ptr]))
+                    current_instr = current_instr.c_if(cr, int(condition_values[c_ptr]))
                     c_ptr += 1
-                qc._append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
+
+                qc._append(
+                    CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end])
+                )
         else:
-            for gate, q_start, q_end, p_start, p_end in zip(
+            for current_instr, q_start, q_end, p_start, p_end in zip(
                 gate_specs["class"], q_indices[:-1], q_indices[1:], p_indices[:-1], p_indices[1:]
             ):
-                operation = gate(*parameters[p_start:p_end])
-                qc._append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
+                if current_instr.params != []:
+                    # Instruction needs to be mutable to change the parameters.
+                    if not current_instr.mutable:
+                        current_instr.to_mutable()
+                    if current_instr.name == "delay":
+                        # Parameter of `Delay` instruction is integer multiple of `dt`.
+                        current_instr.params = [int(parameters[p_start:p_end][0])]
+                    else:
+                        current_instr.params = parameters[p_start:p_end]
+
+                qc._append(
+                    CircuitInstruction(operation=current_instr, qubits=qubits[q_start:q_end])
+                )
     if measure:
         qc.measure(qc.qubits, cr)
 

@@ -12,4 +12,4 @@
 
 """Method for generating random circuits."""
 
-from .utils import random_circuit, random_clifford_circuit
+from .utils import random_circuit, random_clifford_circuit, random_circuit_from_graph
