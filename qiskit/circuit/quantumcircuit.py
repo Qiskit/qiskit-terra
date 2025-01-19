@@ -128,6 +128,34 @@ class QuantumCircuit:
         different regimes of quantum-circuit descriptions in Qiskit, see the module-level
         documentation of :mod:`qiskit.circuit`.
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+       from qiskit import QuantumCircuit
+
+       # Create a new circuit with two qubits
+       qc = QuantumCircuit(2)
+
+       # Add a Hadamard gate to qubit 0
+       qc.h(0)
+
+       # Perform a controlled-X gate on qubit 1, controlled by qubit 0
+       qc.cx(0, 1)
+
+       # Return a text drawing of the circuit.
+       qc.draw()
+
+    .. code-block:: text
+
+            ┌───┐
+       q_0: ┤ H ├──■──
+            └───┘┌─┴─┐
+       q_1: ─────┤ X ├
+                 └───┘
+
     Circuit attributes
     ==================
 
@@ -1062,7 +1090,24 @@ class QuantumCircuit:
             regs = tuple(int(reg) for reg in regs)  # cast to int
         self._base_name = None
         self.name: str
-        """A human-readable name for the circuit."""
+        """A human-readable name for the circuit.
+        
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context: reset
+
+                from qiskit import QuantumCircuit
+
+                qc = QuantumCircuit(2, 2, name="my_circuit")
+                print(qc.name)
+
+            .. code-block:: text
+
+                my_circuit
+        """
         if name is None:
             self._base_name = self._cls_prefix()
             self._name_update()
@@ -1133,10 +1178,27 @@ class QuantumCircuit:
         self._duration = None
         self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
-        """Arbitrary user-defined metadata for the circuit.
+        """Arbitrary user-defined dictionary of metadata for the circuit.
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
-        transpiler and reattach it to the output, so you can track your own metadata."""
+        transpiler and reattach it to the output, so you can track your own metadata.
+        
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                qc = QuantumCircuit(2, 2, metadata={'experiment_type': 'Bell state experiment'})
+
+                print(qc.metadata)
+
+            .. code-block:: text
+
+                {'experiment_type': 'Bell state experiment'}
+        """
 
     @property
     @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
@@ -1261,6 +1323,51 @@ class QuantumCircuit:
         selected physical qubits on the :class:`~.Target`, and a final layout
         which is an output permutation caused by :class:`~.SwapGate`\s
         inserted during routing.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+                from qiskit.providers.fake_provider import GenericBackendV2
+                from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+                # Create circuit to test transpiler on
+                qc = QuantumCircuit(3)
+                qc.h([0, 1, 2])
+
+                # Add measurements to the circuit
+                qc.measure_all()
+
+                # Specify the QPU to target
+                backend = GenericBackendV2(3)
+
+                # Transpile the circuit
+                pass_manager = generate_preset_pass_manager(
+                    optimization_level=1, backend=backend
+                )
+                transpiled_circ = pass_manager.run(qc)
+
+                print(transpiled_circ.layout)
+
+            .. code-block:: text
+
+                TranspileLayout(initial_layout=Layout({
+                0: Qubit(QuantumRegister(3, 'q'), 0),
+                1: Qubit(QuantumRegister(3, 'q'), 1),
+                2: Qubit(QuantumRegister(3, 'q'), 2)
+                }), input_qubit_mapping={Qubit(QuantumRegister(3, 'q'), 0): 0,
+                Qubit(QuantumRegister(3, 'q'), 1): 1, Qubit(QuantumRegister(3,
+                'q'), 2): 2}, final_layout=None, _input_qubit_count=3,
+                _output_qubit_list=[Qubit(QuantumRegister(3, 'q'), 0), Qubit
+                (QuantumRegister(3, 'q'), 1), Qubit(QuantumRegister(3, 'q'),
+                2)])
+
+
+
+
         """
         return self._layout
 
@@ -1268,9 +1375,27 @@ class QuantumCircuit:
     def data(self) -> QuantumCircuitData:
         """The circuit data (instructions and context).
 
-        Returns:
-            QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
-            for each instruction.
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                qc = QuantumCircuit(2, 2)
+                qc.measure([0], [1])
+                print(qc.data)
+
+            .. code-block:: text
+
+                [CircuitInstruction(operation=Instruction(name='measure', num_qubits=1,
+                num_clbits=1, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),),
+                clbits=(Clbit(ClassicalRegister(2, 'c'), 1),))]
+
+            Returns:
+                QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
+                for each instruction.
         """
         return QuantumCircuitData(self)
 
@@ -1308,8 +1433,71 @@ class QuantumCircuit:
     def op_start_times(self) -> list[int]:
         """Return a list of operation start times.
 
-        This attribute is enabled once one of scheduling analysis passes
+        This attribute is enabled once one of the scheduling analysis passes
         runs on the quantum circuit.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+                from qiskit.providers.fake_provider import GenericBackendV2
+                from qiskit.transpiler import generate_preset_pass_manager
+
+                qc = QuantumCircuit(2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure_all()
+
+                # Print the original circuit
+                print("Original circuit:")
+                print(qc)
+
+                # Transpile the circuit with a specific basis gates list and print the resulting circuit
+                backend = GenericBackendV2(2, basis_gates=['u1', 'u2', 'u3', 'cx'])
+                pm = generate_preset_pass_manager(
+                    optimization_level=1, backend=backend, scheduling_method="alap"
+                )
+                transpiled_qc = pm.run(qc)
+                print("Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:")
+                print(transpiled_qc)
+
+                # Print the start times of each instruction in the transpiled circuit
+                print("Start times of instructions in the transpiled circuit:")
+                for instruction, start_time in zip(transpiled_qc.data, transpiled_qc.op_start_times):
+                    print(f"{instruction.operation.name}: {start_time}")
+
+            .. code-block:: text
+
+
+                Original circuit:
+                        ┌───┐      ░ ┌─┐
+                q_0: ┤ H ├──■───░─┤M├───
+                        └───┘┌─┴─┐ ░ └╥┘┌─┐
+                q_1: ─────┤ X ├─░──╫─┤M├
+                            └───┘ ░  ║ └╥┘
+                meas: 2/══════════════╩══╩═
+                                    0  1
+
+                Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:
+                            ┌─────────┐          ░ ┌─────────────────┐┌─┐
+                q_0 -> 0 ───┤ U2(0,π) ├──────■───░─┤ Delay(1255[dt]) ├┤M├
+                        ┌──┴─────────┴───┐┌─┴─┐ ░ └───────┬─┬───────┘└╥┘
+                q_1 -> 1 ┤ Delay(196[dt]) ├┤ X ├─░─────────┤M├─────────╫─
+                        └────────────────┘└───┘ ░         └╥┘         ║
+                meas: 2/═══════════════════════════════════╩══════════╩═
+                                                            1          0
+
+                Start times of instructions in the transpiled circuit:
+                u2: 0
+                delay: 0
+                cx: 196
+                barrier: 2098
+                delay: 2098
+                measure: 3353
+                measure: 2098
 
         Returns:
             List of integers representing instruction start times.
@@ -1388,14 +1576,34 @@ class QuantumCircuit:
 
     @property
     def metadata(self) -> dict:
-        """The user provided metadata associated with the circuit.
+        """The user-provided metadata associated with the circuit.
 
-        The metadata for the circuit is a user provided ``dict`` of metadata
+        The metadata for the circuit is a user-provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
         operation of the circuit, but it is expected to be passed between
-        all transforms of the circuit (ie transpilation) and that providers will
+        all transforms of the circuit (i.e., transpilation) and that providers will
         associate any circuit metadata with the results it returns from
         execution of that circuit.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+                q = QuantumRegister(2)
+                c = ClassicalRegister(2)
+                qc = QuantumCircuit(q, c)
+
+                qc.metadata = {'experiment_type': 'Bell state experiment'}
+
+                print(qc.metadata)
+
+            .. code-block:: text
+
+               {'experiment_type': 'Bell state experiment'}
         """
         return self._metadata
 
@@ -2229,7 +2437,43 @@ class QuantumCircuit:
     @property
     def clbits(self) -> list[Clbit]:
         """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
-        this."""
+        this.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context: reset
+
+                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+                qr1 = QuantumRegister(2)
+                qr2 = QuantumRegister(1)
+                cr1 = ClassicalRegister(2)
+                cr2 = ClassicalRegister(1)
+                qc = QuantumCircuit(qr1, qr2, cr1, cr2)
+
+                print("List the quantum registers:", qc.qregs)
+                print("List the classical registers:", qc.cregs)
+                print("List the qubits in this circuit:", qc.qubits)
+                print("List the ancilla qubits:", qc.ancillas)
+                print("List the classical bits in this circuit:", qc.clbits)
+
+            .. code-block:: text
+
+                List the quantum registers: [QuantumRegister(2, 'q0'),
+                QuantumRegister(1, 'q1')]
+                List the classical registers: [ClassicalRegister(2, 'c0'),
+                ClassicalRegister(1, 'c1')]
+                List the qubits in this circuit: [Qubit(QuantumRegister(2,
+                'q0'), 0), Qubit(QuantumRegister(2, 'q0'), 1), Qubit
+                (QuantumRegister(1, 'q1'), 0)]
+                List the ancilla qubits: []
+                List the classical bits in this circuit: [Clbit
+                (ClassicalRegister(2, 'c0'), 0), Clbit(ClassicalRegister(2,
+                'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
+        """
         return self._data.clbits
 
     @property
@@ -3556,12 +3800,54 @@ class QuantumCircuit:
 
     @property
     def num_ancillas(self) -> int:
-        """Return the number of ancilla qubits."""
+        """Return the number of ancilla qubits.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
+
+                # Create a 2-qubit quantum circuit
+                reg = QuantumRegister(2)
+                qc = QuantumCircuit(reg)
+
+                # Create an ancilla register with 1 qubit
+                anc = AncillaRegister(1)
+                qc.add_register(anc)  # Add the ancilla register to the circuit
+
+                print("Number of ancilla qubits:", qc.num_ancillas)
+
+            .. code-block:: text
+
+                Number of ancilla qubits: 1
+        """
         return len(self.ancillas)
 
     @property
     def num_clbits(self) -> int:
-        """Return number of classical bits."""
+        """Return number of classical bits.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                # Create a new circuit with two qubits and one classical bit
+                qc = QuantumCircuit(2, 1)
+                print("Number of classical bits:", qc.num_clbits)
+
+            .. code-block:: text
+
+                Number of classical bits: 1
+
+
+        """
         return self._data.num_clbits
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
@@ -4139,7 +4425,41 @@ class QuantumCircuit:
 
     @property
     def global_phase(self) -> ParameterValueType:
-        """The global phase of the current circuit scope in radians."""
+        """The global phase of the current circuit scope in radians.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context: reset
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.h(0)
+                circuit.cx(0, 1)
+                print(circuit.global_phase) # find the global phase of the current circuit
+
+            .. code-block:: text
+
+                0.0
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context:
+
+                from numpy import pi
+
+                circuit.global_phase = pi/4 # set the global phase of the circuit to pi/4
+                print(circuit.global_phase)
+
+            .. code-block:: text
+
+                0.7853981633974483
+        """
+
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].global_phase
         return self._data.global_phase
