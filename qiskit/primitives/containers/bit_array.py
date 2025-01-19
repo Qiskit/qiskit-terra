@@ -314,6 +314,29 @@ class BitArray(ShapedMixin):
         array = np.frombuffer(data, dtype=np.uint8, count=len(data))
         return BitArray(array.reshape(-1, num_bytes), num_bits)
 
+    def to_bool_array(self, order: Literal["big", "little"] = "big") -> NDArray[np.bool_]:
+        """Convert this :class:`~BitArray` to a boolean array.
+
+        Args:
+            order: One of ``"big"`` or ``"little"``, respectively indicating whether the most significant
+                bit or the least significant bit of each bitstring should be placed at ``[..., 0]``.
+
+        Returns:
+            A NumPy array of bools.
+
+        Raises:
+            ValueError: If the order is not one of ``"big"`` or ``"little"``.
+        """
+        if order not in ("big", "little"):
+            raise ValueError(
+                f"Invalid value for order: '{order}'. Valid values are 'big' and 'little'."
+            )
+
+        arr = np.unpackbits(self.array, axis=-1)[..., -self.num_bits :]
+        if order == "little":
+            arr = arr[..., ::-1]
+        return arr.astype(np.bool_)
+
     def get_counts(self, loc: int | tuple[int, ...] | None = None) -> dict[str, int]:
         """Return a counts dictionary with bitstring keys.
 

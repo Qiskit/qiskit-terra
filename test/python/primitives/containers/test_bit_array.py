@@ -217,6 +217,36 @@ class BitArrayTestCase(QiskitTestCase):
                 [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="bg"
             )
 
+    def test_to_bool_array(self):
+        """Test the to_bool_array method."""
+
+        bit_array = BitArray(u_8([[[10], [3]], [[8], [1]]]), 4)
+        expected_array = np.array(
+            [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], dtype=np.bool_
+        )
+        self.assertTrue(np.array_equal(bit_array.to_bool_array(), expected_array))
+
+        bit_array = BitArray(u_8([[[10], [3]], [[8], [1]]]), 4)
+        expected_array = np.array(
+            [[[0, 1, 0, 1], [1, 1, 0, 0]], [[0, 0, 0, 1], [1, 0, 0, 0]]], dtype=np.bool_
+        )
+        self.assertTrue(np.array_equal(bit_array.to_bool_array(order="little"), expected_array))
+
+        bit_array = BitArray(u_8([[7, 3, 1]]), 21)
+        expected_array = np.array(
+            [[0, 0, 1, 1, 1] + [0, 0, 0, 0, 0, 0, 1, 1] + [0, 0, 0, 0, 0, 0, 0, 1]], dtype=np.bool_
+        )
+        self.assertTrue(np.array_equal(bit_array.to_bool_array(), expected_array))
+
+        bit_array = BitArray(u_8([[7, 3, 1]]), 21)
+        expected_array = np.array(
+            [[1, 0, 0, 0, 0, 0, 0, 0] + [1, 1, 0, 0, 0, 0, 0, 0] + [1, 1, 1, 0, 0]], dtype=np.bool_
+        )
+        self.assertTrue(np.array_equal(bit_array.to_bool_array(order="little"), expected_array))
+
+        with self.assertRaisesRegex(ValueError, "Invalid value for order"):
+            bit_array.to_bool_array(order="invalid")
+
     @ddt.data("counts", "int", "hex", "bit")
     def test_from_counts(self, counts_type):
         """Test the from_counts static constructor."""
