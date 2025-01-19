@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Fix a bug in :class:`.qasm3.Exporter` that caused the exporter to crash when
-    handling a unitary gate due to incorrect processing of its ``params`` field.
+    Fixed a bug in :class:`.qasm3.Exporter` that caused the exporter to crash when
+    handling a unitary gate due to an incorrect processing of its ``params`` field.
+    Fixed `#13362 <https://github.com/Qiskit/qiskit/issues/13362>`__.

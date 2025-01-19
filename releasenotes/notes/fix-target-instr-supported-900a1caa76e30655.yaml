@@ -2,5 +2,5 @@
 fixes:
   - |
     Fixed a bug in the :meth:`.Target.instruction_supported` method where 
-    targets with ``self.num_qubits==None`` would always return ``false`` 
-    independently of the  supported basis set. 
+    targets with ``self.num_qubits==None`` would always return ``False``
+    independently of the  supported basis set.
