@@ -1,0 +1,6 @@
+---
+upgrade_transpiler:
+  - |
+    The :class:`.SolovayKitaev` transpiler pass no longer raises an exception on circuits
+    that contain single-qubit operations without a ``to_matrix`` method (such as measures,
+    barriers, control-flow operations) or parameterized single-qubit operations.

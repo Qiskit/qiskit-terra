@@ -22,8 +22,10 @@ import scipy
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
@@ -32,7 +34,6 @@ from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
 from qiskit.synthesis.discrete_basis.commutator_decompose import commutator_decompose
 from qiskit.synthesis.discrete_basis.gate_sequence import GateSequence
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
 from qiskit.transpiler.passes.synthesis import SolovayKitaev, SolovayKitaevSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -152,23 +153,6 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertEqual(circuit, decomposed_circuit)
 
-    def test_fails_with_no_to_matrix(self):
-        """Test failer if gate does not have to_matrix."""
-        circuit = QuantumCircuit(1)
-        circuit.initialize("0")
-
-        synth = SolovayKitaev(3, self.basic_approx)
-
-        dag = circuit_to_dag(circuit)
-
-        with self.assertRaises(TranspilerError) as cm:
-            _ = synth.run(dag)
-
-        self.assertEqual(
-            "SolovayKitaev does not support gate without to_matrix method: initialize",
-            cm.exception.message,
-        )
-
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""
         circuit = QuantumCircuit(1)
@@ -260,6 +244,52 @@ class TestSolovayKitaev(QiskitTestCase):
             discretized = skd(circuit)
 
         self.assertEqual(discretized, reference)
+
+    def test_measure(self):
+        """Test the Solovay-Kitaev transpiler pass on circuits with measure operators."""
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        transpiled = SolovayKitaev()(qc)
+        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "measure"})
+
+    def test_barrier(self):
+        """Test the Solovay-Kitaev transpiler pass on circuits with barriers."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.barrier(0)
+        transpiled = SolovayKitaev()(qc)
+        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "barrier"})
+
+    def test_parameterized_gates(self):
+        """Test the Solovay-Kitaev transpiler pass on circuits with parameterized gates."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.rz(Parameter("t"), 0)
+        transpiled = SolovayKitaev()(qc)
+        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "rz"})
+
+    def test_control_flow_if(self):
+        """Test the Solovay-Kitaev transpiler pass on circuits with control flow ops"""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.x(0)
+        with qc.if_test((cr[0], 0)) as else_:
+            qc.y(0)
+        with else_:
+            qc.z(0)
+        transpiled = SolovayKitaev()(qc)
+        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "if_else"})
+
+    def test_no_to_matrix(self):
+        """Test the Solovay-Kitaev transpiler pass on circuits with gates without to_matrix."""
+        qc = QuantumCircuit(1)
+        qc.initialize("0")
+
+        transpiled = SolovayKitaev()(qc)
+        self.assertEqual(set(transpiled.count_ops()), {"initialize"})
 
 
 @ddt
