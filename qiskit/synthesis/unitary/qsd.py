@@ -96,6 +96,7 @@ def qs_decomposition(
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
+    dim_o2 = dim // 2
     nqubits = int(math.log2(dim))
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
@@ -121,9 +122,13 @@ def qs_decomposition(
                 decomposer_2q = TwoQubitBasisDecomposer(CXGate())
         circ = decomposer_2q(mat)
     else:
+        if _is_block_diagonal(mat, dim_o2):
+            # this about halves CX count over standard qsd for this special case
+            u1, u2 = mat[:dim_o2, :dim_o2], mat[dim_o2:, dim_o2:]
+            return _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         qr = QuantumRegister(nqubits)
         circ = QuantumCircuit(qr)
-        dim_o2 = dim // 2
+
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
         # left circ
@@ -286,3 +291,11 @@ def _apply_a2(circ):
     qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
     ccirc.data[ind2] = ccirc.data[ind2].replace(operation=qc3.to_gate())
     return ccirc
+
+
+def _is_block_diagonal(mat, dim_o2):
+    """
+    Check whether matrix is block diagonal
+    TODO: check for matrices which can be made block diagonal
+    """
+    return np.allclose(mat[:dim_o2, dim_o2:], 0) and np.allclose(mat[dim_o2:, :dim_o2], 0)
