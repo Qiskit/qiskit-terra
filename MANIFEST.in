@@ -3,6 +3,7 @@ include requirements.txt
 recursive-include qiskit/qasm/libs *.inc
 include qiskit/VERSION.txt
 include qiskit/visualization/circuit/styles/*.json
+include qiskit/visualization/dag/styles/*.json
 recursive-include qiskit/providers/fake_provider/backends_v1 *.json
 
 # Include the tests files.

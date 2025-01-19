@@ -15,11 +15,12 @@
 import os
 import tempfile
 import unittest
+import itertools
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Store
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
-from qiskit.visualization import VisualizationError
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.utils import optionals as _optionals
 from qiskit.dagcircuit import DAGCircuit
@@ -44,6 +45,46 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         """Test dag draw with invalid style."""
         with self.assertRaisesRegex(VisualizationError, "Invalid style multicolor"):
             dag_drawer(self.dag, style="multicolor")
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_empty_style(self):
+        """
+        Test that dag_drawer() with an empty dict returns a plain DAG
+        """
+        dag_drawer(self.dag, style={})
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_custom_style(self):
+        """
+        Test dag with various custom styles
+        """
+
+        style = {
+            "fontsize": 12,
+            "bgcolor": "white",
+            "dpi": 10,
+            "pad": 0,
+            "nodecolor": "green",
+            "inputnodecolor": "blue",
+            "inputnodefontcolor": "white",
+            "outputnodecolor": "red",
+            "outputnodefontcolor": "white",
+            "opnodecolor": "black",
+            "opnodefontcolor": "white",
+            "edgecolor": "black",
+            "qubitedgecolor": "black",
+            "clbitedgecolor": "black",
+        }
+
+        for r in range(2):
+            combinations = itertools.combinations(style, r)
+            for c in combinations:
+                curr_style = {x: style[x] for x in c}
+                dag_drawer(self.dag, style=curr_style)
+
+        dag_drawer(self.dag, style=style)
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
